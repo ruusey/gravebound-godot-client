@@ -18,6 +18,11 @@ const NAME_GAP := 5.0
 const CHIP_LIFT := 18.0
 const ENEMY_BAR_HEIGHT := 6.0
 const ENEMY_BAR_LIFT := 12.0
+## The quest star is drawn, not the U+2605 glyph the web font lacks; a larger
+## black star behind it stands in for the number's stroke.
+const STAR_ICON := 14
+const STAR_OUTLINE := 18
+const STAR_GAP := 3.0
 ## Enemy chips sit this far above the sprite top — clear of the damage numbers,
 ## which anchor at the hit point / sprite top and float ~30px up (fading as they
 ## go). Was -2 (right in the rise path), so numbers drew over the status pills.
@@ -38,6 +43,8 @@ var _mp_back: ColorRect
 var _mp: ColorRect
 var _name: Label
 var _stars: Label
+var _star_back: TextureRect
+var _star: TextureRect
 var _head: HeadStack
 
 ## The payload last drawn into the tag's children. They are positioned relative
@@ -67,6 +74,8 @@ func _ready() -> void:
 	_name.label_settings = name_style
 	_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_name)
+	_star_back = _icon(HudWidgets.star_icon(STAR_OUTLINE, Color.BLACK))
+	_star = _icon(HudWidgets.star_icon(STAR_ICON))
 	_stars = Label.new()
 	_stars.label_settings = star_style
 	_stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -105,11 +114,15 @@ func show_player(at: Vector2, size: float, label: String, colour: Color, health:
 		_name.position = Vector2(size * 0.5 - _name.size.x * 0.5, top - NAME_GAP - _name.size.y).round()
 		# Under the bars, not over them as the web's line lands: its top meets the
 		# name's baseline and covers the HP and MP bars.
-		_stars.visible = stars > 0
-		if _stars.visible:
-			_stars.text = "\u2605 %d" % stars
+		_show_stars(stars > 0)
+		if stars > 0:
+			_stars.text = str(stars)
 			_stars.reset_size()
-			_stars.position = Vector2(size * 0.5 - _stars.size.x * 0.5, top + 2.0 * BAR_HEIGHT + BAR_GAP + 1.0).round()
+			var row := top + 2.0 * BAR_HEIGHT + BAR_GAP + 1.0
+			var left := size * 0.5 - (STAR_ICON + STAR_GAP + _stars.size.x) * 0.5
+			_stars.position = Vector2(left + STAR_ICON + STAR_GAP, row).round()
+			_star.position = Vector2(left, row + (_stars.size.y - STAR_ICON) * 0.5).round()
+			_star_back.position = _star.position - Vector2.ONE * (STAR_OUTLINE - STAR_ICON) * 0.5
 		_head.position = Vector2(size * 0.5, -CHIP_LIFT).round()
 	# The head stack self-gates on its own content, so it is forwarded every frame.
 	_head.show_stack(effects, stacks, bubble)
@@ -137,7 +150,7 @@ func show_enemy(at: Vector2, width: float, health: int, max_health: int, effects
 		_drawn_max_health = max_health
 		size = Vector2(width, width)
 		_name.visible = false
-		_stars.visible = false
+		_show_stars(false)
 		_mp_back.visible = false
 		_mp.visible = false
 		var hurt := health < max_health
@@ -177,6 +190,20 @@ func _bar(back: ColorRect, fill: ColorRect, back_colour: Color, fill_colour: Col
 	back.size = Vector2(width, height)
 	fill.position = Vector2(0.0, top)
 	fill.size = Vector2(width * filled, height)
+
+
+func _show_stars(shown: bool) -> void:
+	_stars.visible = shown
+	_star.visible = shown
+	_star_back.visible = shown
+
+
+func _icon(texture: Texture2D) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.texture = texture
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(icon)
+	return icon
 
 
 func _rect(colour: Color) -> ColorRect:
