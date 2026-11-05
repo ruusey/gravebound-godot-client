@@ -31,8 +31,11 @@ void vertex() {
 	region = INSTANCE_CUSTOM;
 	reps = max(COLOR.g, 1.0);
 	cell_turn = COLOR.b;
-	float quad = length(MODEL_MATRIX[0].xy);
-	margin = COLOR.r > 0.5 && quad > 2.0 ? 1.0 / quad : 0.0;
+	// The outline border is one unit in the sprite's own space. A wall is a stretched quad
+	// tiled into square cells, so a cell's size is the quad's short (Y) axis; every other
+	// shot is a square quad, so either axis gives its size.
+	float unit_axis = reps > 1.0 ? length(MODEL_MATRIX[1].xy) : length(MODEL_MATRIX[0].xy);
+	margin = COLOR.r > 0.5 && unit_axis > 2.0 ? 1.0 / unit_axis : 0.0;
 	COLOR = vec4(1.0);
 }
 
@@ -46,10 +49,12 @@ vec4 sprite_at(sampler2D sheet, vec4 cut, vec2 local) {
 void fragment() {
 	vec4 cut = region * vec4(TEXTURE_PIXEL_SIZE, TEXTURE_PIXEL_SIZE);
 	float span = 1.0 - 2.0 * margin;
-	vec2 local = (UV - vec2(margin)) / span;
-	// A wall tiles its sprite along the quad's length; one quad, repeated in-shader.
+	vec2 local;
+	// A wall tiles its sprite along the quad's length; one quad, repeated in-shader. The
+	// margin shrink is applied per CELL (after the tiling), so every tiled sprite carries
+	// its own outline instead of one border drawn around the whole stretched wall.
 	if (reps > 1.0) {
-		local.x = fract(local.x * reps);
+		local = (vec2(fract(UV.x * reps), UV.y) - vec2(margin)) / span;
 		// Turn the sprite within its (square) cell by the group's angleOffset, so a
 		// diagonal sheet sprite reads straight along the wall. Sampling is rotated by
 		// -offset, which displays the sprite rotated by +offset.
@@ -59,6 +64,8 @@ void fragment() {
 			vec2 p = local - vec2(0.5);
 			local = vec2(c * p.x + s * p.y, -s * p.x + c * p.y) + vec2(0.5);
 		}
+	} else {
+		local = (UV - vec2(margin)) / span;
 	}
 	vec4 sprite = sprite_at(TEXTURE, cut, local);
 	float outline = 0.0;

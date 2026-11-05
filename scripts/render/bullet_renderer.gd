@@ -223,7 +223,8 @@ func _draw_instanced(sheet: Texture2D, sheet_groups: Array, outlines: bool) -> v
 				# ONE stretched quad (length x size) with the sprite repeated `tiles` times
 				# along it in-shader, instead of a quad per tile — same look, ~length/size
 				# fewer instances to rebuild + draw each frame (the dungeon-wall FPS sink).
-				# reps rides in COLOR.g; COLOR.r = 0 keeps it unoutlined.
+				# reps rides in COLOR.g; COLOR.r carries the outline flag, same as a normal
+				# shot -- the shader draws each tiled sprite's silhouette within its own cell.
 				var tiles := maxi(1, int(round(length / size)))
 				# The quad IS the wall line, so it lies along the segment's axis (-angle)
 				# and nothing else: the sprite's angleOffset and spin `turn` are per-shot
@@ -236,7 +237,7 @@ func _draw_instanced(sheet: Texture2D, sheet_groups: Array, outlines: bool) -> v
 				# sprite by it within its cell so a diagonal (PI/4) wall sprite points
 				# right, while the quad itself stays flat along the wall axis. The spin
 				# `turn` is deliberately NOT passed -- it would whirl the whole wall.
-				mesh.set_instance_color(at, Color(0.0, float(tiles), offset, 1.0))
+				mesh.set_instance_color(at, Color(1.0 if outlines else 0.0, float(tiles), offset, 1.0))
 				mesh.set_instance_custom_data(at, region)
 				at += 1
 				continue
