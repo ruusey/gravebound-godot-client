@@ -11,6 +11,9 @@ extends CanvasLayer
 signal character_chosen(email: String, password: String, character_uuid: String)
 
 const HOW_TO_BUTTON := int(TouchSize.ROW)
+## The public game wiki, served only on the production domain. Opened in a new
+## browser tab on web, the OS browser on desktop.
+const WIKI_URL := "https://openrealm.net/wiki/"
 ## The phone's card: as wide as a landscape phone, the logo, the server and
 ## the account in one header row so the form or the characters get the rest.
 const PHONE_WIDTH := 800.0
@@ -99,6 +102,9 @@ func _ready() -> void:
 	if PhoneLayout.on:
 		title.custom_minimum_size = PHONE_LOGO
 		title.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var wiki_button := InventoryLayout.button(header, "Wiki", _open_wiki)
+	wiki_button.tooltip_text = "Open the game wiki"
+	wiki_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_how_to_button = HowToPanel.badge(header, HOW_TO_BUTTON, func() -> void: _how_to.open())
 
 	# Server picker above the sign-in fields; applies the choice to the config
@@ -207,6 +213,15 @@ func _apply_server(server: Dictionary) -> void:
 		client_config.host = str(server.get("host", client_config.host))
 		client_config.port = int(server.get("webSocketPort", client_config.port))
 		client_config.socket_path = ""
+
+
+## Open the wiki in a new browser tab on web (so the game is not navigated away
+## from), the OS browser on desktop. Mirrors GuildActions.open_editor.
+func _open_wiki() -> void:
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.open(%s, '_blank')" % JSON.stringify(WIKI_URL))
+	else:
+		OS.shell_open(WIKI_URL)
 
 
 func set_status(text: String, is_error := false) -> void:
