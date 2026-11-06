@@ -30,6 +30,11 @@ const MAX_BULLET_LIGHTS := 20
 ## in between, the picked ones' lights only follow them.
 const BULLET_LIGHT_RESELECT := 4
 const BULLET_LIGHT_ENERGY := 1.6
+## Enemy types whose data.light carries a glow (e.g. cult effigies) get a travelling
+## light each, up to this many of the ones in view. Few enemies glow, so they're placed
+## in iteration order rather than nearest-sorted like the bullets.
+const MAX_ENEMY_LIGHTS := 12
+const ENEMY_LIGHT_ENERGY := 1.5
 const MAX_TILE_LIGHTS := 24
 ## Lava/water glow reaches farther but dimmer. The pooled tile light sat right on the
 ## liquid shader's own moving highlights and blew out its bright sine-wave spots up
@@ -70,6 +75,11 @@ var _glow: Environment
 var _bloom_active := false
 var _pool: Array[PointLight2D] = []
 var _bullet_lights: Array[PointLight2D] = []
+var _enemy_lights: Array[PointLight2D] = []
+var _enemy_lights_shown := 0
+## enemy id -> its resolved data.light ({} for none), parsed once.
+var _enemy_light_by_id := {}
+var _enemy_energy := ENEMY_LIGHT_ENERGY
 var _occluders: Array[LightOccluder2D] = []
 ## The rect each occluder last took, so a rescan rebuilds only the ones that moved.
 var _occluder_rects: Array[Rect2i] = []
@@ -121,6 +131,7 @@ func setup(state: RealmState, content: GameData) -> void:
 	var glow_mul := 1.0 if _web else 1.134
 	_tile_energy = TILE_LIGHT_ENERGY * glow_mul
 	_bullet_energy = BULLET_LIGHT_ENERGY * glow_mul
+	_enemy_energy = ENEMY_LIGHT_ENERGY * glow_mul
 	var glow := _soft_texture()
 	for i in _max_tile_lights:
 		var light := PointLight2D.new()
@@ -133,6 +144,12 @@ func setup(state: RealmState, content: GameData) -> void:
 		light.shadow_enabled = false
 		light.visible = false
 		_bullet_lights.append(light)
+	for i in MAX_ENEMY_LIGHTS:
+		var light := PointLight2D.new()
+		_light(light, glow, Color.WHITE, _enemy_energy, 1.0)
+		light.shadow_enabled = false
+		light.visible = false
+		_enemy_lights.append(light)
 	_near_distance.resize(MAX_BULLET_LIGHTS)
 	_near_at.resize(MAX_BULLET_LIGHTS)
 	_near_light.resize(MAX_BULLET_LIGHTS)
@@ -178,6 +195,9 @@ func _process(delta: float) -> void:
 		for light in _bullet_lights:
 			light.visible = false
 		_bullet_lights_shown = 0
+		for light in _enemy_lights:
+			light.visible = false
+		_enemy_lights_shown = 0
 		for occluder in _occluders:
 			occluder.visible = false
 		_frames = 0
@@ -205,6 +225,7 @@ func _process(delta: float) -> void:
 				* (1.0 + 0.12 * sin(_time * 9.0 + i * 1.7) + 0.06 * sin(_time * 23.0 + i))
 	# Bullets move every frame, so this is not on the tile scan's cadence.
 	_place_bullet_lights()
+	_place_enemy_lights()
 
 
 ## The nearest light-emitting bullets in flight, one travelling light each,
@@ -282,6 +303,45 @@ func _follow_bullet_lights() -> void:
 			continue
 		var half := bullet.size * 0.5
 		light.position = bullet.pos + Vector2(half, half)
+
+
+## Enemy types whose data.light carries a glow get a travelling light each (the cult
+## effigies, say). Few enemies glow, so the ones in view are lit in iteration order up
+## to the pool cap rather than nearest-sorted like the bullets.
+func _place_enemy_lights() -> void:
+	var view := ViewRect.of(self)
+	var limit := _enemy_lights.size()
+	var shown := 0
+	for id in _state.entities.enemies:
+		if shown >= limit:
+			break
+		var enemy: Dictionary = _state.entities.enemies[id]
+		var enemy_id: int = enemy.get("enemy_id", -1)
+		var light_def: Variant = _enemy_light_by_id.get(enemy_id)
+		if light_def == null:
+			light_def = _content.enemy_light_resolved(enemy_id)
+			_enemy_light_by_id[enemy_id] = light_def
+		if light_def.is_empty():
+			continue
+		var size := float(enemy.get("size", 16))
+		var at: Vector2 = _state.entities.render_position(enemy) + Vector2(size * 0.5, size * 0.5)
+		if not view.has_point(at):
+			continue
+		var light := _enemy_lights[shown]
+		if not light.visible:
+			light.visible = true
+		light.position = at
+		light.color = light_def["color"]
+		light.texture_scale = _scale_for(light_def["radius"])
+		if light_def.get("flickers", false):
+			light.energy = _enemy_energy \
+				* (1.0 + 0.12 * sin(_time * 9.0 + shown * 1.7) + 0.06 * sin(_time * 23.0 + shown))
+		else:
+			light.energy = _enemy_energy
+		shown += 1
+	for i in range(shown, _enemy_lights_shown):
+		_enemy_lights[i].visible = false
+	_enemy_lights_shown = shown
 
 
 ## The glowing tiles in view get a light each (nearest the player first), and the

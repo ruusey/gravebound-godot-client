@@ -58,6 +58,9 @@ var _data_by_id := {}
 ## group id -> {color: Color, radius, flickers}, the resolved projectile light the
 ## 2D/3D lighting scans read per bullet; the hex is parsed once here, not per frame.
 var _proj_light_by_group := {}
+## enemy id -> {color: Color, radius, flickers}, the resolved enemy glow (e.g. the
+## cult effigies) the lighting scan reads; same shape and parse-once rule as above.
+var _enemy_light_by_id := {}
 ## group id -> how long its shots slow a player they hit, in ms (0: they don't).
 var _slow_ms_by_group := {}
 ## tile id -> tile_look(), read directly by the ground passes (a call per cell into
@@ -355,6 +358,28 @@ func projectile_light_resolved(group_id: int) -> Dictionary:
 		}
 	if ready:
 		_proj_light_by_group[group_id] = resolved
+	return resolved
+
+
+## An enemy type's data.light ({strength, color, style}) resolved to {color, radius,
+## flickers} -- same shape and parse-once caching as projectile_light_resolved, so the
+## lighting scan can hang a travelling glow on glowing enemies (e.g. cult effigies).
+func enemy_light_resolved(enemy_id: int) -> Dictionary:
+	if _enemy_light_by_id.has(enemy_id):
+		return _enemy_light_by_id[enemy_id]
+	var light: Variant = library.enemies.get(enemy_id, {}).get("light")
+	var resolved := {}
+	if light is Dictionary:
+		var strength := float(light.get("strength", 0.0))
+		if strength > 0.0:
+			var hex := str(light.get("color", "#ffffff"))
+			resolved = {
+				"color": Color.html(hex) if Color.html_is_valid(hex) else Color.WHITE,
+				"radius": strength,
+				"flickers": str(light.get("style", "steady")) == "flicker",
+			}
+	if ready:
+		_enemy_light_by_id[enemy_id] = resolved
 	return resolved
 
 
