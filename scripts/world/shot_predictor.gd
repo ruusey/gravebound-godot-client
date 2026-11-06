@@ -105,6 +105,16 @@ static func claim(bullets: Dictionary, wire: Dictionary, server_id: int, owner_i
 			best_id = local_id
 			found = true
 	if found:
-		(bullets[best_id] as Projectile).server_id = server_id
+		var prediction := bullets[best_id] as Projectile
+		prediction.server_id = server_id
+		# A homing shot locks its target server-side at fire time (the nearest enemy
+		# to the cursor); the prediction can't know it, so it was flying straight.
+		# Adopt the authoritative target (and steer rate) now, or the claimed bullet
+		# keeps going past the enemy instead of homing. Wire flags arrive as floats.
+		for flag in wire.get("flags", []):
+			if int(flag) == ProjectileKind.HOMING:
+				prediction.target_entity_id = int(wire.get("targetEntityId", 0))
+				prediction.frequency = float(wire.get("frequency", prediction.frequency))
+				break
 		return true
 	return false

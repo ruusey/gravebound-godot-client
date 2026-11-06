@@ -91,50 +91,86 @@ func test_every_projectile_in_the_group_is_fanned():
 
 
 # --- claiming --------------------------------------------------------------
+#
+# claim's contract (ServerGameLogic owner-attributes player shots): a server
+# bullet may adopt a prediction only when it is OUR shot (srcEntityId == owner),
+# not an ally bolt, from the SAME projectile group, and nearest in angle.
+
+const OWNER := 7
+
 
 func _prediction(angle: float, position := Vector2.ZERO) -> Dictionary:
 	return {-1: Projectile.predicted_shot(-1, 7, position, angle, DEFINITION, 0)}
 
 
+## A wire bullet the server says WE fired, from the group the prediction is in.
+func _own_wire(angle: float, overrides := {}) -> Dictionary:
+	var wire := {"angle": angle, "pos": {"x": 0.0, "y": 0.0}, "srcEntityId": OWNER,
+		"projectileId": 7, "flags": [ProjectileKind.PLAYER_PROJECTILE]}
+	wire.merge(overrides, true)
+	return wire
+
+
 func test_claims_a_player_shot_by_angle_alone():
 	var bullets := _prediction(0.5, Vector2(10, 10))
-	var wire := {"angle": 0.52, "pos": {"x": 900.0, "y": 900.0},
-		"flags": [ProjectileKind.PLAYER_PROJECTILE]}
-	assert_true(ShotPredictor.claim(bullets, wire, 4242))
+	var wire := _own_wire(0.52, {"pos": {"x": 900.0, "y": 900.0}})
+	assert_true(ShotPredictor.claim(bullets, wire, 4242, OWNER))
 	assert_eq(bullets[-1]["server_id"], 4242, "the prediction adopts the server id")
 
 
 func test_rejects_a_different_angle():
 	var bullets := _prediction(0.5)
-	var wire := {"angle": 2.0, "pos": {"x": 0.0, "y": 0.0},
-		"flags": [ProjectileKind.PLAYER_PROJECTILE]}
-	assert_false(ShotPredictor.claim(bullets, wire, 1))
+	assert_false(ShotPredictor.claim(bullets, _own_wire(2.0), 1, OWNER))
 
 
-func test_non_player_shots_must_also_be_nearby():
-	var bullets := _prediction(0.5, Vector2(0, 0))
-	var far := {"angle": 0.5, "pos": {"x": 900.0, "y": 0.0}, "flags": []}
-	assert_false(ShotPredictor.claim(bullets, far, 1))
-	var near := {"angle": 0.5, "pos": {"x": 10.0, "y": 0.0}, "flags": []}
-	assert_true(ShotPredictor.claim(bullets, near, 2))
+func test_a_foreign_players_shot_is_not_claimed():
+	var bullets := _prediction(0.5)
+	var wire := _own_wire(0.5, {"srcEntityId": 999})
+	assert_false(ShotPredictor.claim(bullets, wire, 1, OWNER),
+		"another player's shot at the same angle is their bullet, not our prediction")
+
+
+func test_a_different_group_is_not_claimed():
+	var bullets := _prediction(0.5)
+	var wire := _own_wire(0.5, {"projectileId": 8})
+	assert_false(ShotPredictor.claim(bullets, wire, 1, OWNER),
+		"an own shot from another weapon or ability must not steal this group's prediction")
+
+
+func test_an_ally_bolt_is_never_claimed():
+	var bullets := _prediction(0.5)
+	var wire := _own_wire(0.5, {"flags": [ProjectileKind.PLAYER_PROJECTILE, ProjectileKind.ALLY_PROJECTILE]})
+	assert_false(ShotPredictor.claim(bullets, wire, 1, OWNER),
+		"a summon bolt is owner-attributed for credit but is the server's own bullet")
 
 
 func test_a_prediction_is_claimed_only_once():
 	var bullets := _prediction(0.5)
-	var wire := {"angle": 0.5, "pos": {"x": 0.0, "y": 0.0},
-		"flags": [ProjectileKind.PLAYER_PROJECTILE]}
-	assert_true(ShotPredictor.claim(bullets, wire, 1))
-	assert_false(ShotPredictor.claim(bullets, wire, 2), "the second server bullet is its own")
+	var wire := _own_wire(0.5)
+	assert_true(ShotPredictor.claim(bullets, wire, 1, OWNER))
+	assert_false(ShotPredictor.claim(bullets, wire, 2, OWNER), "the second server bullet is its own")
 
 
 func test_server_bullets_are_never_claimed_as_predictions():
-	var bullets := {99: Projectile.from_wire({"id": 99, "angle": 0.5, "pos": {}, "flags": []}, 0)}
-	var wire := {"angle": 0.5, "pos": {"x": 0.0, "y": 0.0}, "flags": []}
-	assert_false(ShotPredictor.claim(bullets, wire, 1), "only negative ids are predictions")
+	var live := Projectile.from_wire({"id": 99, "angle": 0.5, "pos": {}, "projectileId": 7,
+		"srcEntityId": OWNER, "flags": []}, 0)
+	var bullets := {99: live}
+	assert_false(ShotPredictor.claim(bullets, _own_wire(0.5), 1, OWNER),
+		"a live bullet is not a prediction, even at the same angle and group")
 
 
 func test_angle_wrapping_does_not_defeat_matching():
 	var bullets := _prediction(-PI + 0.01)
-	var wire := {"angle": PI - 0.01, "pos": {"x": 0.0, "y": 0.0},
-		"flags": [ProjectileKind.PLAYER_PROJECTILE]}
-	assert_true(ShotPredictor.claim(bullets, wire, 1), "angles either side of PI are close")
+	assert_true(ShotPredictor.claim(bullets, _own_wire(PI - 0.01), 1, OWNER),
+		"angles either side of PI are close")
+
+
+func test_a_claimed_homing_shot_adopts_the_servers_target():
+	# The prediction flies straight -- it can't know the server's fire-time lock.
+	var bullets := _prediction(0.5)
+	assert_eq((bullets[-1] as Projectile).target_entity_id, 0, "prediction starts with no target")
+	var wire := _own_wire(0.52, {"targetEntityId": 4242, "frequency": 5.0,
+		"flags": [ProjectileKind.PLAYER_PROJECTILE, ProjectileKind.HOMING]})
+	assert_true(ShotPredictor.claim(bullets, wire, 1, OWNER))
+	assert_eq((bullets[-1] as Projectile).target_entity_id, 4242, "homes at the enemy the server locked")
+	assert_almost_eq((bullets[-1] as Projectile).frequency, 5.0, 0.0001, "adopts the server steer rate")
