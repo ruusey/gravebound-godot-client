@@ -104,6 +104,7 @@ func paint_cells(canvas: CanvasItem, own: Rect2i) -> Dictionary:
 		if layer == GameConstants.COLLISION_LAYER:
 			shadows.paint(canvas, tiles, content, first, last, own)
 			bands.paint_under(canvas, tiles, content, first, last, own)
+			strokes.paint_under(canvas, tiles, content, first, last)
 		var collision: bool = layer == GameConstants.COLLISION_LAYER
 		var liquids_elsewhere: bool = layer == BASE_LAYER and skip_liquids
 		# Everything per cell reads the cached tile_look, not GameData's getters:
@@ -150,7 +151,6 @@ func paint_cells(canvas: CanvasItem, own: Rect2i) -> Dictionary:
 			feathers.paint(canvas, tiles, content, first, last, own)
 		elif layer == GameConstants.COLLISION_LAYER:
 			bands.paint_over(canvas, tiles, content, first, last)
-			strokes.paint(canvas, tiles, content, first, last)
 	# The billboards' lower edges, over every layer so nothing covers them.
 	if not ground_only:
 		billboards.paint_bottoms(canvas, tiles, content, first, last, own)
