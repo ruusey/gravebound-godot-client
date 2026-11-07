@@ -107,10 +107,16 @@ func paint_cells(canvas: CanvasItem, own: Rect2i) -> Dictionary:
 			strokes.paint_under(canvas, tiles, content, first, last)
 		var collision: bool = layer == GameConstants.COLLISION_LAYER
 		var liquids_elsewhere: bool = layer == BASE_LAYER and skip_liquids
+		# Walls are 8x16 and spill their front face one cell south, while this chunk
+		# repaints the ring's floor two rows north. A wall three rows north therefore
+		# has its face land in that northmost ring row -- painted over here -- yet sits
+		# a row above the floor ring, so redraw walls one row further north than the
+		# floor or that one face is lost (a wall at chunk-top-minus-3, e.g. the nexus).
+		var north: int = first.y - 1 if collision else first.y
 		# Everything per cell reads the cached tile_look, not GameData's getters:
 		# a call into another script per cell cost more than drawing the cell.
 		for tile_x in range(first.x, last.x + 1):
-			for tile_y in range(first.y, last.y + 1):
+			for tile_y in range(north, last.y + 1):
 				var key := Vector2i(tile_x, tile_y)
 				var tile_id: int = cells.get(key, VOID_TILE)
 				if tile_id <= VOID_TILE:
