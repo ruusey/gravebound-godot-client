@@ -26,6 +26,7 @@ var missing_tiles := {}
 var feathers := FeatherPass.new()
 var shadows := ObjectShadows.new()
 var bands := WallBandPass.new()
+var strokes := WallStroke.new()
 var billboards := BillboardOutlines.new()
 ## Fringes laid down by the last draw.
 var feathers_drawn: int:
@@ -149,6 +150,7 @@ func paint_cells(canvas: CanvasItem, own: Rect2i) -> Dictionary:
 			feathers.paint(canvas, tiles, content, first, last, own)
 		elif layer == GameConstants.COLLISION_LAYER:
 			bands.paint_over(canvas, tiles, content, first, last)
+			strokes.paint(canvas, tiles, content, first, last)
 	# The billboards' lower edges, over every layer so nothing covers them.
 	if not ground_only:
 		billboards.paint_bottoms(canvas, tiles, content, first, last, own)
