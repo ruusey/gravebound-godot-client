@@ -9,8 +9,9 @@ extends RefCounted
 ## so a vertical stack stays seamless.
 
 const TILE := float(GameConstants.TILE_SIZE)
-const STROKE := Color(0.04, 0.04, 0.063, 0.88)
-const THICK := 2.0
+const STROKE := Color(0.02, 0.02, 0.03, 1.0)
+## One art-pixel: tiles are 8px art scaled into the 32-unit cell, so a pixel is TILE/8.
+const THICK := TILE / 8.0
 
 static var enabled := true
 
