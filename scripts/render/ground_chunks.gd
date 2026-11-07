@@ -47,12 +47,12 @@ func mark_all() -> void:
 		dirty[chunk] = true
 
 
-## A chunk in `view` that has never been drawn is drawn now -- the ground
-## is never missing. Anything else waiting -- a chunk in view whose tiles
-## changed, which still shows its last drawing, or the ring beyond -- goes
-## PREFETCH a frame, in view first, then nearest: tiles stream in as you
-## walk, and redrawing every chunk they touch at once was a frame long
-## enough to bunch the movement packets.
+## A chunk in `view` that is stale -- never drawn, OR drawn but since changed --
+## is drawn now, so the ground is never missing and a tall wall's south-spilling
+## front face (which only the chunk below it can paint) can't lag a frame behind the
+## wall arriving. Only the ring BEYOND the view is throttled to PREFETCH a frame,
+## nearest first: off-screen tiles stream in as you walk, and redrawing every chunk
+## they touch at once was a frame long enough to bunch the movement packets.
 func update(ground: TileRenderer, view: Rect2) -> void:
 	var seen := over(view)
 	var waiting: Array = []
@@ -60,9 +60,11 @@ func update(ground: TileRenderer, view: Rect2) -> void:
 	for x in range(ring.position.x, ring.end.x):
 		for y in range(ring.position.y, ring.end.y):
 			var chunk := Vector2i(x, y)
-			if not chunks.has(chunk) and seen.has_point(chunk):
+			if chunks.has(chunk) and not dirty.has(chunk):
+				continue
+			if seen.has_point(chunk):
 				_draw(ground, chunk)
-			elif not chunks.has(chunk) or dirty.has(chunk):
+			else:
 				waiting.append(chunk)
 	var middle := Vector2(seen.position) + Vector2(seen.size) * 0.5
 	waiting.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
