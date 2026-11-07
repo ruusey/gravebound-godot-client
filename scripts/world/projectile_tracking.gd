@@ -27,9 +27,18 @@ static func capture_anchor(bullet: Projectile, entities: EntityRegistry,
 	if source == null:
 		return
 	bullet.anchor_offset = bullet.pos - (source as Vector2)
+	bullet.anchor_captured = true
 
 
 static func anchor(bullet: Projectile, entities: EntityRegistry, player: LocalPlayer) -> void:
+	# A wall reloaded before its source entity has (anchored walls ride a bullets-only
+	# load delta that carries no enemy) arrives with no captured offset. Capturing here
+	# the first frame the source is known -- from the server-sent pos it still holds --
+	# keeps the offset correct, where a zero default would snap a whole wall-box onto the
+	# source's top-left corner. Until then the wall stays put at its server position.
+	if not bullet.anchor_captured:
+		capture_anchor(bullet, entities, player)
+		return
 	var source: Variant = _position_of(bullet.src_entity_id, entities, player)
 	if source == null:
 		return

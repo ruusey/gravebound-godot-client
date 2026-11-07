@@ -199,6 +199,29 @@ func test_anchoring_to_the_local_player_tracks_the_prediction():
 	assert_eq(wall["pos"], Vector2(205, 100))
 
 
+func test_an_anchored_wall_captures_late_when_its_source_arrives_after_it():
+	# A wall reloads on the bullets-only delta BEFORE its boss has loaded, so the
+	# arrival capture finds no source. When the source appears, anchoring must capture
+	# the offset from the pos the wall still holds -- not reposition it with the zero
+	# default, which collapsed a whole wall-box onto the boss's top-left corner.
+	var wall := _bullet({"flags": [ProjectileKind.ANCHORED], "src_entity_id": 7,
+		"pos": Vector2(60, 55)})
+	ProjectileTracking.capture_anchor(wall, entities, player)
+	assert_false(wall["anchor_captured"], "no source yet, nothing captured")
+
+	_load_enemy(7, Vector2(50, 50))
+	ProjectileTracking.anchor(wall, entities, player)
+	assert_true(wall["anchor_captured"], "captured once the source arrived")
+	assert_eq(wall["pos"], Vector2(60, 55), "held its server position, not the enemy corner")
+	assert_eq(wall["anchor_offset"], Vector2(10, 5))
+
+	now += 50
+	_load_enemy(7, Vector2(70, 50))
+	now += int(EntitySnapshots.INTERP_DELAY_MS) + 50
+	ProjectileTracking.anchor(wall, entities, player)
+	assert_eq(wall["pos"], Vector2(80, 55), "tracks the enemy after the late capture")
+
+
 # --- wired into the simulation ---------------------------------------------
 
 func _system() -> ProjectileSystem:
@@ -233,6 +256,18 @@ func test_advancing_re_anchors_a_wall_to_its_moved_source():
 	now += int(EntitySnapshots.INTERP_DELAY_MS) + 50
 	system.advance(RealmState.TICK_DELTA)
 	assert_eq(system.bullets[1]["pos"], Vector2(100, 55), "followed its source")
+
+
+func test_a_wall_reloaded_before_its_source_does_not_collapse_onto_it():
+	# The real reload order: the wall's bullets-only delta arrives first, the boss loads
+	# after. advance() must capture the offset late rather than snap the wall to the boss.
+	var system := _system()
+	system.apply_load({"bullets": [_wire({
+		"flags": [ProjectileKind.ANCHORED], "srcEntityId": 7})]})
+	_load_enemy(7, Vector2(50, 50))
+	system.advance(RealmState.TICK_DELTA)
+	assert_eq(system.bullets[1]["pos"], Vector2(60, 55),
+		"kept its server position instead of snapping to the enemy corner")
 
 
 func test_advancing_steers_a_homing_bullet():

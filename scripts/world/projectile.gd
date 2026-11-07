@@ -41,6 +41,10 @@ var lifetime_ticks := 0
 var src_entity_id := 0
 var target_entity_id := 0
 var anchor_offset := Vector2.ZERO
+## Whether anchor_offset has been captured against a known source yet. Stays false
+## while the source entity is absent (e.g. a wall reloaded before its boss has), so
+## anchoring can't snap the wall to the source's corner with a zero offset.
+var anchor_captured := false
 var created_ms := 0
 var predicted := false
 var server_id := 0
