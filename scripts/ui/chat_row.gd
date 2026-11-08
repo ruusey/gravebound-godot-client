@@ -13,6 +13,11 @@ extends RichTextLabel
 const FONT_SIZE := 12
 const SYSTEM_COLOUR := Color(1.0, 0.85, 0.4)
 const PLAYER_COLOUR := Color(0.9, 0.9, 0.95)
+# A /tell private message: whole line in this blue. The server tags the direction in
+# the `to` (chat-role) field -- IN is received ("From X"), OUT is the sender's echo.
+const WHISPER_COLOUR := Color(0.37, 0.66, 1.0)
+const WHISPER_IN := "WHISPER_IN"
+const WHISPER_OUT := "WHISPER_OUT"
 
 
 func _init(width: float) -> void:
@@ -49,7 +54,14 @@ static func markup(line: Dictionary) -> String:
 	if ChatLog.is_system(line):
 		return message
 	var from := String(line.get("from", ""))
-	var colour := NameColours.chat_sender(from, String(line.get("to", "")))
+	var role := String(line.get("to", ""))
+	# A /tell private message: the whole line in whisper blue, prefixed with the
+	# direction. `from` is the other player (sender on IN, recipient on the OUT echo).
+	if role == WHISPER_IN or role == WHISPER_OUT:
+		var direction := "From" if role == WHISPER_IN else "To"
+		return "[color=#%s]%s [lb]%s]: %s[/color]" % [
+			WHISPER_COLOUR.to_html(false), direction, escaped(from), message]
+	var colour := NameColours.chat_sender(from, role)
 	return "[color=#%s][lb]%s][/color]: %s" % [colour.to_html(false), escaped(from), message]
 
 
