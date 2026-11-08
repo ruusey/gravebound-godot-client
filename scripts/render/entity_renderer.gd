@@ -51,6 +51,10 @@ func draw_ground(canvas: CanvasItem, items: Array) -> Dictionary:
 	var to_screen := canvas.get_global_transform_with_canvas()
 	var inverse := to_screen.affine_inverse()
 	for item in items:
+		# Smooth items (remote players) keep their interpolated sub-pixel position so
+		# slow walkers glide instead of stair-stepping between whole pixels.
+		if item.get("smooth", false):
+			continue
 		item["pos"] = inverse * (to_screen * item["pos"]).round()
 	# GroundShadow.under_entity, inlined: one ellipse per body.
 	var shadow := Color(0.0, 0.0, 0.0, GroundShadow.ENTITY_ALPHA)

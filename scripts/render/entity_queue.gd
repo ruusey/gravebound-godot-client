@@ -120,6 +120,14 @@ func _queue_players(queue: Array, state: RealmState, content: GameData,
 			"flip": facing == "side" and mirrored,
 			# Only the player we are wades, as in the web client.
 			"wading": is_local and state.tiles.wades(position, PLAYER_RENDER_SIZE),
+			# Remote players draw at their interpolated sub-pixel position rather than
+			# snapped to a whole screen pixel. Snapping a body that creeps <1px/frame
+			# (low SPD or a slow effect) holds it on one pixel for several frames then
+			# jumps -- the uneven stepping that reads as jitter. The local player is
+			# immune (the camera lands it on a pixel; slowed, the ground scrolls smooth),
+			# so only remote bodies need this. Their name/bars skip the snap too
+			# (entity_overlay) so the two still glide together.
+			"smooth": not is_local,
 		})
 
 

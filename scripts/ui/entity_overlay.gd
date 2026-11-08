@@ -112,9 +112,11 @@ func refresh() -> void:
 	_vignette.follow(state, to_screen, _root.size)
 
 
-## A world point on the pixel it lands on.
-static func screen(to_screen: Transform2D, world: Vector2) -> Vector2:
-	return (to_screen * world).round()
+## A world point on the pixel it lands on. `snap` off keeps the sub-pixel screen
+## point, so a tag can glide with a body drawn sub-pixel (remote players).
+static func screen(to_screen: Transform2D, world: Vector2, snap := true) -> Vector2:
+	var at := to_screen * world
+	return at.round() if snap else at
 
 
 ## The top-left screen point to hand a size×size tag so it centres on the entity.
@@ -122,12 +124,15 @@ static func screen(to_screen: Transform2D, world: Vector2) -> Vector2:
 ## aligned). In 3D the projector rotates, so a top-left anchor swings the tag
 ## around the body as the view orbits -- instead project the entity's world CENTRE
 ## (where the billboard sits) and back off half the tag's screen size.
+## `snap` off (remote players) keeps the tag on the body's sub-pixel position so the
+## two glide together instead of the tag stair-stepping over a smoothly-moving body.
 func _anchor(to_screen: Transform2D, world_topleft: Vector2, world_size: float,
-		screen_size: float) -> Vector2:
+		screen_size: float, snap := true) -> Vector2:
 	if not project_3d:
-		return screen(to_screen, world_topleft)
+		return screen(to_screen, world_topleft, snap)
 	var centre := world_topleft + Vector2(world_size, world_size) * 0.5
-	return (screen(to_screen, centre) - Vector2(screen_size, screen_size) * 0.5).round()
+	var anchored := screen(to_screen, centre, snap) - Vector2(screen_size, screen_size) * 0.5
+	return anchored.round() if snap else anchored
 
 
 func tag_count() -> int:
@@ -166,7 +171,9 @@ func _show_players(to_screen: Transform2D, view: Rect2) -> void:
 		var render_world := float(GameConstants.PLAYER_RENDER_SIZE) * (body_size / float(GameConstants.PLAYER_SIZE))
 		var size := render_world * scale
 		var tag: EntityTag = _player_tags.acquire(id)
-		tag.show_player(_anchor(to_screen, position, render_world, size),
+		# Local player's tag stays snapped (crisp, camera-aligned); a remote player's
+		# glides sub-pixel with its body so the two don't drift apart at low speed.
+		tag.show_player(_anchor(to_screen, position, render_world, size, is_local),
 			size, label if names_on else "",
 			NameColours.over_head(String(player.get("chat_role", "")), is_local, LOCAL_NAME),
 			local.health if is_local else int(player.get("health", 0)),
