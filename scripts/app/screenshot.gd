@@ -21,7 +21,7 @@ static func take(viewport: Viewport, on_web := OS.has_feature("web"),
 		return ""
 	# 2026-09-22_16-27-04: no colon, which a filesystem may refuse, and no
 	# space, which a download prompt would mangle.
-	var name := "openrealm-%s.png" % Time.get_datetime_string_from_system(false, false) \
+	var name := "gravebound-%s.png" % Time.get_datetime_string_from_system(false, false) \
 		.replace(":", "-").replace("T", "_")
 	if on_web:
 		var sender: Callable = download if download.is_valid() \

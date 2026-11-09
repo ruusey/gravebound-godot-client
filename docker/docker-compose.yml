@@ -2,18 +2,18 @@
 #
 # Everything runs in containers so the host needs no Java, Maven or MongoDB.
 # The Dockerfiles are inline because the build context has to be the parent
-# directory holding both `openrealm/` and `openrealm-data/` -- they are
+# directory holding both `gravebound/` and `gravebound-data/` -- they are
 # separate private repos cloned beside this one -- and this keeps those
 # repos untouched.
 #
 #   docker compose -f docker/docker-compose.yml up -d --build
 #
-# Note: the game server's own Dockerfile copies `openrealm-0.6.0-shaded.jar`
-# and the README calls it `openrealm-shaded.jar`; the build actually produces
-# `openrealm-<pom version>-shaded.jar`, so neither works as written. This
+# Note: the game server's own Dockerfile copies `gravebound-0.6.0-shaded.jar`
+# and the README calls it `gravebound-shaded.jar`; the build actually produces
+# `gravebound-<pom version>-shaded.jar`, so neither works as written. This
 # resolves it by glob instead, which is why it survived 0.7.0 -> 0.9.0.
 
-name: openrealm
+name: gravebound
 
 services:
   mongo:
@@ -32,27 +32,27 @@ services:
       # Each repo is its own context, rather than one context over the parent
       # directory -- the parent is a general-purpose checkout folder and would
       # be uploaded to the daemon in full.
-      context: ../../../openrealm
+      context: ../../../gravebound
       additional_contexts:
-        data-repo: ../../../openrealm-data
+        data-repo: ../../../gravebound-data
       dockerfile_inline: |
         FROM maven:3.9-eclipse-temurin-17 AS build
         WORKDIR /app
-        # openrealm-data depends on the game-server artifact, so install it first.
-        COPY . ./openrealm
-        RUN mvn -B -q clean install -DskipTests -f ./openrealm/pom.xml
-        COPY --from=data-repo . ./openrealm-data
-        RUN mvn -B -q clean package -DskipTests -f ./openrealm-data/pom.xml
+        # gravebound-data depends on the game-server artifact, so install it first.
+        COPY . ./gravebound
+        RUN mvn -B -q clean install -DskipTests -f ./gravebound/pom.xml
+        COPY --from=data-repo . ./gravebound-data
+        RUN mvn -B -q clean package -DskipTests -f ./gravebound-data/pom.xml
 
         FROM eclipse-temurin:17-jre
-        COPY --from=build /app/openrealm-data/target/openrealm-data.jar /openrealm-data.jar
+        COPY --from=build /app/gravebound-data/target/gravebound-data.jar /gravebound-data.jar
         # The service writes into its content dir (.backups, editor saves), so
         # the repo content is baked in rather than bind-mounted -- a read-only
         # mount makes it fail at startup, and a writable one would dirty the
         # checkout.
         COPY --from=data-repo src/main/resources/data /content/data
         COPY --from=data-repo src/main/resources/entity /content/entity
-        ENTRYPOINT ["java", "-jar", "/openrealm-data.jar"]
+        ENTRYPOINT ["java", "-jar", "/gravebound-data.jar"]
     restart: unless-stopped
     depends_on:
       mongo:
@@ -68,26 +68,26 @@ services:
       TRUSTED_HOSTS: game
       # Content comes from the repo, copied into the image at build time, so
       # the client and the server read the same game data.
-      OPENREALM_DATA_DIR: /content/data
-      OPENREALM_SPRITES_DIR: /content/entity
+      GRAVEBOUND_DATA_DIR: /content/data
+      GRAVEBOUND_SPRITES_DIR: /content/entity
     ports:
       - "8080:80"
 
   game:
     build:
-      context: ../../../openrealm
+      context: ../../../gravebound
       dockerfile_inline: |
         FROM maven:3.9-eclipse-temurin-17 AS build
         WORKDIR /app
         COPY . .
-        # The shade plugin emits openrealm-<version>-shaded.jar, so resolve it
+        # The shade plugin emits gravebound-<version>-shaded.jar, so resolve it
         # by glob rather than pinning a version that goes stale.
         RUN mvn -B -q clean package -DskipTests \
-         && cp target/openrealm-*-shaded.jar /openrealm.jar
+         && cp target/gravebound-*-shaded.jar /gravebound.jar
 
         FROM eclipse-temurin:17-jre
-        COPY --from=build /openrealm.jar /openrealm.jar
-        ENTRYPOINT ["sh", "-c", "java -jar /openrealm.jar $$DATA_SERVER_ADDR"]
+        COPY --from=build /gravebound.jar /gravebound.jar
+        ENTRYPOINT ["sh", "-c", "java -jar /gravebound.jar $$DATA_SERVER_ADDR"]
     restart: unless-stopped
     depends_on:
       - data

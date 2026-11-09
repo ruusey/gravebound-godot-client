@@ -3,7 +3,7 @@
 # Regenerate with:
 #   python3 tools/gen_schema.py <java-src-root>
 #
-# Source tree : C:\Users\ruuse\Documents\GitHub\openrealm\src
+# Source tree : C:\Users\ruuse\Documents\GitHub\gravebound\src
 # Generated   : 2026-10-16 13:31:47Z
 # Packets     : 59
 # Entities    : 22
@@ -17,7 +17,7 @@
 # sections is [[bit, [field tuples]], ...].
 class_name NetSchema
 
-const SOURCE_TREE := "C:\\Users\\ruuse\\Documents\\GitHub\\openrealm\\src"
+const SOURCE_TREE := "C:\\Users\\ruuse\\Documents\\GitHub\\gravebound\\src"
 
 # packet id -> class name
 const PACKET_NAMES := {

@@ -1,7 +1,7 @@
 class_name DataService
 extends Node
 
-## HTTP client for the openrealm-data service.
+## HTTP client for the gravebound-data service.
 ##
 ## The game server authenticates against this same service during the login
 ## handshake, so the client only needs it to discover which characters the
@@ -117,7 +117,7 @@ func create_character(class_id: int) -> Dictionary:
 
 
 ## A new account, as the web client's api.register makes one: a guest gets
-## the OPENREALM_DEMO provision and an empty account, no character or chest.
+## the GRAVEBOUND_DEMO provision and an empty account, no character or chest.
 ## Returns {success, result}, the reason on failure. Signs nothing in.
 func register(email: String, password: String, account_name: String, guest: bool) -> Dictionary:
 	var body := JSON.stringify({"email": email, "password": password, "accountName": account_name,

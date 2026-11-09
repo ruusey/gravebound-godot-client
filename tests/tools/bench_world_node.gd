@@ -5,7 +5,7 @@ extends Node
 ## renderer, lighting and overlay, with no server.
 ##
 ##   godot --path . res://tests/tools/bench_world.tscn -- --bullets=1500 --enemies=150
-##       --players=30 --effects=40 --seconds=10 [--data=<openrealm-data resources dir>]
+##       --players=30 --effects=40 --seconds=10 [--data=<gravebound-data resources dir>]
 ##       [--hide=bullets,entities,lighting,overlay,chunk,...] [--out=<report file>]
 ##
 ## --headless measures the script (CPU) cost alone; windowed adds the GPU. --hide
@@ -94,7 +94,7 @@ func _ready() -> void:
 
 
 func _parse_args() -> void:
-	data_root = ProjectSettings.globalize_path("res://").path_join("../openrealm-data/src/main/resources").simplify_path()
+	data_root = ProjectSettings.globalize_path("res://").path_join("../gravebound-data/src/main/resources").simplify_path()
 	for arg in OS.get_cmdline_user_args():
 		var parts := arg.trim_prefix("--").split("=")
 		if parts.size() != 2:

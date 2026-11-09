@@ -3,7 +3,7 @@ extends RefCounted
 
 ## Things the shipped content refers to that were never shipped with it.
 ##
-## These are bugs in openrealm-data, not in the client, and the client cannot
+## These are bugs in gravebound-data, not in the client, and the client cannot
 ## fix them -- it can only decide whether to shout about each one on every
 ## launch. Listing a sheet here says "known, already understood, not worth a
 ## warning banner". It is deliberately not silence: check-content.sh still
@@ -14,7 +14,7 @@ extends RefCounted
 ## someone can make without re-deriving the reason.
 
 ## sheet -> why it is here. Empty today: the one entry there was,
-## lofi_char.png for enemy 263, went when openrealm-data repointed that enemy
+## lofi_char.png for enemy 263, went when gravebound-data repointed that enemy
 ## at lofiCharacter10x10.png (11320fe), and check-content.sh now fails on an
 ## entry like that one -- listed, but named by nothing -- so the list cannot
 ## outlive what it excuses. An entry reads:

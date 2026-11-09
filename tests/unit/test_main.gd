@@ -174,7 +174,7 @@ func test_hud_is_wired_to_the_client_state_and_renderer():
 
 func test_data_service_points_at_the_configured_host():
 	assert_eq(main._data_service.base_url, "http://127.0.0.1:8080")
-	var deployed := _build(_config({"host": "openrealm.net", "data_port": 80}))
+	var deployed := _build(_config({"host": "grave-bound.com", "data_port": 80}))
 	assert_eq(deployed._data_service.base_url, "http://grave-bound.com",
 		"port 80 is omitted so the deployed setup keeps producing a plain host")
 	deployed.free()

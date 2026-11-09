@@ -185,32 +185,32 @@ func test_a_port_is_never_appended_after_a_path():
 
 # --- production --------------------------------------------------------------
 
-func test_a_page_on_openrealm_talks_to_openrealm_over_tls():
-	# A page on any openrealm.net host talks to the servers there. One rule,
+func test_a_page_on_gravebound_talks_to_gravebound_over_tls():
+	# A page on any grave-bound.com host talks to the servers there. One rule,
 	# no build variants.
 	var config := ClientConfig.parse(PackedStringArray([]), true,
-		PageOrigin.current(_page("play.openrealm.net", "", "https:")))
-	assert_eq(config.host, "openrealm.net")
+		PageOrigin.current(_page("play.grave-bound.com", "", "https:")))
+	assert_eq(config.host, "grave-bound.com")
 	assert_eq(ServerAddress.data_url(config), "https://grave-bound.com")
-	# The route openrealm.net actually proxies: one per game server, and
+	# The route grave-bound.com actually proxies: one per game server, and
 	# US East is the one that answers. A bare /ws is a 404 there.
-	assert_eq(ServerAddress.game_host(config), "wss://openrealm.net/ws/useast")
+	assert_eq(ServerAddress.game_host(config), "wss://grave-bound.com/ws/useast")
 
 
 func test_the_production_domains_whatever_the_page_scheme_or_port():
 	# A plain-http or oddly-ported page on the domain still goes to the real
 	# servers over TLS: production is a place, not a scheme.
-	for host in ["openrealm.net", "www.openrealm.net", "play.openrealm.net"]:
+	for host in ["grave-bound.com", "www.grave-bound.com", "play.grave-bound.com"]:
 		var config := ClientConfig.new()
 		PageOrigin.apply(config, PageOrigin.current(_page(host, "8080")))
-		assert_eq(config.host, "openrealm.net", host)
+		assert_eq(config.host, "grave-bound.com", host)
 		assert_eq(ServerAddress.data_url(config), "https://grave-bound.com", host)
 		assert_true(config.secure, host)
 
 
 func test_anywhere_else_still_talks_to_its_own_origin():
-	for host in ["localhost", "127.0.0.1", "staging.example", "notopenrealm.net",
-			"openrealm.net.evil.example"]:
+	for host in ["localhost", "127.0.0.1", "staging.example", "notgrave-bound.com",
+			"grave-bound.com.evil.example"]:
 		var config := ClientConfig.new()
 		PageOrigin.apply(config, PageOrigin.current(_page(host, "8080")))
 		assert_eq(config.host, host, host)
@@ -219,5 +219,5 @@ func test_anywhere_else_still_talks_to_its_own_origin():
 
 func test_an_explicit_host_still_beats_the_page():
 	var config := ClientConfig.parse(PackedStringArray(["--host=127.0.0.1"]), true,
-		PageOrigin.current(_page("play.openrealm.net", "", "https:")))
+		PageOrigin.current(_page("play.grave-bound.com", "", "https:")))
 	assert_eq(config.host, "127.0.0.1")

@@ -2,7 +2,7 @@ extends GutTest
 
 ## The v0.9.0 motion types: speed curves, line-segment spin, homing and
 ## anchoring. Every expected value here is computed from
-## com.openrealm.game.entity.Bullet, because a disagreement with the server is
+## com.gravebound.game.entity.Bullet, because a disagreement with the server is
 ## a bullet drawn where it is not.
 
 var entities: EntityRegistry

@@ -13,7 +13,7 @@ extends RefCounted
 ## arrived on, so the game port is left alone.
 ##
 ## One exception, and it is the whole of the production setup: a page served
-## from grave-bound.com (or the legacy openrealm.net) -- the domain or any
+## from grave-bound.com (or the legacy grave-bound.com) -- the domain or any
 ## subdomain -- talks to that same host over TLS, whatever the build and
 ## whatever port the page came from. Anywhere else (localhost, an address, a
 ## staging box) talks to its own origin, which is what a dev setup expects.
@@ -21,7 +21,7 @@ extends RefCounted
 ## What a url that names no port of its own implies, per scheme.
 const HTTP_PORT := 80
 const HTTPS_PORT := 443
-const PRODUCTION_DOMAINS := ["grave-bound.com", "openrealm.net"]
+const PRODUCTION_DOMAINS := ["grave-bound.com", "grave-bound.com"]
 const PRODUCTION_HOST := "grave-bound.com"
 
 

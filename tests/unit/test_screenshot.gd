@@ -51,5 +51,5 @@ func test_in_a_browser_the_bytes_are_handed_to_the_page():
 	assert_gt(handed[0][0], 0, "a PNG's worth of bytes")
 	assert_eq(handed[0][1], where)
 	assert_eq(handed[0][2], "image/png")
-	assert_true(where.begins_with("openrealm-") and where.ends_with(".png"))
+	assert_true(where.begins_with("gravebound-") and where.ends_with(".png"))
 	assert_false(where.contains(":") or where.contains(" "), "a name every filesystem and download prompt takes")

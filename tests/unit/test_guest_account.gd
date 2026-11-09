@@ -32,7 +32,7 @@ func _body(request: int) -> Dictionary:
 
 func test_made_credentials_look_like_the_web_clients():
 	var made := guest.make()
-	assert_true(RegEx.create_from_string("^guest_[0-9a-f]{8}@openrealm\\.net$").search(made["email"]) != null, made["email"])
+	assert_true(RegEx.create_from_string("^guest_[0-9a-f]{8}@gravebound\\.net$").search(made["email"]) != null, made["email"])
 	assert_true(RegEx.create_from_string("^[0-9a-f]{16}$").search(made["password"]) != null, made["password"])
 	assert_true(made["name"] in GuestAccount.NAMES)
 	assert_eq(GuestAccount.NAMES.size(), 44, "main.js GUEST_NAMES")
@@ -68,21 +68,21 @@ func test_a_first_press_registers_a_guest_and_keeps_it():
 
 
 func test_a_kept_guest_that_still_signs_in_is_reused():
-	guest.save({"email": "guest_1@openrealm.net", "password": "pw"})
+	guest.save({"email": "guest_1@grave-bound.com", "password": "pw"})
 	backend.push_json(200, {"accountGuid": "g", "token": "t"})
 	var got: Dictionary = await guest.obtain(service)
-	assert_eq(got, {"success": true, "email": "guest_1@openrealm.net", "password": "pw", "created": false})
+	assert_eq(got, {"success": true, "email": "guest_1@grave-bound.com", "password": "pw", "created": false})
 	assert_string_ends_with(backend.requests[0]["url"], "/admin/account/login")
 	assert_eq(backend.requests.size(), 1, "nothing registered")
 
 
 func test_a_kept_guest_that_no_longer_signs_in_is_replaced():
-	guest.save({"email": "guest_old@openrealm.net", "password": "pw"})
+	guest.save({"email": "guest_old@grave-bound.com", "password": "pw"})
 	backend.push_json(401, {"reason": "bad credentials"})
 	backend.push_json(200, {"accountGuid": "g2"})
 	var got: Dictionary = await guest.obtain(service)
 	assert_true(got["created"])
-	assert_ne(got["email"], "guest_old@openrealm.net")
+	assert_ne(got["email"], "guest_old@grave-bound.com")
 	assert_eq(guest.saved()["email"], got["email"], "the new one is kept instead")
 
 
@@ -95,7 +95,7 @@ func test_a_refused_registration_is_reported_and_nothing_is_kept():
 
 
 func test_a_kept_guest_that_no_longer_signs_in_is_dropped_even_if_no_new_one_can_be_made():
-	guest.save({"email": "guest_old@openrealm.net", "password": "pw"})
+	guest.save({"email": "guest_old@grave-bound.com", "password": "pw"})
 	backend.push_json(401, {"reason": "bad credentials"})
 	backend.push_json(500, {"reason": "Failed to register account"})
 	var got: Dictionary = await guest.obtain(service)

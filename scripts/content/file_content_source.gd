@@ -3,7 +3,7 @@ extends ContentSource
 
 ## Content read from the data repo on disk.
 ##
-## The default for a desktop build: openrealm-data is a separate repo checked
+## The default for a desktop build: gravebound-data is a separate repo checked
 ## out beside this one, so working on the client needs no service running.
 
 ## Searched in order. JSON lives under data/, sprite sheets under entity/ or

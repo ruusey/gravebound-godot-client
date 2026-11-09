@@ -2,11 +2,11 @@
 # Re-derives the wire schema and the golden conformance vectors from a Java
 # source tree. Run this whenever the server's packet definitions change.
 #
-#   ./regenerate-protocol.sh ../../openrealm/src
+#   ./regenerate-protocol.sh ../../gravebound/src
 set -euo pipefail
 cd "$(dirname "$0")"
 
-SRC="${1:-../../openrealm/src}"
+SRC="${1:-../../gravebound/src}"
 if [[ ! -d "$SRC" ]]; then
 	echo "not a directory: $SRC" >&2
 	exit 1

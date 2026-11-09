@@ -6,7 +6,7 @@ extends RefCounted
 ## Bullet positions are never streamed. NetBullet carries the full spawn
 ## parameter set once and both sides then run this same integration, so a
 ## bullet costs one packet instead of one packet per tick. That only holds if
-## this matches com.openrealm.game.entity.Bullet exactly.
+## this matches com.gravebound.game.entity.Bullet exactly.
 ##
 ## Every step scales by `bullet_scale = dt * 64`, normalising motion to the
 ## server's fixed 64Hz tick regardless of client frame rate.

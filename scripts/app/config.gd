@@ -2,14 +2,14 @@ class_name ClientConfig
 extends RefCounted
 
 ## Runtime configuration. Defaults target a local server plus the data repo
-## checked out beside this repo -- openrealm-data is a separate private repo,
+## checked out beside this repo -- gravebound-data is a separate private repo,
 ## so it lives next to this one rather than inside it; every value can be
 ## overridden from the command line, e.g.
 ##
 ##   godot -- --host=127.0.0.1 --email=me@example.com --password=pw \
 ##            --character=<uuid> --data-root=/path/to/resources
 
-const DEFAULT_DATA_ROOT := "../../openrealm-data/src/main/resources"
+const DEFAULT_DATA_ROOT := "../../gravebound-data/src/main/resources"
 ## The route a TLS deployment reaches the game server on, which must match
 ## what the ingress forwards to the WebSocket listener.
 ##
@@ -18,7 +18,7 @@ const DEFAULT_DATA_ROOT := "../../openrealm-data/src/main/resources"
 ## on 443 rather than 2223. So the socket goes through the same origin as
 ## everything else, on a path the proxy routes.
 const INGRESS_PATH := "/ws"
-## openrealm.net's nginx routes one path per game server -- /ws/useast,
+## grave-bound.com's nginx routes one path per game server -- /ws/useast,
 ## /ws/euwest, /ws/local -- straight from its setup-nginx.sh. US East is the
 ## one that answers today; the others are a hang and a 502.
 const PRODUCTION_INGRESS_PATH := "/ws/useast"
@@ -74,7 +74,7 @@ static func from_command_line() -> ClientConfig:
 ## browser's behaviour -- including which of the two wins when both name a
 ## host -- is reachable from a test running on the desktop. `on_app`, an
 ## Android build, has no page and no command line and is always what a page
-## on the production domain is: openrealm.net over TLS, socket and content
+## on the production domain is: grave-bound.com over TLS, socket and content
 ## the browser's way, since no 127.0.0.1 or data repo exists on a phone.
 static func parse(args: PackedStringArray, on_web := OS.has_feature("web"),
 		origin := PageOrigin.current(), on_app := OS.has_feature("android")) -> ClientConfig:
@@ -83,7 +83,7 @@ static func parse(args: PackedStringArray, on_web := OS.has_feature("web"),
 		origin = {"host": PageOrigin.PRODUCTION_HOST, "port": 0, "secure": true}
 	# A shipped desktop build (Windows/Linux) has no page to read an origin from,
 	# so it would otherwise keep the 127.0.0.1 dev default and fail to load game
-	# data. Point it at prod the same way Android/web-on-openrealm.net do (socket
+	# data. Point it at prod the same way Android/web-on-grave-bound.com do (socket
 	# + content over TLS through nginx). Editor and unversioned dev builds keep the
 	# local default; an explicit --host still overrides below.
 	elif not on_web and _is_released_build():

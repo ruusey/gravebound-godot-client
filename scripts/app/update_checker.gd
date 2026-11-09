@@ -14,7 +14,7 @@ extends Node
 ## web client is always latest (served from /play).
 
 const OWNER := "ruusey"
-const REPO := "openrealm-godot-client"
+const REPO := "gravebound-godot-client"
 const LATEST_URL := "https://api.github.com/repos/%s/%s/releases/latest" % [OWNER, REPO]
 const USER_AGENT := "GraveBound-Godot-Client"
 const SKIP_PATH := "user://skip_update.txt"

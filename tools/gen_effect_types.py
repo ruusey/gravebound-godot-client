@@ -39,7 +39,7 @@ def read_types(path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("src_root", help="path to the Java src tree (e.g. ../../openrealm/src)")
+    ap.add_argument("src_root", help="path to the Java src tree (e.g. ../../gravebound/src)")
     ap.add_argument("-o", "--out", default=None, help="output .gd path")
     args = ap.parse_args()
 

@@ -4,15 +4,15 @@ name: Release builds
 # them as GitHub Release assets. Mirrors the native client's tag-driven release:
 # push a v* tag to cut a release.
 #
-#   openrealm-godot-web.zip     -> deploy-remote.bat pulls this to the /play mount
-#   openrealm-godot-windows.zip -> single OpenRealm.exe (pck embedded)
-#   openrealm-godot-linux.zip   -> single OpenRealm.x86_64 (pck embedded)
-#   openrealm-godot-macos.zip   -> OpenRealm.app (universal x86_64+arm64, UNSIGNED)
+#   gravebound-godot-web.zip     -> deploy-remote.bat pulls this to the /play mount
+#   gravebound-godot-windows.zip -> single GraveBound.exe (pck embedded)
+#   gravebound-godot-linux.zip   -> single GraveBound.x86_64 (pck embedded)
+#   gravebound-godot-macos.zip   -> GraveBound.app (universal x86_64+arm64, UNSIGNED)
 #
 # The macOS .app is UNSIGNED: CI has no Apple Developer certificate, so codesign
 # + notarization are disabled in the export preset. Gatekeeper blocks it on first
 # launch -- users right-click the .app -> Open, or run
-# `xattr -dr com.apple.quarantine OpenRealm.app` once. Exporting the .app to a
+# `xattr -dr com.apple.quarantine GraveBound.app` once. Exporting the .app to a
 # .zip works on the Linux runner (a .dmg would need a macOS host).
 #
 # Exports run with the standard (non-Mono) Godot 4.7.2 headless binary -- the
@@ -35,10 +35,10 @@ concurrency:
 env:
   GODOT_VERSION: 4.7.2
   PROJECT_DIR: .
-  WEB_ASSET: openrealm-godot-web.zip
-  WIN_ASSET: openrealm-godot-windows.zip
-  LINUX_ASSET: openrealm-godot-linux.zip
-  MAC_ASSET: openrealm-godot-macos.zip
+  WEB_ASSET: gravebound-godot-web.zip
+  WIN_ASSET: gravebound-godot-windows.zip
+  LINUX_ASSET: gravebound-godot-linux.zip
+  MAC_ASSET: gravebound-godot-macos.zip
 
 jobs:
   release:
@@ -123,16 +123,16 @@ jobs:
           }
 
           export_target "Web"             build/web/index.html    "build/web/index.wasm"
-          export_target "Windows Desktop" build/windows/OpenRealm.exe "build/windows/OpenRealm.exe"
-          export_target "Linux"           build/linux/OpenRealm.x86_64 "build/linux/OpenRealm.x86_64"
+          export_target "Windows Desktop" build/windows/GraveBound.exe "build/windows/GraveBound.exe"
+          export_target "Linux"           build/linux/GraveBound.x86_64 "build/linux/GraveBound.x86_64"
           # macOS exports the .app bundled into a .zip (works headless on Linux; a
           # .dmg would need a macOS host). Non-fatal: a mac-export hiccup must never
           # block the proven Web/Windows/Linux release — it's packaged only if present.
-          echo "== export macOS -> build/macos/OpenRealm.zip"
-          ~/godot/godot --headless --path "$PROJECT_DIR" --export-release "macOS" build/macos/OpenRealm.zip || true
-          if [ -f build/macos/OpenRealm.zip ]; then echo "macOS export OK"; else echo "WARNING: macOS export produced nothing — continuing without it"; fi
+          echo "== export macOS -> build/macos/GraveBound.zip"
+          ~/godot/godot --headless --path "$PROJECT_DIR" --export-release "macOS" build/macos/GraveBound.zip || true
+          if [ -f build/macos/GraveBound.zip ]; then echo "macOS export OK"; else echo "WARNING: macOS export produced nothing — continuing without it"; fi
 
-          chmod +x build/linux/OpenRealm.x86_64
+          chmod +x build/linux/GraveBound.x86_64
           ls -la build/web build/windows build/linux build/macos || true
 
       # Build a clean BMP-based multi-size .ico from the source PNG for the Windows
@@ -144,32 +144,32 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends imagemagick
-          convert icon.png -background none -define icon:auto-resize=256,128,64,48,32,16 openrealm.ico
-          ls -la openrealm.ico
+          convert icon.png -background none -define icon:auto-resize=256,128,64,48,32,16 gravebound.ico
+          ls -la gravebound.ico
 
       - name: Package release zips
         run: |
           set -euo pipefail
           # index.html at the zip root so it unpacks straight into the /play mount.
           (cd build/web && zip -r "$GITHUB_WORKSPACE/$WEB_ASSET" .)
-          (cd build/windows && zip "$GITHUB_WORKSPACE/$WIN_ASSET" OpenRealm.exe)
-          (cd build/linux && zip "$GITHUB_WORKSPACE/$LINUX_ASSET" OpenRealm.x86_64)
-          # The macOS export is already a .zip of OpenRealm.app -- ship it as-is if
+          (cd build/windows && zip "$GITHUB_WORKSPACE/$WIN_ASSET" GraveBound.exe)
+          (cd build/linux && zip "$GITHUB_WORKSPACE/$LINUX_ASSET" GraveBound.x86_64)
+          # The macOS export is already a .zip of GraveBound.app -- ship it as-is if
           # it was produced (export is non-fatal above).
-          [ -f build/macos/OpenRealm.zip ] && cp build/macos/OpenRealm.zip "$GITHUB_WORKSPACE/$MAC_ASSET" || echo "no macOS asset to package"
+          [ -f build/macos/GraveBound.zip ] && cp build/macos/GraveBound.zip "$GITHUB_WORKSPACE/$MAC_ASSET" || echo "no macOS asset to package"
           ls -la "$WEB_ASSET" "$WIN_ASSET" "$LINUX_ASSET" || true
           ls -la "$MAC_ASSET" 2>/dev/null || true
 
       - name: Upload zips as workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: openrealm-godot-builds
+          name: gravebound-godot-builds
           path: |
             ${{ env.WEB_ASSET }}
             ${{ env.WIN_ASSET }}
             ${{ env.LINUX_ASSET }}
             ${{ env.MAC_ASSET }}
-            openrealm.ico
+            gravebound.ico
           if-no-files-found: error
 
       - name: Publish to GitHub Release
@@ -204,7 +204,7 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: openrealm-godot-builds
+          name: gravebound-godot-builds
 
       - name: Brand .exe icon (native rcedit) and repackage
         shell: pwsh
@@ -213,10 +213,10 @@ jobs:
           Invoke-WebRequest -UseBasicParsing `
             -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" `
             -OutFile rcedit.exe
-          .\rcedit.exe "winout\OpenRealm.exe" --set-icon openrealm.ico
+          .\rcedit.exe "winout\GraveBound.exe" --set-icon gravebound.ico
           if ($LASTEXITCODE -ne 0) { throw "rcedit failed with exit $LASTEXITCODE" }
           Remove-Item "$env:WIN_ASSET"
-          Compress-Archive -Path "winout\OpenRealm.exe" -DestinationPath "$env:WIN_ASSET" -Force
+          Compress-Archive -Path "winout\GraveBound.exe" -DestinationPath "$env:WIN_ASSET" -Force
 
       - name: Re-upload branded windows zip to the release
         uses: softprops/action-gh-release@v2

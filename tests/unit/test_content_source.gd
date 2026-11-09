@@ -213,7 +213,7 @@ func after_each():
 
 
 func test_a_known_gap_is_not_reported_every_launch():
-	# The client cannot fix a sheet openrealm-data never shipped; it can only
+	# The client cannot fix a sheet gravebound-data never shipped; it can only
 	# decide whether to warn about it on every start. It still resolves to
 	# nothing, so the sprite draws as a fallback block either way.
 	ContentGaps.sheets = {"gap.png": "enemy 999 (Test) placeholder; sheet never shipped"}

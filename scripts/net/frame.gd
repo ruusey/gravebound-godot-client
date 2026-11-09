@@ -1,7 +1,7 @@
 class_name NetFrame
 extends RefCounted
 
-## Framing and transparent compression, mirroring com.openrealm.net.core.PacketCompression
+## Framing and transparent compression, mirroring com.gb.net.core.PacketCompression
 ## and the read loop in the native client's SocketClient.
 ##
 ##   uncompressed:  [id : 1][totalLength : 4][payload ...]

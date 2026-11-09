@@ -150,8 +150,8 @@ static func fame_packages() -> Dictionary:
 
 ## The game servers the sign-in's picker lists.
 static func servers() -> Array:
-	return [{"name": "US East", "route": "/ws/openrealm", "host": "us.openrealm.net", "webSocketPort": 2223},
-		{"name": "EU West", "route": "/ws/openrealm1", "host": "eu.openrealm.net", "webSocketPort": 2223}]
+	return [{"name": "US East", "route": "/ws/gravebound", "host": "us.grave-bound.com", "webSocketPort": 2223},
+		{"name": "EU West", "route": "/ws/gravebound1", "host": "eu.grave-bound.com", "webSocketPort": 2223}]
 
 
 ## A played character's lifetime metrics, as the service reports them.

@@ -23,7 +23,7 @@ Usage:
     python3 tools/gen_schema.py <java-src-root> [-o scripts/net/schema.gd]
 
 Example:
-    python3 tools/gen_schema.py ../../openrealm/src
+    python3 tools/gen_schema.py ../../gravebound/src
 """
 import argparse
 import os
@@ -290,7 +290,7 @@ def gd_escape(s):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("src_root", help="path to the Java src tree (e.g. .../openrealm-legacy/src)")
+    ap.add_argument("src_root", help="path to the Java src tree (e.g. .../gravebound-legacy/src)")
     ap.add_argument("-o", "--out", default=None, help="output .gd path")
     args = ap.parse_args()
 

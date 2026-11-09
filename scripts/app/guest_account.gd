@@ -3,7 +3,7 @@ extends RefCounted
 
 ## "Play as Guest": a throwaway account made fresh on every press.
 ##
-## A guest is an ordinary account made on the spot -- guest_<8 hex>@openrealm.net,
+## A guest is an ordinary account made on the spot -- guest_<8 hex>@grave-bound.com,
 ## a sixteen-hex password, a name off the web client's list -- registered with
 ## `guest: true`, which the data service answers with the DEMO provision and an
 ## empty account. The credentials are SHOWN to the player once (account_form) and
@@ -27,7 +27,7 @@ var rng := RandomNumberGenerator.new()
 
 ## A fresh set: {email, password, name}.
 func make() -> Dictionary:
-	return {"email": "guest_%s@openrealm.net" % _hex(), "password": _hex() + _hex(),
+	return {"email": "guest_%s@grave-bound.com" % _hex(), "password": _hex() + _hex(),
 		"name": NAMES[rng.randi_range(0, NAMES.size() - 1)]}
 
 

@@ -22,8 +22,8 @@ func test_relative_data_root_resolves_against_the_project():
 
 func test_absolute_data_root_is_left_alone():
 	var config := ClientConfig.new()
-	config.data_root = "/opt/openrealm/resources"
-	assert_eq(config.resolved_data_root(), "/opt/openrealm/resources")
+	config.data_root = "/opt/gravebound/resources"
+	assert_eq(config.resolved_data_root(), "/opt/gravebound/resources")
 
 
 func test_parses_every_supported_flag():
@@ -64,7 +64,7 @@ func test_from_command_line_uses_the_real_args():
 
 func test_data_base_url_omits_the_default_port():
 	var config := ClientConfig.new()
-	config.host = "openrealm.net"
+	config.host = "grave-bound.com"
 	# Pinned rather than inherited: the default targets a local container,
 	# which publishes the service on an unprivileged port.
 	config.data_port = 80

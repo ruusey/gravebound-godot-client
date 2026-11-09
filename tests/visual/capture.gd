@@ -60,8 +60,8 @@ func _ready() -> void:
 		PanelFold.short_screen = true
 	var config := ClientConfig.new()
 	# A checkout laid out differently from the default names its data here.
-	if OS.has_environment("OPENREALM_DATA_ROOT"):
-		config.data_root = OS.get_environment("OPENREALM_DATA_ROOT")
+	if OS.has_environment("GRAVEBOUND_DATA_ROOT"):
+		config.data_root = OS.get_environment("GRAVEBOUND_DATA_ROOT")
 	var content := GameData.new()
 	if not await content.load_from(FileContentSource.new(config.resolved_data_root())):
 		push_error("content load failed: %s" % "\n".join(content.errors))

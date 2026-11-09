@@ -308,14 +308,14 @@ func test_play_as_guest_registers_signs_in_and_shows_the_credentials_once():
 
 func test_a_returning_guest_just_signs_in():
 	_guest_path()
-	screen._form.guest.save({"email": "guest_1@openrealm.net", "password": "pw"})
+	screen._form.guest.save({"email": "guest_1@grave-bound.com", "password": "pw"})
 	backend.push_json(200, {"accountGuid": "g", "token": "t"})
 	backend.push_json(200, {"accountGuid": "g", "token": "t"})
 	backend.push_json(200, ACCEPTED)
 	backend.push_json(200, {"characters": []})
 	screen._form.play_as_guest()
 	await wait_process_frames(1)
-	assert_eq(screen._form.email_text(), "guest_1@openrealm.net")
+	assert_eq(screen._form.email_text(), "guest_1@grave-bound.com")
 	assert_false(screen._form.guest_notice.visible, "shown only when the account is new")
 	screen._form.guest.forget()
 

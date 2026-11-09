@@ -3,7 +3,7 @@ extends RefCounted
 
 ## "How to Play GraveBound" — the guide shown by the "?" on the sign-in panel,
 ## as BBCode for the modal's RichTextLabel. A standalone HTML copy of the same
-## content is published at openrealm.net/guide for linking without the client;
+## content is published at grave-bound.com/guide for linking without the client;
 ## keep the two in rough sync when systems change.
 ##
 ## Keys in {curly braces} are filled from the live input map (HowToControls), so
