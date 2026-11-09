@@ -6,11 +6,13 @@ extends CanvasLayer
 ## sign-in side, CharacterStage the account's -- the whole panel, sized for
 ## a thumb; the leaderboard is on the in-game Menu. Signed in, the form
 ## gives way to a SignedInRow and the email is kept (LastEmail). TermsGate covers an account yet to accept the
-## Terms of Use; the "?" opens How to Play (HowToPanel).
+## Terms of Use; the Wiki button opens the player guide and the rest of the wiki.
 
 signal character_chosen(email: String, password: String, character_uuid: String)
 
-const HOW_TO_BUTTON := int(TouchSize.ROW)
+## Width reserved on the header's left so the logo stays centred opposite the
+## Wiki button on the right.
+const HEADER_EDGE := int(TouchSize.ROW)
 ## The public game wiki, served only on the production domain. Opened in a new
 ## browser tab on web, the OS browser on desktop.
 const WIKI_URL := "https://grave-bound.com/wiki/"
@@ -41,8 +43,6 @@ var _account: SignedInRow
 var _panel: PanelContainer
 var _status: Label
 var _stage: CharacterStage
-var _how_to: HowToPanel
-var _how_to_button: Button
 var _terms: TermsGate
 
 
@@ -86,7 +86,7 @@ func _ready() -> void:
 		header.add_theme_constant_override(gap, 12)
 	column.add_child(header)
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(HOW_TO_BUTTON, 0)
+	spacer.custom_minimum_size = Vector2(HEADER_EDGE, 0)
 	if not PhoneLayout.on:
 		header.add_child(spacer)
 	var title := TextureRect.new()
@@ -103,9 +103,8 @@ func _ready() -> void:
 		title.custom_minimum_size = PHONE_LOGO
 		title.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	var wiki_button := InventoryLayout.button(header, "Wiki", _open_wiki)
-	wiki_button.tooltip_text = "Open the game wiki"
+	wiki_button.tooltip_text = "Open the game wiki (guide, items, classes and more)"
 	wiki_button.size_flags_horizontal = Control.SIZE_SHRINK_END
-	_how_to_button = HowToPanel.badge(header, HOW_TO_BUTTON, func() -> void: _how_to.open())
 
 	# Server picker above the sign-in fields; applies the choice to the config
 	# the connection reads. Hides itself when /servers is empty/unreachable.
@@ -138,12 +137,10 @@ func _ready() -> void:
 	_status.custom_minimum_size = Vector2(0, 24.0 if PhoneLayout.on else 40.0)
 	column.add_child(_status)
 
-	_how_to = HowToPanel.new()
-	add_child(_how_to)
 	_terms = TermsGate.new()
 	add_child(_terms)
 	# Every field and button a thumb's height: a phone signs in here too.
-	for part in [_form, _account, _how_to, _terms]:
+	for part in [_form, _account, _terms]:
 		TouchSize.grow_all(part)
 	if PhoneLayout.on:
 		TouchSize.grow_all(_server_select)
