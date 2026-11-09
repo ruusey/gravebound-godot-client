@@ -135,16 +135,14 @@ jobs:
           chmod +x build/linux/GraveBound.x86_64
           ls -la build/web build/windows build/linux build/macos || true
 
-      # Build a clean BMP-based multi-size .ico from the source PNG for the Windows
-      # .exe icon. The actual embedding happens natively in the brand-windows job
-      # (rcedit under wine on this Linux runner silently no-ops); imagemagick here
-      # just produces the .ico, which is passed along in the build artifact.
-      - name: Build Windows .ico from icon.png
+      # The Windows .exe icon is the committed, pre-built multi-size gravebound.ico
+      # (a proper square GraveBound emblem — converting the wide wordmark icon.png
+      # produced an .ico rcedit rejected). It rides along in the build artifact and
+      # is embedded natively in the brand-windows job.
+      - name: Stage committed Windows .ico
         run: |
           set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends imagemagick
-          convert icon.png -background none -define icon:auto-resize=256,128,64,48,32,16 gravebound.ico
+          test -f gravebound.ico
           ls -la gravebound.ico
 
       - name: Package release zips
