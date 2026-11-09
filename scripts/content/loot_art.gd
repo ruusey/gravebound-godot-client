@@ -12,6 +12,9 @@ extends RefCounted
 ## tier. Only the tier and the chest flag travel on the wire.
 
 const CHEST_TIER := -1
+## The untiered bag (server LootTier.BLACK, value 4): rendered black, and the
+## client gives it a soft white glow so an untiered drop stands out.
+const BLACK_TIER := 4
 const CHEST_FALLBACK := {"spriteKey": "realm-projectiles.png", "col": 2, "row": 0, "fullSize": true}
 const BAG_SHEET := "realm-misc.png"
 const BAG_ROW := 9

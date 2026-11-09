@@ -214,7 +214,8 @@ func _queue_containers(queue: Array, state: RealmState, content: GameData, view:
 		var at := LootArt.rect(content, position, tier, chest)
 		queue.append({"kind": "containers", "pos": at.position, "size": at.size.x,
 			"draw": at.size, "texture": LootArt.texture(content, tier, chest),
-			"tint": Color(0.85, 0.7, 0.3), "flip": false, "modulate": StatusTint.CLEAR})
+			"tint": Color(0.85, 0.7, 0.3), "flip": false, "modulate": StatusTint.CLEAR,
+			"glow": not chest and tier == LootArt.BLACK_TIER})
 
 
 func _is_moving(state: RealmState, player: Dictionary, is_local: bool) -> bool:

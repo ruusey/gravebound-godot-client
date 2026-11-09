@@ -18,6 +18,12 @@ const EMPTY_COUNTS := {"players": 0, "enemies": 0, "containers": 0,
 ## cap, so it only bites the pathological pile.
 const STATIC_OUTLINE_BUDGET := 64
 
+## The untiered (BLACK) loot bag's soft white glow: a particle soft-dot drawn
+## behind the bag sprite so an untiered drop stands out. Radius is a multiple of
+## the bag's drawn size; the alpha keeps it a gentle halo rather than a flare.
+const BLACK_BAG_GLOW := Color(1.0, 1.0, 1.0, 0.5)
+const BLACK_BAG_GLOW_RADIUS_MUL := 0.95
+
 
 var state: RealmState
 var content: GameData
@@ -145,6 +151,15 @@ func _draw_entity(canvas: CanvasItem, item: Dictionary, outlines: bool) -> void:
 		canvas.draw_set_transform(rect.position + Vector2(rect.size.x, 0.0), 0.0,
 			Vector2(-1.0, 1.0))
 		rect = Rect2(Vector2.ZERO, rect.size)
+
+	# The untiered (black) bag's soft white glow, drawn behind the sprite. Bags
+	# never flip/rotate, so the canvas transform is identity and rect is absolute.
+	if item.get("glow", false):
+		var glow_centre := rect.position + rect.size * 0.5
+		var glow_radius := maxf(rect.size.x, rect.size.y) * BLACK_BAG_GLOW_RADIUS_MUL
+		canvas.draw_texture_rect(ParticleRenderer.soft_dot(),
+			Rect2(glow_centre - Vector2(glow_radius, glow_radius), Vector2(glow_radius, glow_radius) * 2.0),
+			false, BLACK_BAG_GLOW)
 
 	if texture != null:
 		# Static props (loot/portals) outline only up to the per-frame budget; players
