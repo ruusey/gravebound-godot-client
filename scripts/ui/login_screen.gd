@@ -168,25 +168,33 @@ func _phone_header(header: Container, spacer: Control) -> void:
 	_form.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 
+## The scrolling dungeon, unless forced off, on a phone (it renders a whole world
+## behind the panel -- the torchlit hall is the cheaper view there), or before its
+## data has loaded. "dungeon" forces it on; "torches" forces it off.
+func _wants_dungeon() -> bool:
+	if backdrop_mode == "torches" or PhoneLayout.on:
+		return false
+	return backdrop_mode == "dungeon" or DungeonBackdrop.can_build(game_data)
+
+
 ## Attaches the wanted backdrop behind the panel, swapping out the other one. In
 ## "auto" the dungeon can't be built until its data has loaded, so the torchlit
 ## hall shows first and _process upgrades to the dungeon when it is ready.
 func _ensure_backdrop() -> void:
-	var want_dungeon := backdrop_mode == "dungeon" \
-		or (backdrop_mode == "auto" and DungeonBackdrop.can_build(game_data))
-	if want_dungeon and _dungeon == null:
-		if _backdrop != null:
-			_backdrop.queue_free()
-			_backdrop = null
-		_dungeon = DungeonBackdrop.attach(self, game_data)
-		move_child(_dungeon, 0)
-	elif not want_dungeon and _backdrop == null and _dungeon == null:
+	if _wants_dungeon():
+		if _dungeon == null:
+			if _backdrop != null:
+				_backdrop.queue_free()
+				_backdrop = null
+			_dungeon = DungeonBackdrop.attach(self, game_data)
+			move_child(_dungeon, 0)
+	elif _backdrop == null and _dungeon == null:
 		_backdrop = LoginBackdrop.attach(self, game_data)
 		move_child(_backdrop, 0)
 
 
 func _process(_delta: float) -> void:
-	if backdrop_mode == "auto" and _dungeon == null and DungeonBackdrop.can_build(game_data):
+	if _dungeon == null and _wants_dungeon():
 		_ensure_backdrop()
 	if not visible:
 		return

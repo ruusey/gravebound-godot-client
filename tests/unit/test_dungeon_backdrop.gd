@@ -109,3 +109,25 @@ func test_the_same_seed_builds_the_same_dungeon():
 	b.build()
 	assert_eq(a._state.tiles.layers[0], b._state.tiles.layers[0])
 	assert_eq(a._state.entities.enemies.size(), b._state.entities.enemies.size())
+
+
+func test_a_phone_keeps_the_cheaper_torch_hall():
+	var was := PhoneLayout.on
+	PhoneLayout.on = true
+	var screen := LoginScreen.new()
+	screen.game_data = data   # dungeon data is loaded, but a phone skips it
+	add_child_autofree(screen)
+	assert_null(screen._dungeon, "no scrolling dungeon on a phone")
+	assert_not_null(screen._backdrop, "the torchlit hall instead")
+	PhoneLayout.on = was
+
+
+func test_desktop_with_data_gets_the_scrolling_dungeon():
+	var was := PhoneLayout.on
+	PhoneLayout.on = false
+	var screen := LoginScreen.new()
+	screen.game_data = data
+	add_child_autofree(screen)
+	assert_not_null(screen._dungeon, "the scrolling dungeon on desktop")
+	assert_null(screen._backdrop)
+	PhoneLayout.on = was
