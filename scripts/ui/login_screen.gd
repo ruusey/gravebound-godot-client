@@ -17,7 +17,7 @@ const WIKI_URL := "https://grave-bound.com/wiki/"
 ## The phone's card: as wide as a landscape phone, the logo, the server and
 ## the account in one header row so the form or the characters get the rest.
 const PHONE_WIDTH := 800.0
-const PHONE_LOGO := Vector2(132, 44)
+const PHONE_LOGO := Vector2(264, 88)
 const PHONE_FORM_WIDTH := 380.0
 const PHONE_SERVER_WIDTH := 210.0
 
@@ -93,7 +93,7 @@ func _ready() -> void:
 	var logo := HudWidgets.logo_texture()
 	if logo != null:
 		title.texture = logo
-	title.custom_minimum_size = Vector2(0, 52)
+	title.custom_minimum_size = Vector2(0, 104)
 	title.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	title.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	title.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
