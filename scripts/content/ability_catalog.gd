@@ -10,6 +10,9 @@ extends RefCounted
 
 const SLOTS := 3
 const DEFAULT_CAP := 5
+## Ultimate = the third active ability (slotHint 2); it caps at 3 points, not 5.
+const ULTIMATE_SLOT_HINT := 2
+const ULTIMATE_CAP := 3
 ## The server floors a point-reduced cooldown here, and a cast time at 150.
 const MIN_COOLDOWN_MS := 500
 const MIN_CAST_MS := 150
@@ -52,8 +55,14 @@ func icon(ability_id: int) -> AtlasTexture:
 
 ## How many points an ability takes; the content's own figure, else five.
 func cap(ability_id: int) -> int:
-	var declared := int(ability(ability_id).get("maxSkillPoints", 0))
-	return declared if declared > 0 else DEFAULT_CAP
+	var definition := ability(ability_id)
+	var declared := int(definition.get("maxSkillPoints", 0))
+	var result := declared if declared > 0 else DEFAULT_CAP
+	# Ultimates hard-cap at 3 regardless of declared max, so a mis-set ability
+	# can't let the bar invest past what the server will accept.
+	if int(definition.get("slotHint", -1)) == ULTIMATE_SLOT_HINT:
+		result = mini(result, ULTIMATE_CAP)
+	return result
 
 
 ## The cooldown after `invested` points, as the server computes it.
