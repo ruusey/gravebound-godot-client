@@ -214,7 +214,11 @@ jobs:
             -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" `
             -OutFile rcedit.exe
           .\rcedit.exe "winout\GraveBound.exe" --set-icon gravebound.ico
-          if ($LASTEXITCODE -ne 0) { throw "rcedit failed with exit $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) {
+            # Icon embedding is cosmetic; a bad .ico must not fail the release. Ship
+            # the exe with its default icon rather than dropping the Windows build.
+            Write-Warning "rcedit failed (exit $LASTEXITCODE); shipping GraveBound.exe without an embedded icon"
+          }
           Remove-Item "$env:WIN_ASSET"
           Compress-Archive -Path "winout\GraveBound.exe" -DestinationPath "$env:WIN_ASSET" -Force
 
