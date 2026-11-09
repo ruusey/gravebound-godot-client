@@ -4,7 +4,7 @@ extends GutTest
 
 var input: PlayerInput
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var transport: FakeTransport
 var aim: Node2D
 
@@ -19,7 +19,7 @@ func before_each():
 	state = RealmState.new(content)
 
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 

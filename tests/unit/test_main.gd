@@ -175,7 +175,7 @@ func test_hud_is_wired_to_the_client_state_and_renderer():
 func test_data_service_points_at_the_configured_host():
 	assert_eq(main._data_service.base_url, "http://127.0.0.1:8080")
 	var deployed := _build(_config({"host": "openrealm.net", "data_port": 80}))
-	assert_eq(deployed._data_service.base_url, "http://openrealm.net",
+	assert_eq(deployed._data_service.base_url, "http://grave-bound.com",
 		"port 80 is omitted so the deployed setup keeps producing a plain host")
 	deployed.free()
 
@@ -337,12 +337,12 @@ func test_escape_opens_the_options_and_leave_game_disconnects():
 	_login(1)
 	_press(KEY_ESCAPE)
 	assert_true(main.screens.options.shown, "in a realm, the menu -- not a disconnect")
-	assert_eq(main.client.state, OpenRealmClient.State.IN_GAME)
+	assert_eq(main.client.state, GraveBoundClient.State.IN_GAME)
 	_press(KEY_ESCAPE)
 	assert_false(main.screens.options.shown, "and escape again puts it away")
 	_press(KEY_ESCAPE)
 	main.screens.options.leave_button.pressed.emit()
-	assert_eq(main.client.state, OpenRealmClient.State.CLOSED, "Leave game is what escape used to do")
+	assert_eq(main.client.state, GraveBoundClient.State.CLOSED, "Leave game is what escape used to do")
 	assert_false(main.screens.options.shown)
 
 

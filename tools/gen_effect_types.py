@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate scripts/net/effect_type.gd from an OpenRealm Java source tree.
+Generate scripts/net/effect_type.gd from an GraveBound Java source tree.
 
 CreateEffectPacket's `effectType` is a bare short on the wire; the names live
 only as `public static final short EFFECT_<NAME> = <id>;` constants on the

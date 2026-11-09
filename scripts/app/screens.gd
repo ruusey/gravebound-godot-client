@@ -48,7 +48,7 @@ var loot: LootWindow
 var touch: TouchControls
 
 
-func build(state: RealmState, game_data: GameData, client: OpenRealmClient,
+func build(state: RealmState, game_data: GameData, client: GraveBoundClient,
 		data_service: DataService, inventory_actions: InventoryActions,
 		caster: AbilityCaster, shop: ShopActions, forge_actions: ForgeActions,
 		world: WorldRenderer, chat_actions: ChatActions = null) -> void:

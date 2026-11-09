@@ -14,9 +14,9 @@ const SCROLL_HINT := "Scroll down to read all terms"
 const BODY := """[color=#8a8078]Copyright © 2024–2026 Robert Usey <ruusey@gmail.com>. All Rights Reserved.[/color]
 
 [font_size=15][b][color=#ffd96b]License & Prohibited Conduct[/color][/b][/font_size]
-OpenRealm and its client, artwork, audio, data files, and the network protocol used to communicate with OpenRealm servers (the “Software”) are the exclusive property of Robert Usey (the “Owner”) and are protected by copyright law and international treaties. The Software is licensed, not sold.
+GraveBound and its client, artwork, audio, data files, and the network protocol used to communicate with GraveBound servers (the “Software”) are the exclusive property of Robert Usey (the “Owner”) and are protected by copyright law and international treaties. The Software is licensed, not sold.
 
-Subject to your compliance with these Terms, you are granted a personal, limited, non-exclusive, non-transferable, revocable license to use the official OpenRealm client solely to play OpenRealm. All rights not expressly granted are reserved. You may [b]NOT[/b]:
+Subject to your compliance with these Terms, you are granted a personal, limited, non-exclusive, non-transferable, revocable license to use the official GraveBound client solely to play GraveBound. All rights not expressly granted are reserved. You may [b]NOT[/b]:
 [ul]
 copy, modify, distribute, sublicense, or create derivative works of the Software;
 reverse engineer, decompile, or disassemble the Software — which expressly includes intercepting, capturing, recording, injecting, replaying, or modifying network traffic between the client and our servers, and emulating, spoofing, or reimplementing the network protocol;
@@ -32,4 +32,4 @@ The only personal information we collect is the email address you use to create 
 
 To run the game and protect it from abuse, our servers necessarily process your device’s IP address during your session for connection, security, and anti-cheat. We do not use it to track you and retain it only briefly for security and debugging. You may request access to or deletion of your account and email at any time by contacting ruusey@gmail.com.
 
-[color=#8a8078]The full Terms of Use and Privacy Policy are on the OpenRealm web client (terms.html, privacy.html). By clicking “I Agree” you confirm you have read and accept these Terms and the Privacy Policy.[/color]"""
+[color=#8a8078]The full Terms of Use and Privacy Policy are on the GraveBound web client (terms.html, privacy.html). By clicking “I Agree” you confirm you have read and accept these Terms and the Privacy Policy.[/color]"""

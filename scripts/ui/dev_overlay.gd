@@ -16,14 +16,14 @@ const GREEN := "#66ff66"
 const YELLOW := "#ffff66"
 const RED := "#ff6666"
 
-var client: OpenRealmClient
+var client: GraveBoundClient
 var shown := true
 
 var _text: RichTextLabel
 var _elapsed := REFRESH_SECONDS
 
 
-func setup(net_client: OpenRealmClient) -> void:
+func setup(net_client: GraveBoundClient) -> void:
 	client = net_client
 
 

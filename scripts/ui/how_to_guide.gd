@@ -1,7 +1,7 @@
 class_name HowToGuide
 extends RefCounted
 
-## "How to Play OpenRealm" — the guide shown by the "?" on the sign-in panel,
+## "How to Play GraveBound" — the guide shown by the "?" on the sign-in panel,
 ## as BBCode for the modal's RichTextLabel. A standalone HTML copy of the same
 ## content is published at openrealm.net/guide for linking without the client;
 ## keep the two in rough sync when systems change.
@@ -10,7 +10,7 @@ extends RefCounted
 ## a rebinding shows here too. Use only the keys in HowToControls.key_words();
 ## reference menus/tiles by name in prose otherwise. No literal braces in bodies.
 
-const TITLE := "How to Play OpenRealm"
+const TITLE := "How to Play GraveBound"
 const INTRO := "A fast-paced top-down bullet-hell RPG. Pick a class, grow stronger, team up with other players, and cleanse the realm of its corruption."
 const HEADING := "#ffd96b"
 

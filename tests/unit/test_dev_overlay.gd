@@ -4,7 +4,7 @@ extends GutTest
 ## compact readout /dev brings up.
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var transport: FakeTransport
 var actions: ChatActions
 var dev: DevOverlay
@@ -14,7 +14,7 @@ var hud: DebugHud
 func before_each():
 	state = RealmState.new(null, func() -> int: return 0)
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 	dev = DevOverlay.new()

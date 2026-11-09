@@ -4,7 +4,7 @@ extends RefCounted
 ## Socket plus framing: bytes in, decoded packets out.
 ##
 ## Everything here is about moving frames. What those frames *mean* -- login,
-## heartbeats, the session state machine -- belongs to OpenRealmClient, which
+## heartbeats, the session state machine -- belongs to GraveBoundClient, which
 ## owns one of these.
 
 var transport: NetTransport = TcpTransport.new()

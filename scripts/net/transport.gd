@@ -1,7 +1,7 @@
 class_name NetTransport
 extends RefCounted
 
-## Byte-stream seam between OpenRealmClient and the socket.
+## Byte-stream seam between GraveBoundClient and the socket.
 ##
 ## The client's interesting behaviour -- frame reassembly across split reads,
 ## desync detection, handshake sequencing, disconnect handling -- is all

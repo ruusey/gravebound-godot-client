@@ -4,7 +4,7 @@ extends GutTest
 ## wheel, a dot named under the cursor and teleported to on a click.
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var transport: FakeTransport
 var panel: MinimapPanel
 var now := 10_000
@@ -14,7 +14,7 @@ func before_each():
 	now = 10_000
 	state = RealmState.new(null, func() -> int: return now)
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 	panel = MinimapPanel.new()

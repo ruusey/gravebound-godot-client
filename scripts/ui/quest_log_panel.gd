@@ -17,7 +17,7 @@ const TAB_COMPLETED := 1
 
 var state: RealmState
 var content: GameData
-var client: OpenRealmClient
+var client: GraveBoundClient
 var shown := false
 
 var chip: Button
@@ -31,7 +31,7 @@ var _query := ""
 var _drawn := -1
 
 
-func setup(realm_state: RealmState, game_data: GameData, net_client: OpenRealmClient) -> void:
+func setup(realm_state: RealmState, game_data: GameData, net_client: GraveBoundClient) -> void:
 	state = realm_state
 	content = game_data
 	client = net_client

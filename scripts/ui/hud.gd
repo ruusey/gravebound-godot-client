@@ -12,7 +12,7 @@ extends CanvasLayer
 
 const REFRESH_INTERVAL := 0.1
 
-var client: OpenRealmClient
+var client: GraveBoundClient
 var state: RealmState
 var renderer: WorldRenderer
 var shown := false
@@ -22,7 +22,7 @@ var _panel: PanelContainer
 var _elapsed := 0.0
 
 
-func setup(net_client: OpenRealmClient, realm_state: RealmState, world: WorldRenderer = null) -> void:
+func setup(net_client: GraveBoundClient, realm_state: RealmState, world: WorldRenderer = null) -> void:
 	client = net_client
 	state = realm_state
 	renderer = world
@@ -125,10 +125,10 @@ func simulated_lag() -> String:
 
 func state_name() -> String:
 	match client.state:
-		OpenRealmClient.State.IDLE: return "idle"
-		OpenRealmClient.State.CONNECTING: return "connecting"
-		OpenRealmClient.State.AWAITING_LOGIN: return "awaiting login"
-		OpenRealmClient.State.IN_GAME: return "in game"
-		OpenRealmClient.State.ENDED: return "game over"
-		OpenRealmClient.State.CLOSED: return "disconnected"
+		GraveBoundClient.State.IDLE: return "idle"
+		GraveBoundClient.State.CONNECTING: return "connecting"
+		GraveBoundClient.State.AWAITING_LOGIN: return "awaiting login"
+		GraveBoundClient.State.IN_GAME: return "in game"
+		GraveBoundClient.State.ENDED: return "game over"
+		GraveBoundClient.State.CLOSED: return "disconnected"
 	return "?"

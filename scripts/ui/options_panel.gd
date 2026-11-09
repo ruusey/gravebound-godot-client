@@ -15,7 +15,7 @@ const WIDTH := 560
 const HEADING := Color(1.0, 0.85, 0.42)
 
 var settings: GameSettings
-var client: OpenRealmClient
+var client: GraveBoundClient
 var shown := false
 
 var _root: PanelContainer
@@ -27,7 +27,7 @@ var leave_button: Button
 var close_button: Button
 
 
-func setup(game_settings: GameSettings, net_client: OpenRealmClient) -> void:
+func setup(game_settings: GameSettings, net_client: GraveBoundClient) -> void:
 	settings = game_settings
 	client = net_client
 

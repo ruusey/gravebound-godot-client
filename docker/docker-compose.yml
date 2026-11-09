@@ -1,4 +1,4 @@
-# Local OpenRealm stack: MongoDB, the data service and the game server.
+# Local GraveBound stack: MongoDB, the data service and the game server.
 #
 # Everything runs in containers so the host needs no Java, Maven or MongoDB.
 # The Dockerfiles are inline because the build context has to be the parent

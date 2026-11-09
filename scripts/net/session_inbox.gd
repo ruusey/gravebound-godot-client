@@ -5,7 +5,7 @@ extends RefCounted
 ##
 ## Deliberately pure: it reads packets and returns what happened, without
 ## touching connection state or emitting anything. That keeps the login and
-## desync paths unit-testable without a socket, and leaves OpenRealmClient
+## desync paths unit-testable without a socket, and leaves GraveBoundClient
 ## doing only state transitions and signal emission.
 ##
 ## Event kinds: "packet", "unknown", "login_ok", "login_rejected",

@@ -162,7 +162,7 @@ func test_leaving_the_region_shuts_it():
 
 func test_the_request_carries_the_choice_and_only_when_legal():
 	var transport := FakeTransport.new()
-	var client := OpenRealmClient.new()
+	var client := GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 	client.connect_to_server("h", 1)

@@ -11,13 +11,13 @@ extends RefCounted
 ## as the web client fills them, so a packet capture reads the same.
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 ## The commands the client answers itself (/dev, /debug, /clear), asked
 ## first; never sent.
 var commands: ClientCommands
 
 
-func _init(realm_state: RealmState, net_client: OpenRealmClient) -> void:
+func _init(realm_state: RealmState, net_client: GraveBoundClient) -> void:
 	state = realm_state
 	client = net_client
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate scripts/net/schema.gd from an OpenRealm Java source tree.
+Generate scripts/net/schema.gd from an GraveBound Java source tree.
 
 The wire format is declared in Java two different ways, and both are read here:
 

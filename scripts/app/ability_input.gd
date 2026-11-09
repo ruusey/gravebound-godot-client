@@ -11,7 +11,7 @@ extends RefCounted
 
 const SLOTS := AbilityCatalog.SLOTS
 
-var client: OpenRealmClient
+var client: GraveBoundClient
 var caster: AbilityCaster
 var skills: SkillsPanel
 ## Whether something on screen owns the mouse; a right-click there is a
@@ -23,7 +23,7 @@ var keyboard_captured: Callable = func() -> bool: return false
 var _held := {}
 
 
-func _init(net_client: OpenRealmClient, ability_caster: AbilityCaster,
+func _init(net_client: GraveBoundClient, ability_caster: AbilityCaster,
 		skills_panel: SkillsPanel) -> void:
 	client = net_client
 	caster = ability_caster

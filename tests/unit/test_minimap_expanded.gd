@@ -4,7 +4,7 @@ extends GutTest
 ## player names them and a second teleports, and a drag never does.
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var transport: FakeTransport
 var map: MinimapExpanded
 
@@ -12,7 +12,7 @@ var map: MinimapExpanded
 func before_each():
 	state = RealmState.new(null, func() -> int: return 10_000)
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 	map = MinimapExpanded.new()

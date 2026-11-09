@@ -9,11 +9,11 @@ extends RefCounted
 enum Action { OPEN_ROSTER, INVITE, KICK, PROMOTE, DEMOTE, LEAVE, DISBAND, EDIT_HALL }
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var data_service: DataService
 
 
-func _init(realm_state: RealmState, net_client: OpenRealmClient, service: DataService) -> void:
+func _init(realm_state: RealmState, net_client: GraveBoundClient, service: DataService) -> void:
 	state = realm_state
 	client = net_client
 	data_service = service

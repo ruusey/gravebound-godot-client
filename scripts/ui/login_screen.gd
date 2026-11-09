@@ -13,7 +13,7 @@ signal character_chosen(email: String, password: String, character_uuid: String)
 const HOW_TO_BUTTON := int(TouchSize.ROW)
 ## The public game wiki, served only on the production domain. Opened in a new
 ## browser tab on web, the OS browser on desktop.
-const WIKI_URL := "https://openrealm.net/wiki/"
+const WIKI_URL := "https://grave-bound.com/wiki/"
 ## The phone's card: as wide as a landscape phone, the logo, the server and
 ## the account in one header row so the form or the characters get the rest.
 const PHONE_WIDTH := 800.0

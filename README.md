@@ -1,6 +1,6 @@
-# OpenRealm Godot Client
+# GraveBound Godot Client
 
-### Godot web/desktop client for [OpenRealm](http://openrealm.net/) — Play Now at [OpenRealm.Net/play](http://openrealm.net/play/)
+### Godot web/desktop client for [GraveBound](http://grave-bound.com/) — Play Now at [grave-bound.com/play](http://grave-bound.com/play/)
 
 ### Credits:
 * [@Mingau244](https://github.com/Mingau244)

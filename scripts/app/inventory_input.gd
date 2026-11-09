@@ -15,7 +15,7 @@ extends RefCounted
 
 const QUICK_SLOTS := 8
 
-var client: OpenRealmClient
+var client: GraveBoundClient
 var actions: InventoryActions
 var panel: InventoryPanel
 ## F is the tile in reach first and the loot bag second, as the web client
@@ -31,7 +31,7 @@ var keyboard_captured: Callable = func() -> bool: return false
 var _held := {}
 
 
-func _init(net_client: OpenRealmClient, inventory_actions: InventoryActions,
+func _init(net_client: GraveBoundClient, inventory_actions: InventoryActions,
 		inventory_panel: InventoryPanel) -> void:
 	client = net_client
 	actions = inventory_actions

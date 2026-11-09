@@ -9,10 +9,10 @@ extends RefCounted
 ## at once rather than waiting for the reply, as both references do.
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 
 
-func _init(realm_state: RealmState, net_client: OpenRealmClient) -> void:
+func _init(realm_state: RealmState, net_client: GraveBoundClient) -> void:
 	state = realm_state
 	client = net_client
 

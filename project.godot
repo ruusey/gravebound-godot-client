@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="OpenRealm Godot Client"
-config/description="Godot client for the OpenRealm server (binary TCP protocol, 64Hz server tick)."
+config/name="GraveBound Godot Client"
+config/description="Godot client for the GraveBound server (binary TCP protocol, 64Hz server tick)."
 # Stamped from the git tag by CI before export; the auto-updater compares this to
 # the latest GitHub release. Left as "dev" locally so dev runs skip the check.
 config/version="dev"

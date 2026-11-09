@@ -10,7 +10,7 @@ extends GutTest
 ## jitter, in order, as LagTransport delivers bytes -- modelled here as an
 ## arrival time, since nothing below the packet matters to the sampler --
 ## and lands on the 60Hz frame that first sees it, stamped with that
-## frame's clock, which is how OpenRealmClient.tick stamps a packet.
+## frame's clock, which is how GraveBoundClient.tick stamps a packet.
 ##
 ## The drawn motion is then judged by the live movement test's rule: a
 ## frame that barely moved is a stall, and a walk is uneven with more than

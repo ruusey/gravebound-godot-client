@@ -191,7 +191,7 @@ func test_a_page_on_openrealm_talks_to_openrealm_over_tls():
 	var config := ClientConfig.parse(PackedStringArray([]), true,
 		PageOrigin.current(_page("play.openrealm.net", "", "https:")))
 	assert_eq(config.host, "openrealm.net")
-	assert_eq(ServerAddress.data_url(config), "https://openrealm.net")
+	assert_eq(ServerAddress.data_url(config), "https://grave-bound.com")
 	# The route openrealm.net actually proxies: one per game server, and
 	# US East is the one that answers. A bare /ws is a 404 there.
 	assert_eq(ServerAddress.game_host(config), "wss://openrealm.net/ws/useast")
@@ -204,7 +204,7 @@ func test_the_production_domains_whatever_the_page_scheme_or_port():
 		var config := ClientConfig.new()
 		PageOrigin.apply(config, PageOrigin.current(_page(host, "8080")))
 		assert_eq(config.host, "openrealm.net", host)
-		assert_eq(ServerAddress.data_url(config), "https://openrealm.net", host)
+		assert_eq(ServerAddress.data_url(config), "https://grave-bound.com", host)
 		assert_true(config.secure, host)
 
 

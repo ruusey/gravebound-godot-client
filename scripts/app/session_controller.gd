@@ -9,7 +9,7 @@ extends RefCounted
 signal entered_realm(response: Dictionary)
 signal died(player_name: String)
 
-var client: OpenRealmClient
+var client: GraveBoundClient
 var state: RealmState
 var login_screen: LoginScreen
 var config: ClientConfig
@@ -23,7 +23,7 @@ var credentials := {}
 var _death_acked := false
 
 
-func _init(net_client: OpenRealmClient, realm_state: RealmState,
+func _init(net_client: GraveBoundClient, realm_state: RealmState,
 		screen: LoginScreen, client_config: ClientConfig) -> void:
 	client = net_client
 	state = realm_state

@@ -4,7 +4,7 @@ extends GutTest
 
 var content: GameData
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var transport: FakeTransport
 var actions: PartyActions
 var popup: PartyInvitePopup
@@ -18,7 +18,7 @@ func before_each():
 	state = RealmState.new(content, func() -> int: return 0)
 	state.party.wall_clock = func() -> int: return wall
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 	actions = PartyActions.new(state, client)

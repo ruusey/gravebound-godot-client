@@ -27,7 +27,7 @@ const REACH_PX := 64.0
 const COOLDOWN := 1.0
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var content: GameData
 
 var _cooldown := 0.0
@@ -41,7 +41,7 @@ var _held := {}
 var _awaiting_confirm := false
 
 
-func _init(realm_state: RealmState, net_client: OpenRealmClient, game_data: GameData) -> void:
+func _init(realm_state: RealmState, net_client: GraveBoundClient, game_data: GameData) -> void:
 	state = realm_state
 	client = net_client
 	content = game_data

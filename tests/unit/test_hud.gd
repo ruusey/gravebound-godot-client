@@ -3,14 +3,14 @@ extends GutTest
 ## The debug overlay's job is to make client/server disagreement visible.
 
 var hud: DebugHud
-var client: OpenRealmClient
+var client: GraveBoundClient
 var state: RealmState
 var transport: FakeTransport
 
 
 func before_each():
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 
@@ -173,7 +173,7 @@ func test_packet_mix_is_empty_before_any_traffic():
 
 
 func test_unrecognised_client_state_renders_a_placeholder():
-	client.state = 99 as OpenRealmClient.State
+	client.state = 99 as GraveBoundClient.State
 	assert_string_contains(_refresh(), "?")
 
 

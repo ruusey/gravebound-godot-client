@@ -68,7 +68,7 @@ func test_data_base_url_omits_the_default_port():
 	# Pinned rather than inherited: the default targets a local container,
 	# which publishes the service on an unprivileged port.
 	config.data_port = 80
-	assert_eq(ServerAddress.data_url(config), "http://openrealm.net",
+	assert_eq(ServerAddress.data_url(config), "http://grave-bound.com",
 		"the deployed service sits on 80 behind nginx")
 
 

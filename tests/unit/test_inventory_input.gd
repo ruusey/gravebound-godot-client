@@ -7,7 +7,7 @@ const ACTIONS := ["toggle_inventory", "pick_up", "drink_hp", "drink_mp",
 
 var state: RealmState
 var content: GameData
-var client: OpenRealmClient
+var client: GraveBoundClient
 var transport: FakeTransport
 var actions: InventoryActions
 var panel: InventoryPanel
@@ -19,7 +19,7 @@ func before_each():
 	await content.load_from(FileContentSource.new(ProjectSettings.globalize_path("res://tests/fixtures/datadir")))
 	state = RealmState.new(content, func() -> int: return 0)
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 	client.connect_to_server("h", 1)
@@ -123,7 +123,7 @@ func test_tab_outside_a_realm_is_the_login_forms_not_ours():
 	input.tick(0.0)
 	assert_true(panel.shown)
 	# Nor is the press remembered as already-seen for when the realm arrives.
-	client.state = OpenRealmClient.State.IN_GAME
+	client.state = GraveBoundClient.State.IN_GAME
 	input.tick(0.0)
 	assert_false(panel.shown, "a Tab still held on arrival counts then")
 

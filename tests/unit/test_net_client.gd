@@ -1,9 +1,9 @@
 extends GutTest
 
-## OpenRealmClient driven through a fake socket: handshake sequencing, frame
+## GraveBoundClient driven through a fake socket: handshake sequencing, frame
 ## reassembly across arbitrary read boundaries, and every failure exit.
 
-var client: OpenRealmClient
+var client: GraveBoundClient
 var transport: FakeTransport
 var now := 0
 
@@ -11,7 +11,7 @@ var now := 0
 func before_each():
 	now = 0
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	client.clock = func() -> int: return now
 	watch_signals(client)
@@ -37,14 +37,14 @@ func test_connect_opens_the_socket_with_no_delay():
 	assert_eq(transport.last_host, "example.test")
 	assert_eq(transport.last_port, 2222)
 	assert_true(transport.no_delay_set, "TCP_NODELAY matches the server's own socket setup")
-	assert_eq(client.state, OpenRealmClient.State.CONNECTING)
+	assert_eq(client.state, GraveBoundClient.State.CONNECTING)
 
 
 func test_connect_failure_is_reported():
 	transport.connect_error = ERR_CANT_CONNECT
 	client.connect_to_server("nowhere", 2222)
 	assert_signal_emitted(client, "connection_failed")
-	assert_eq(client.state, OpenRealmClient.State.CLOSED)
+	assert_eq(client.state, GraveBoundClient.State.CLOSED)
 
 
 func test_connected_signal_fires_once_the_socket_comes_up():
@@ -54,15 +54,15 @@ func test_connected_signal_fires_once_the_socket_comes_up():
 	transport.become_connected()
 	client._process(0.0)
 	assert_signal_emitted(client, "connected")
-	assert_eq(client.state, OpenRealmClient.State.AWAITING_LOGIN)
+	assert_eq(client.state, GraveBoundClient.State.AWAITING_LOGIN)
 
 
 func test_connect_times_out():
 	client.connect_to_server("h", 1)
-	now = int((OpenRealmClient.LOGIN_TIMEOUT + 1.0) * 1000.0)
+	now = int((GraveBoundClient.LOGIN_TIMEOUT + 1.0) * 1000.0)
 	client._process(0.0)
 	assert_signal_emitted(client, "disconnected")
-	assert_eq(client.state, OpenRealmClient.State.CLOSED)
+	assert_eq(client.state, GraveBoundClient.State.CLOSED)
 
 
 func test_idle_client_does_nothing():
@@ -89,7 +89,7 @@ func test_login_sends_a_login_command_packet():
 	assert_eq(body["password"], "secret")
 	assert_eq(body["characterUuid"], "char-1")
 	assert_eq(body["token"], "tok-1")
-	assert_eq(client.state, OpenRealmClient.State.AWAITING_LOGIN)
+	assert_eq(client.state, GraveBoundClient.State.AWAITING_LOGIN)
 
 
 func test_login_without_a_token_sends_null():
@@ -105,7 +105,7 @@ func test_successful_login_enters_the_game():
 	_connect_and_login(777)
 	assert_signal_emitted(client, "login_succeeded")
 	assert_eq(client.player_id, 777)
-	assert_eq(client.state, OpenRealmClient.State.IN_GAME)
+	assert_eq(client.state, GraveBoundClient.State.IN_GAME)
 	assert_true(client.is_in_game())
 	assert_eq(int(client.login_response["classId"]), 2)
 
@@ -118,7 +118,7 @@ func test_rejected_login_closes_the_connection():
 	transport.deliver(WireHelper.login_response(0, 0, Vector2.ZERO, false))
 	client._process(0.0)
 	assert_signal_emitted(client, "login_failed")
-	assert_eq(client.state, OpenRealmClient.State.CLOSED)
+	assert_eq(client.state, GraveBoundClient.State.CLOSED)
 
 
 func test_server_error_in_game_is_a_signal_not_a_login_failure():
@@ -139,7 +139,7 @@ func test_server_error_in_game_is_a_signal_not_a_login_failure():
 	assert_signal_emitted_with_parameters(client, "server_error",
 		["Player lacks required provision for command /spawn"])
 	assert_signal_not_emitted(client, "login_failed")
-	assert_eq(client.state, OpenRealmClient.State.IN_GAME, "still in the game")
+	assert_eq(client.state, GraveBoundClient.State.IN_GAME, "still in the game")
 
 
 func test_server_error_during_login_is_surfaced():
@@ -161,7 +161,7 @@ func test_unparseable_command_body_is_ignored():
 	transport.deliver(WireHelper.frame("CommandPacket",
 		{"playerId": 1, "commandId": LoginHandshake.SERVER_COMMAND, "command": "not json"}))
 	client._process(0.0)
-	assert_eq(client.state, OpenRealmClient.State.IN_GAME, "a malformed command body is not fatal")
+	assert_eq(client.state, GraveBoundClient.State.IN_GAME, "a malformed command body is not fatal")
 
 
 func test_send_server_command_uses_the_assigned_player_id():
@@ -237,7 +237,7 @@ func test_unknown_packet_id_is_counted_and_survived():
 	transport.deliver(PackedByteArray([120, 0, 0, 0, 6, 1]))  # id 120 is unassigned
 	client._process(0.0)
 	assert_eq(client.stats.unknown_packets, 1)
-	assert_eq(client.state, OpenRealmClient.State.IN_GAME, "an unknown id is skipped, not fatal")
+	assert_eq(client.state, GraveBoundClient.State.IN_GAME, "an unknown id is skipped, not fatal")
 
 
 func test_desynced_stream_disconnects():
@@ -245,7 +245,7 @@ func test_desynced_stream_disconnects():
 	transport.deliver(PackedByteArray([1, 0x7F, 0xFF, 0xFF, 0xFF, 0, 0]))
 	client._process(0.0)
 	assert_signal_emitted(client, "disconnected")
-	assert_eq(client.state, OpenRealmClient.State.CLOSED)
+	assert_eq(client.state, GraveBoundClient.State.CLOSED)
 
 
 func test_socket_error_disconnects():
@@ -290,9 +290,9 @@ func test_heartbeat_is_sent_on_the_interval():
 	_connect_and_login()
 	transport.clear_sent()
 	now = 5
-	client._process(OpenRealmClient.HEARTBEAT_INTERVAL * 0.5)
+	client._process(GraveBoundClient.HEARTBEAT_INTERVAL * 0.5)
 	assert_eq(transport.sent_packets().size(), 0, "not yet due")
-	client._process(OpenRealmClient.HEARTBEAT_INTERVAL * 0.6)
+	client._process(GraveBoundClient.HEARTBEAT_INTERVAL * 0.6)
 	var sent := transport.sent_packets()
 	assert_eq(sent.size(), 1)
 	assert_eq(sent[0]["name"], "HeartbeatPacket")
@@ -341,7 +341,7 @@ func test_rtt_is_smoothed_across_samples():
 
 
 func _echo_heartbeat(after_ms: int) -> void:
-	client._process(OpenRealmClient.HEARTBEAT_INTERVAL)
+	client._process(GraveBoundClient.HEARTBEAT_INTERVAL)
 	var sent := transport.sent_packets()
 	var stamp: int = sent[sent.size() - 1]["data"]["timestamp"]
 	assert_eq(stamp, now, "the heartbeat carries our own clock")
@@ -442,7 +442,7 @@ func test_reconnecting_after_a_disconnect_succeeds():
 	_connect_and_login(5)
 	client.disconnect_from_server()
 	client.connect_to_server("127.0.0.1", 2222)
-	assert_ne(client.state, OpenRealmClient.State.CLOSED, "the retry opened a socket")
+	assert_ne(client.state, GraveBoundClient.State.CLOSED, "the retry opened a socket")
 	assert_signal_emit_count(client, "connection_failed", 0)
 
 
@@ -451,4 +451,4 @@ func test_a_second_connect_attempt_while_connecting_still_works():
 	client.connect_to_server("127.0.0.1", 2222)
 	client.connect_to_server("127.0.0.1", 2222)
 	assert_signal_emit_count(client, "connection_failed", 0)
-	assert_eq(client.state, OpenRealmClient.State.CONNECTING)
+	assert_eq(client.state, GraveBoundClient.State.CONNECTING)

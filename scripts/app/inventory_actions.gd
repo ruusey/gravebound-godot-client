@@ -15,12 +15,12 @@ const SHARD_STACK := 10
 const NONE := -1
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var content: GameData
 var shop: ShopActions
 
 
-func _init(realm_state: RealmState, net_client: OpenRealmClient, game_data: GameData) -> void:
+func _init(realm_state: RealmState, net_client: GraveBoundClient, game_data: GameData) -> void:
 	state = realm_state
 	client = net_client
 	content = game_data

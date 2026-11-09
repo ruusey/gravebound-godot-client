@@ -17,7 +17,7 @@ extends RefCounted
 const GLOBAL_COOLDOWN_MS := 1000
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var content: GameData
 ## Supplies the aim point; any Node2D in the world will do.
 var aim_source: Node2D
@@ -30,7 +30,7 @@ var aim_point: Callable = Callable()
 var world_mouse: Callable = func() -> Variant: return null
 
 
-func _init(realm_state: RealmState, net_client: OpenRealmClient, game_data: GameData,
+func _init(realm_state: RealmState, net_client: GraveBoundClient, game_data: GameData,
 		source: Node2D) -> void:
 	state = realm_state
 	client = net_client

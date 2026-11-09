@@ -4,7 +4,7 @@ extends GutTest
 
 var portals: PortalInput
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var transport: FakeTransport
 var now := 10_000
 
@@ -17,7 +17,7 @@ func before_each():
 	state = RealmState.new(content, func() -> int: return now)
 
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 
@@ -236,7 +236,7 @@ func test_nothing_is_sent_before_the_game_starts():
 	# flight -- pressing the key at the login screen. Testing it against a
 	# closed transport instead proves nothing: the send fails on the transport
 	# whether the guard is there or not.
-	var pending := OpenRealmClient.new()
+	var pending := GraveBoundClient.new()
 	var wire := FakeTransport.new()
 	pending.connection.transport = wire
 	add_child_autofree(pending)

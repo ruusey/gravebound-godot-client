@@ -8,7 +8,7 @@ extends RefCounted
 ## ordering.
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 ## Supplies the aim point; any Node2D in the world will do.
 var aim_source: Node2D
 ## Resolves the equipped weapon's archetype, which sets the fire rate.
@@ -40,7 +40,7 @@ var _next_shot_ms := 0
 var _direction := StickDirection.new()
 
 
-func _init(realm_state: RealmState, net_client: OpenRealmClient, source: Node2D,
+func _init(realm_state: RealmState, net_client: GraveBoundClient, source: Node2D,
 		game_data: GameData = null) -> void:
 	state = realm_state
 	client = net_client

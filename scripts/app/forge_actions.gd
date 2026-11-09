@@ -10,11 +10,11 @@ extends RefCounted
 ## see, and the next UpdatePacket is what shows the result.
 
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var content: GameData
 
 
-func _init(realm_state: RealmState, net_client: OpenRealmClient, game_data: GameData) -> void:
+func _init(realm_state: RealmState, net_client: GraveBoundClient, game_data: GameData) -> void:
 	state = realm_state
 	client = net_client
 	content = game_data

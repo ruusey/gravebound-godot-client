@@ -18,10 +18,10 @@ const RETRIEVE := 10
 const BUY_SLOT := 11
 const CLEAR_BACKPACK := 12
 
-var client: OpenRealmClient
+var client: GraveBoundClient
 
 
-func _init(net_client: OpenRealmClient) -> void:
+func _init(net_client: GraveBoundClient) -> void:
 	client = net_client
 
 

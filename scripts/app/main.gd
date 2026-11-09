@@ -10,7 +10,7 @@ const CAMERA_ZOOM := DisplayScale.WORLD_ZOOM
 
 var config: ClientConfig
 var game_data: GameData
-var client: OpenRealmClient
+var client: GraveBoundClient
 var state: RealmState
 var session: SessionController
 var input: PlayerInput
@@ -62,9 +62,9 @@ func _ready() -> void:
 	state = RealmState.new(game_data)
 	state.settings.load_from(config.settings_path)
 	display.follow(state.settings)
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = config.open_transport()
-	client.name = "OpenRealmClient"
+	client.name = "GraveBoundClient"
 	add_child(client)
 	# Stepped from _process below, at the frame's start, not by the engine.
 	client.set_process(false)

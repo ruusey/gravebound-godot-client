@@ -10,7 +10,7 @@ extends RefCounted
 
 ## filename -> destination dictionary key, keyed by the id field in each entry.
 ## Shared crack overlay for breakable walls: one 8x16 cell per stage (75/50/25% HP).
-const CRACK_SHEET := "openrealm-wall-cracks.png"
+const CRACK_SHEET := "gravebound-wall-cracks.png"
 const SOURCES := {
 	"tiles.json": ["tiles", "tileId"],
 	"enemies.json": ["enemies", "enemyId"],

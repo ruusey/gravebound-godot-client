@@ -16,7 +16,7 @@ extends Node
 const OWNER := "ruusey"
 const REPO := "openrealm-godot-client"
 const LATEST_URL := "https://api.github.com/repos/%s/%s/releases/latest" % [OWNER, REPO]
-const USER_AGENT := "OpenRealm-Godot-Client"
+const USER_AGENT := "GraveBound-Godot-Client"
 const SKIP_PATH := "user://skip_update.txt"
 
 var _http: HTTPRequest
@@ -98,8 +98,8 @@ func _asset_for_platform(release: Dictionary) -> Dictionary:
 
 func _prompt(current: String) -> void:
 	_dialog = AcceptDialog.new()
-	_dialog.title = "OpenRealm Update Available"
-	_dialog.dialog_text = "OpenRealm %s is available. You're on %s.\n\n%s" % [
+	_dialog.title = "GraveBound Update Available"
+	_dialog.dialog_text = "GraveBound %s is available. You're on %s.\n\n%s" % [
 		_latest["version"], current, _trim_notes(String(_latest["notes"]))]
 	_dialog.ok_button_text = "Update now"
 	_dialog.add_cancel_button("Later")
@@ -115,7 +115,7 @@ func _prompt(current: String) -> void:
 
 func _start_update() -> void:
 	_progress = AcceptDialog.new()
-	_progress.title = "Updating OpenRealm"
+	_progress.title = "Updating GraveBound"
 	_progress.dialog_text = "Downloading %s..." % _latest["name"]
 	_progress.get_ok_button().disabled = true
 	get_tree().root.add_child(_progress)
@@ -165,7 +165,7 @@ func _extract_executable(zip_path: String) -> String:
 	reader.close()
 	if bytes.is_empty():
 		return ""
-	var out_path := OS.get_cache_dir().path_join("OpenRealm-update-" + entry.get_file())
+	var out_path := OS.get_cache_dir().path_join("GraveBound-update-" + entry.get_file())
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
 	if f == null:
 		return ""

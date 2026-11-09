@@ -14,7 +14,7 @@ const MUTED := Color(0.6, 0.6, 0.65)
 
 var state: RealmState
 var content: GameData
-var client: OpenRealmClient
+var client: GraveBoundClient
 var shown := false
 
 var _root: PanelContainer
@@ -28,7 +28,7 @@ var close_button: Button
 var _drawn := ""
 
 
-func setup(realm_state: RealmState, game_data: GameData, net_client: OpenRealmClient) -> void:
+func setup(realm_state: RealmState, game_data: GameData, net_client: GraveBoundClient) -> void:
 	state = realm_state
 	content = game_data
 	client = net_client

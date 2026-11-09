@@ -18,11 +18,11 @@ extends RefCounted
 var state: RealmState
 var dev: DevOverlay
 var hud: DebugHud
-var client: OpenRealmClient
+var client: GraveBoundClient
 
 
 func _init(realm_state: RealmState, dev_overlay: DevOverlay, debug_hud: DebugHud,
-		net_client: OpenRealmClient = null) -> void:
+		net_client: GraveBoundClient = null) -> void:
 	state = realm_state
 	dev = dev_overlay
 	hud = debug_hud

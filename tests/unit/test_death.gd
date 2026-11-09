@@ -4,7 +4,7 @@ extends GutTest
 
 var session: SessionController
 var state: RealmState
-var client: OpenRealmClient
+var client: GraveBoundClient
 var transport: FakeTransport
 var login: LoginScreen
 var screen: DeathScreen
@@ -15,7 +15,7 @@ func before_each():
 	fell_as = ""
 	state = RealmState.new(null)
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 
@@ -84,7 +84,7 @@ func test_the_connection_is_left_for_the_server_to_close():
 	var closes_before := transport.disconnect_count
 	_dies(state.local.id)
 	assert_eq(transport.disconnect_count, closes_before, "nothing closed from our side")
-	assert_eq(client.state, OpenRealmClient.State.ENDED,
+	assert_eq(client.state, GraveBoundClient.State.ENDED,
 		"but not playing either: the socket stays up only to carry the ack")
 
 

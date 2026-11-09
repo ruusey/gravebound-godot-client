@@ -1,4 +1,4 @@
-class_name OpenRealmClient
+class_name GraveBoundClient
 extends Node
 
 ## The game session: handshake, heartbeat and the state machine around them,
@@ -145,7 +145,7 @@ func _apply(event: Dictionary) -> void:
 		"packet":
 			packet_received.emit(event["name"], event["data"])
 		"unknown":
-			push_warning("OpenRealmClient: unknown packet id %d" % event["id"])
+			push_warning("GraveBoundClient: unknown packet id %d" % event["id"])
 		"login_ok":
 			login_response = event["body"]
 			player_id = int(login_response.get("playerId", 0))
@@ -159,7 +159,7 @@ func _apply(event: Dictionary) -> void:
 				login_failed.emit(event["reason"])
 			else:
 				server_error.emit(event["reason"])
-			push_warning("OpenRealm server error: %s" % event["reason"])
+			push_warning("GraveBound server error: %s" % event["reason"])
 		"desync":
 			_close(event["reason"])
 

@@ -1,7 +1,7 @@
 class_name NetCodec
 extends RefCounted
 
-## Reflective (schema-driven) reader/writer for the OpenRealm binary protocol.
+## Reflective (schema-driven) reader/writer for the GraveBound binary protocol.
 ##
 ## The Java side walks a PacketMappingInformation[] built from @SerializableField
 ## annotations; this walks the equivalent table in NetSchema. Both sides are

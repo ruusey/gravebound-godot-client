@@ -4,7 +4,7 @@ extends GutTest
 
 var state: RealmState
 var content: GameData
-var client: OpenRealmClient
+var client: GraveBoundClient
 var transport: FakeTransport
 var shop: ShopActions
 var actions: InventoryActions
@@ -15,7 +15,7 @@ func before_each():
 	await content.load_from(FileContentSource.new(ProjectSettings.globalize_path("res://tests/fixtures/datadir")))
 	state = RealmState.new(content, func() -> int: return 0)
 	transport = FakeTransport.new()
-	client = OpenRealmClient.new()
+	client = GraveBoundClient.new()
 	client.connection.transport = transport
 	add_child_autofree(client)
 	client.connect_to_server("h", 1)
