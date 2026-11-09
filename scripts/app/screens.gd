@@ -42,6 +42,7 @@ var leaderboard: LeaderboardWindow
 var buy_fame: FamePurchasePanel
 var transition: TransitionScreen
 var death: DeathScreen
+var arena_results: ArenaResults
 var login: LoginScreen
 var loading: LoadingScreen
 var loot: LootWindow
@@ -183,6 +184,8 @@ func build(state: RealmState, game_data: GameData, client: GraveBoundClient,
 	add_child(transition)
 	death = DeathScreen.new()
 	add_child(death)
+	arena_results = ArenaResults.new()
+	add_child(arena_results)
 	login = LoginScreen.new(data_service, game_data)
 	login.buy_fame = buy_fame.open
 	login.buy_fame_shown = buy_fame.available

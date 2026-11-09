@@ -120,6 +120,7 @@ func _ready() -> void:
 	session.data_service = _data_service   # the handshake prefers the live session token
 	session.entered_realm.connect(_on_entered_realm)
 	session.died.connect(screens.death.fell)
+	session.arena_ended.connect(screens.arena_results.show_results)
 	input = PlayerInput.new(state, client, _world, game_data)
 	portals = PortalInput.new(state, client, game_data)
 	inventory_input = InventoryInput.new(client, inventory_actions, screens.inventory)

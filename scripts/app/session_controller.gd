@@ -8,6 +8,7 @@ extends RefCounted
 
 signal entered_realm(response: Dictionary)
 signal died(player_name: String)
+signal arena_ended(results: Dictionary)
 
 var client: GraveBoundClient
 var state: RealmState
@@ -84,6 +85,10 @@ func _on_packet(name: String, data: Dictionary) -> void:
 	state.apply_packet(name, data)
 	if name == "PlayerDeathPacket":
 		_note_death(data)
+	elif name == "ArenaResultsPacket":
+		# Not a death: the server has already revived + teleported us to the nexus.
+		# Show the run scoreboard over the top.
+		arena_ended.emit(data)
 
 
 ## Acknowledges a death, once, for us.

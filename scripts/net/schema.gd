@@ -3,9 +3,9 @@
 # Regenerate with:
 #   python3 tools/gen_schema.py <java-src-root>
 #
-# Source tree : C:\Users\ruuse\Documents\GitHub\gravebound\src
-# Generated   : 2026-10-16 13:31:47Z
-# Packets     : 59
+# Source tree : C:\Users\ruuse\Documents\GitHub\openrealm\src
+# Generated   : 2026-11-09 20:57:54Z
+# Packets     : 58
 # Entities    : 22
 #
 # Field tuples are [name, wire_type, is_collection]; list order is wire order.
@@ -17,7 +17,7 @@
 # sections is [[bit, [field tuples]], ...].
 class_name NetSchema
 
-const SOURCE_TREE := "C:\\Users\\ruuse\\Documents\\GitHub\\gravebound\\src"
+const SOURCE_TREE := "C:\\Users\\ruuse\\Documents\\GitHub\\openrealm\\src"
 
 # packet id -> class name
 const PACKET_NAMES := {
@@ -77,6 +77,7 @@ const PACKET_NAMES := {
 	56: "CompanionActionPacket",
 	57: "CompanionRosterPacket",
 	58: "PartyVitalsPacket",
+	59: "ArenaResultsPacket",
 	101: "TestPacket",
 }
 
@@ -84,6 +85,7 @@ const PACKET_NAMES := {
 const PACKET_IDS := {
 	"AbilityCastStartPacket": 38,
 	"AcceptTradeRequestPacket": 17,
+	"ArenaResultsPacket": 59,
 	"BuyFameItemPacket": 33,
 	"CommandPacket": 7,
 	"CompactMovePacket": 25,
@@ -157,6 +159,12 @@ const PACKETS := {
 		["player1", "NetPlayer", false],
 		["player0Inv", "NetGameItem", true],
 		["player1Inv", "NetGameItem", true],
+	],
+	"ArenaResultsPacket": [
+		["wavesCompleted", "int", false],
+		["enemiesKilled", "int", false],
+		["timeSurvivedSec", "int", false],
+		["fameAwarded", "long", false],
 	],
 	"BuyFameItemPacket": [
 		["itemId", "int", false],

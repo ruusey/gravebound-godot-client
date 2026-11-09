@@ -50,4 +50,5 @@ static func verb(candidate: Dictionary) -> String:
 		"fame_store": return "Open Fame Store"
 		"potion_storage": return "Open Potion Storage"
 		"exchange_market": return "Open Exchange Market"
+		"arena": return "Enter the Colosseum"
 	return "Use %s" % candidate.get("name", "")
