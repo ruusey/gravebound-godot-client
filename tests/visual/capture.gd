@@ -260,6 +260,9 @@ func _capture(scenario: String, output: String, content: GameData) -> bool:
 		service.backend = http
 		stage.add_child(service)
 		login = LoginScreen.new(service, content)
+		# The torchlit hall is the pinned default; login_dungeon captures the
+		# scrolling-dungeon backdrop instead.
+		login.backdrop_mode = "dungeon" if scenario == "login_dungeon" else "torches"
 		stage.add_child(login)
 
 	# The Menu's leaderboard over a realm, its entries scripted.
@@ -328,7 +331,7 @@ func _capture(scenario: String, output: String, content: GameData) -> bool:
 	# first -- the particles and each emitter's carried fraction: the frame
 	# above stepped them once with the real frame time, which is near zero in
 	# a fresh process and a whole frame after other scenarios.
-	if login != null:
+	if login != null and login._backdrop != null:
 		login._backdrop.clock = func() -> float: return CAPTURE_TIME_MS * 0.001
 		login._backdrop.field.clear()
 		login._backdrop._torch_acc.clear()
@@ -337,6 +340,14 @@ func _capture(scenario: String, output: String, content: GameData) -> bool:
 		for frame in 90:
 			login._backdrop.step(1.0 / 60.0)
 		login._backdrop.set_process(false)
+	# The scrolling dungeon on a fixed seed, advanced a fixed number of frames so
+	# the pan and the enemy drift settle to the same place every capture.
+	if login != null and login._dungeon != null:
+		login._dungeon.seed_value = 1234
+		login._dungeon.build()
+		for frame in 120:
+			login._dungeon.step(1.0 / 60.0)
+		login._dungeon.set_process(false)
 	# Signed in, the list as it first opens.
 	if scenario == "login_account":
 		login.data_service.account = {"accountFame": 12450}

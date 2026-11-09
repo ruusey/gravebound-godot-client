@@ -36,7 +36,12 @@ var saved_session := SavedSession.new()
 var buy_fame := Callable()
 var buy_fame_shown := Callable()
 
+## "auto" shows the scrolling dungeon once its data has loaded and falls back to
+## the torchlit hall otherwise; "torches"/"dungeon" force one (the capture harness
+## pins a scenario). Only one backdrop is attached at a time.
+var backdrop_mode := "auto"
 var _backdrop: LoginBackdrop
+var _dungeon: DungeonBackdrop
 var _server_select: ServerSelect
 var _form: AccountForm
 var _account: SignedInRow
@@ -53,7 +58,7 @@ func _init(service: DataService = null, content: GameData = null) -> void:
 
 func _ready() -> void:
 	layer = 20
-	_backdrop = LoginBackdrop.attach(self, game_data)
+	_ensure_backdrop()
 	_panel = PanelContainer.new()
 	_panel.custom_minimum_size = Vector2(PHONE_WIDTH if PhoneLayout.on else 420.0, 0)
 	_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -163,7 +168,26 @@ func _phone_header(header: Container, spacer: Control) -> void:
 	_form.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 
+## Attaches the wanted backdrop behind the panel, swapping out the other one. In
+## "auto" the dungeon can't be built until its data has loaded, so the torchlit
+## hall shows first and _process upgrades to the dungeon when it is ready.
+func _ensure_backdrop() -> void:
+	var want_dungeon := backdrop_mode == "dungeon" \
+		or (backdrop_mode == "auto" and DungeonBackdrop.can_build(game_data))
+	if want_dungeon and _dungeon == null:
+		if _backdrop != null:
+			_backdrop.queue_free()
+			_backdrop = null
+		_dungeon = DungeonBackdrop.attach(self, game_data)
+		move_child(_dungeon, 0)
+	elif not want_dungeon and _backdrop == null and _dungeon == null:
+		_backdrop = LoginBackdrop.attach(self, game_data)
+		move_child(_backdrop, 0)
+
+
 func _process(_delta: float) -> void:
+	if backdrop_mode == "auto" and _dungeon == null and DungeonBackdrop.can_build(game_data):
+		_ensure_backdrop()
 	if not visible:
 		return
 	_account.show_buy_fame(buy_fame_shown.is_valid() and buy_fame_shown.call())

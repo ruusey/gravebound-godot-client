@@ -41,6 +41,11 @@ var passives := {}
 ## A dropped bag's art by its tier; LootArt reads it.
 var loot_containers := {}
 var animations := {}   # classId -> player animation set
+## Dungeon definitions and prefab rooms, for the login backdrop's synthetic
+## dungeon. Optional content: a data service that doesn't serve them leaves both
+## empty, and the backdrop falls back to the torchlit hall.
+var dungeons := {}         # dungeonId -> dungeon definition
+var dungeon_rooms := {}     # roomId -> prefab room definition
 ## A dye by its id, and each class's painted masks of which pixels take one.
 var dyes := {}
 var class_masks := {}
@@ -79,6 +84,14 @@ func load_from(source: ContentSource) -> bool:
 		var object_type := String(entry.get("objectType", ""))
 		if object_type == "player" or object_type == "enemy":
 			animations[int(entry.get("objectId", -1))] = entry
+
+	# Optional, like sounds.json: an absent dungeons/rooms file just disables the
+	# login backdrop's synthetic dungeon, so it is read without the error a
+	# required file would raise.
+	for entry in await _read_optional_array(source, "dungeons.json"):
+		dungeons[int(entry.get("dungeonId", -1))] = entry
+	for entry in await _read_optional_array(source, "dungeon-rooms.json"):
+		dungeon_rooms[int(entry.get("roomId", -1))] = entry
 
 	# Optional: a missing sounds.json leaves the client silent, not broken, so it
 	# is read without the _read_object error an absent required file would raise.
@@ -137,6 +150,16 @@ func _read_object(source: ContentSource, filename: String) -> Dictionary:
 		errors.append("%s did not contain a JSON object" % filename)
 		return {}
 	return parsed
+
+
+## Like _read_array, but an absent or malformed file yields an empty list
+## without recording an error -- for content the client can run without.
+func _read_optional_array(source: ContentSource, filename: String) -> Array:
+	var result: Array = await source.read(filename)
+	if result[0] != OK:
+		return []
+	var parsed = JSON.parse_string(PackedByteArray(result[1]).get_string_from_utf8())
+	return parsed if parsed is Array else []
 
 
 func _read_array(source: ContentSource, filename: String) -> Array:

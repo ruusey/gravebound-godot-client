@@ -124,7 +124,7 @@ static func apply(name: String, state: RealmState) -> void:
 		"shores": _shores(state)
 		"buy_fame", "buy_fame_waiting", "leaderboard": _entities(state)
 		# The login screen: no realm at all, the capture raises the screen itself.
-		"login", "login_account", "login_delete", "login_stats", "terms", "how_to": pass
+		"login", "login_dungeon", "login_account", "login_delete", "login_stats", "terms", "how_to": pass
 		_: push_error("unknown scenario '%s'" % name)
 
 
