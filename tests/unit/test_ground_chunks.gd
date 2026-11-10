@@ -139,6 +139,35 @@ func test_the_ground_ahead_is_drawn_a_couple_of_chunks_a_frame():
 	assert_eq(chunks.chunks.size(), seen + 2 * GroundChunks.PREFETCH)
 
 
+func test_a_stale_strip_is_repainted_a_few_chunks_a_frame_not_all_at_once():
+	# Drive update() directly: the first call fills the whole view (entry), so the
+	# chunks exist; a small zoom makes the view span many chunks.
+	var chunks := GroundChunks.new()
+	var ground := TileRenderer.new()
+	add_child_autofree(ground)
+	camera.zoom = Vector2(0.25, 0.25)
+	var view := ViewRect.of(ground)
+	chunks.update(ground, view)
+	var seen := GroundChunks.over(view)
+	# Every in-view chunk now goes stale at once -- a streamed tile diff, or walking
+	# into a fresh strip of ground.
+	var in_view: Array = chunks.chunks.keys().filter(func(at: Vector2i) -> bool:
+		return seen.has_point(at))
+	for at in in_view:
+		chunks.dirty[at] = true
+	assert_gt(in_view.size(), GroundChunks.MAX_IN_VIEW_REDRAW,
+		"need more in-view chunks than the per-frame cap for this to mean anything")
+	# One update clears (repaints) at most the cap of them; the rest stay stale for
+	# the following frames (_draw erases the dirty flag of a chunk it repaints).
+	chunks.update(ground, view)
+	var repainted := 0
+	for at in in_view:
+		if not chunks.dirty.has(at):
+			repainted += 1
+	assert_lte(repainted, GroundChunks.MAX_IN_VIEW_REDRAW,
+		"a stale strip repaints a few chunks a frame, not all at once: %d of %d" % [repainted, in_view.size()])
+
+
 func test_a_chunk_takes_the_grounds_material():
 	_ground([WireHelper.tile(1, 0, 0, 0)])
 	await _frames()

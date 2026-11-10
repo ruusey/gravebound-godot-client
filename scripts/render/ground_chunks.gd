@@ -11,6 +11,14 @@ extends RefCounted
 ## walked every frame. See `update` for when.
 
 const PREFETCH := 2
+## In steady state, the most in-view chunks repainted on one frame. Walking into new
+## ground, or a streamed tile diff, can mark a whole leading-edge strip of chunks stale
+## at once; each wall-heavy chunk costs milliseconds to paint, so painting a strip of
+## them on a single frame is a visible whole-scene hitch (the bunched-packet frame the
+## original throttle warned about). They are drawn a few a frame instead, nearest the
+## view centre first, and the rest follow. A just-entered realm (no chunks yet) is the
+## exception -- the whole view paints at once so the first frame is framed on the player.
+const MAX_IN_VIEW_REDRAW := 3
 
 var chunks := {}   # chunk -> GroundChunk
 var dirty := {}    # chunk -> true
@@ -47,31 +55,52 @@ func mark_all() -> void:
 		dirty[chunk] = true
 
 
-## A chunk in `view` that is stale -- never drawn, OR drawn but since changed --
-## is drawn now, so the ground is never missing and a tall wall's south-spilling
-## front face (which only the chunk below it can paint) can't lag a frame behind the
-## wall arriving. Only the ring BEYOND the view is throttled to PREFETCH a frame,
-## nearest first: off-screen tiles stream in as you walk, and redrawing every chunk
-## they touch at once was a frame long enough to bunch the movement packets.
+## Draws the stale chunks in and around `view`: never-drawn ones so the ground is
+## never missing, and drawn-but-since-changed ones so a tall wall's south-spilling
+## front face (which only the chunk below it can paint) follows the wall. In-view
+## chunks are capped at MAX_IN_VIEW_REDRAW a frame (nearest the view centre first,
+## never-drawn before changed) so a strip going stale at once -- a stream diff, or
+## walking into new ground -- doesn't bunch a frame; a freshly entered realm paints
+## its whole view at once. The ring BEYOND the view streams PREFETCH a frame, nearest
+## first, as it always has.
 func update(ground: TileRenderer, view: Rect2) -> void:
 	var seen := over(view)
-	var waiting: Array = []
+	var fresh: Array = []    # in view, never drawn -- bare ground, drawn first
+	var stale: Array = []    # in view, drawn but a tile has since changed
+	var beyond: Array = []   # the ring past the view, streamed ahead
 	var ring := seen.grow(1)
 	for x in range(ring.position.x, ring.end.x):
 		for y in range(ring.position.y, ring.end.y):
 			var chunk := Vector2i(x, y)
-			if chunks.has(chunk) and not dirty.has(chunk):
+			var exists := chunks.has(chunk)
+			if exists and not dirty.has(chunk):
 				continue
-			if seen.has_point(chunk):
-				_draw(ground, chunk)
+			if not seen.has_point(chunk):
+				beyond.append(chunk)
+			elif exists:
+				stale.append(chunk)
 			else:
-				waiting.append(chunk)
+				fresh.append(chunk)
 	var middle := Vector2(seen.position) + Vector2(seen.size) * 0.5
-	waiting.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		if seen.has_point(a) != seen.has_point(b):
-			return seen.has_point(a)
-		return middle.distance_squared_to(Vector2(a)) < middle.distance_squared_to(Vector2(b)))
-	for chunk in waiting.slice(0, PREFETCH):
+	var nearer := func(a: Vector2i, b: Vector2i) -> bool:
+		return middle.distance_squared_to(Vector2(a)) < middle.distance_squared_to(Vector2(b))
+	fresh.sort_custom(nearer)
+	stale.sort_custom(nearer)
+	# Entering a realm (nothing drawn yet) paints the whole view at once, so the first
+	# frame is framed on the player instead of filling in; after that the cap holds.
+	var budget := fresh.size() + stale.size() if chunks.is_empty() else MAX_IN_VIEW_REDRAW
+	for chunk in fresh:
+		if budget <= 0:
+			break
+		_draw(ground, chunk)
+		budget -= 1
+	for chunk in stale:
+		if budget <= 0:
+			break
+		_draw(ground, chunk)
+		budget -= 1
+	beyond.sort_custom(nearer)
+	for chunk in beyond.slice(0, PREFETCH):
 		_draw(ground, chunk)
 
 

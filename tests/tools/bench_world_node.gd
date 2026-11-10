@@ -36,6 +36,10 @@ var hidden_layers: PackedStringArray = []
 var out_path := ""
 ## Water and lava blobs in the floor, so the liquid layer and its shores are drawn.
 var shores := false
+## Walk the local player in a wandering loop so the camera pans across the tile
+## field -- the only way the movement-triggered light rescan (SceneLighting) is
+## exercised; a stationary player rescans only on the slow fixed cadence.
+var walk := false
 var _lines: PackedStringArray = []
 
 var content: GameData
@@ -110,6 +114,7 @@ func _parse_args() -> void:
 			"hide": hidden_layers = parts[1].split(",")
 			"out": out_path = parts[1]
 			"shores": shores = parts[1] == "1"
+			"walk": walk = parts[1] == "1"
 
 
 func _build_world() -> void:
@@ -266,7 +271,7 @@ func _advance_sections(delta: float) -> void:
 	state.projectiles.latency_ms = 60.0
 	state.transition.expire()
 	state.local.decay_smoothing(delta)
-	state.movement.predict(delta, Vector2.ZERO)
+	state.movement.predict(delta, _walk_input())
 	state.local.walk.advance(state.movement.pace_px, delta)
 	state.local.attack.tick(delta)
 	RemoteAnimation.advance(state.entities.players, delta)
@@ -283,6 +288,19 @@ func _advance_sections(delta: float) -> void:
 	state.party.expire()
 	state.pvp.expire()
 	_section("rest", t)
+
+
+## A wandering walk direction: a slowly rotating heading that steers back toward the
+## map centre once the player drifts far, so it keeps crossing the emitter/wall field
+## instead of lodging in a corner. Vector2.ZERO (stationary) unless --walk=1.
+func _walk_input() -> Vector2:
+	if not walk:
+		return Vector2.ZERO
+	var centre := Vector2(MAP_SIZE, MAP_SIZE) * GameConstants.TILE_SIZE * 0.5
+	var from_centre := state.local.position - centre
+	if from_centre.length() > 800.0:
+		return -from_centre.normalized()
+	return Vector2.from_angle(_clock / 1000.0 * 0.7)
 
 
 func _section(name: String, since_us: int) -> int:
@@ -422,6 +440,10 @@ func _report() -> void:
 	_say("BENCH advance=%.2fms overlay=%.2fms draw=%.2fms avg_bullets=%d" % [
 		_mean(_advance_us) / 1000.0, _mean(_overlay_us) / 1000.0, _mean(_draw_us) / 1000.0,
 		_bullet_samples / maxi(_frames.size(), 1)])
+	# Where the worst frames spend their time: isolates a stall to script-advance,
+	# overlay, or the draw step (immediate-mode layer _draw on the main thread).
+	_say("BENCH maxes advance=%.2fms overlay=%.2fms draw=%.2fms" % [
+		_max(_advance_us) / 1000.0, _max(_overlay_us) / 1000.0, _max(_draw_us) / 1000.0])
 	var parts := []
 	for name in _sections:
 		parts.append("%s=%.2fms" % [name, _sections[name] / 1000.0 / maxf(_frames.size(), 1.0)])
@@ -459,3 +481,10 @@ static func _mean(values: Array[float]) -> float:
 	for value in values:
 		total += value
 	return total / maxf(values.size(), 1.0)
+
+
+static func _max(values: Array[float]) -> float:
+	var top := 0.0
+	for value in values:
+		top = maxf(top, value)
+	return top
