@@ -40,6 +40,15 @@ var shores := false
 ## field -- the only way the movement-triggered light rescan (SceneLighting) is
 ## exercised; a stationary player rescans only on the slow fixed cadence.
 var walk := false
+## Arena-style wave turnover: every `wave_period` seconds unload every enemy and load
+## a fresh batch of `enemy_count` at once, the way a wave spawns. The frames right after
+## each spawn are timed on their own, so a one-frame stall on "enemies loading in" shows
+## up separately from the steady cost (which pre-spawned warmup frames hide). Off by default.
+var waves := false
+const WAVE_PERIOD := 2.0
+## Frames attributed to a spawn after each wave lands (the stall, if any, is on the
+## load frame and the immediate-mode redraw that follows it).
+const WAVE_WATCH := 4
 var _lines: PackedStringArray = []
 
 var content: GameData
@@ -68,6 +77,13 @@ var _rng := RandomNumberGenerator.new()
 var _sections := {}
 var _chunk_probe: Node2D
 var _frame_start_us := 0
+var _since_wave := 0.0
+var _wave_watch := 0
+var _wave_draw_watch := 0
+var _spawn_frames: Array[float] = []
+var _spawn_net_us: Array[float] = []
+var _spawn_draw_us: Array[float] = []
+var _wave_count := 0
 
 
 func _ready() -> void:
@@ -115,6 +131,7 @@ func _parse_args() -> void:
 			"out": out_path = parts[1]
 			"shores": shores = parts[1] == "1"
 			"walk": walk = parts[1] == "1"
+			"waves": waves = parts[1] == "1"
 
 
 func _build_world() -> void:
@@ -232,11 +249,20 @@ func _process(delta: float) -> void:
 	if not _running:
 		return
 	var now_us := Time.get_ticks_usec()
-	_frames.append((now_us - _last_frame_us) / 1000.0)
+	var frame_ms := (now_us - _last_frame_us) / 1000.0
+	_frames.append(frame_ms)
+	if _wave_watch > 0:
+		_spawn_frames.append(frame_ms)
+		_wave_watch -= 1
 	_last_frame_us = now_us
 	_clock += delta * 1000.0
 	_since_move += delta * 1000.0
 	_since_unload += delta * 1000.0
+	if waves:
+		_since_wave += delta * 1000.0
+		if _since_wave >= WAVE_PERIOD * 1000.0:
+			_since_wave = 0.0
+			_fire_wave()
 	_frame_start_us = now_us
 	var net_started := Time.get_ticks_usec()
 	if _since_move >= MOVE_INTERVAL_MS:
@@ -322,7 +348,35 @@ func mark_process_end() -> void:
 
 func _on_pre_draw() -> void:
 	if _running and _process_end_us > 0:
-		_draw_us.append(Time.get_ticks_usec() - _process_end_us)
+		var draw_us := Time.get_ticks_usec() - _process_end_us
+		_draw_us.append(draw_us)
+		if _wave_draw_watch > 0:
+			_spawn_draw_us.append(draw_us)
+			_wave_draw_watch -= 1
+
+
+## Arena wave turnover: drop every enemy and load a fresh batch at once, so the apply
+## cost (CPU) is timed on its own and the next frames' deltas/draws capture any stall
+## the "enemies loading in" causes. Ids are reused so the steady _send_moves stays valid;
+## the dicts are freed and rebuilt, so first-sight work (bar/tag pools, light defs) still runs.
+func _fire_wave() -> void:
+	var gone := []
+	for i in enemy_count:
+		gone.append(10_000 + i)
+	var centre := Vector2(MAP_SIZE, MAP_SIZE) * GameConstants.TILE_SIZE * 0.5
+	var enemies := []
+	var enemy_ids := content.library.enemies.keys()
+	for i in enemy_count:
+		enemies.append({"id": 10_000 + i, "enemyId": int(enemy_ids[(i + _wave_count) % enemy_ids.size()]),
+			"weaponId": 0, "size": 32, "pos": _vec(centre + _scatter(300.0)), "dX": 0.0, "dY": 0.0,
+			"difficulty": 1.0, "health": 800, "maxHealth": 1000, "shortId": 0})
+	var started := Time.get_ticks_usec()
+	state.apply_packet("UnloadPacket", {"enemies": gone})
+	state.apply_packet("LoadPacket", {"players": [], "enemies": enemies})
+	_spawn_net_us.append(Time.get_ticks_usec() - started)
+	_wave_watch = WAVE_WATCH
+	_wave_draw_watch = WAVE_WATCH
+	_wave_count += 1
 
 
 func _send_moves() -> void:
@@ -444,6 +498,17 @@ func _report() -> void:
 	# overlay, or the draw step (immediate-mode layer _draw on the main thread).
 	_say("BENCH maxes advance=%.2fms overlay=%.2fms draw=%.2fms" % [
 		_max(_advance_us) / 1000.0, _max(_overlay_us) / 1000.0, _max(_draw_us) / 1000.0])
+	# Wave-spawn frames on their own: the apply cost (unload+load CPU), the worst frame
+	# delta in the window after each spawn, and the worst draw step there. A spawn stall
+	# shows as a spawn-frame max well over the steady p99; a clean one tracks it.
+	if waves:
+		var spawn_sorted := _spawn_frames.duplicate()
+		spawn_sorted.sort()
+		# _spawn_frames are already ms (frame deltas); the _us arrays are microseconds.
+		_say("BENCH waves=%d spawn_apply_mean=%.2fms spawn_apply_max=%.2fms spawn_frame_mean=%.2fms spawn_frame_max=%.2fms spawn_draw_max=%.2fms" % [
+			_wave_count, _mean(_spawn_net_us) / 1000.0, _max(_spawn_net_us) / 1000.0,
+			_mean(_spawn_frames), spawn_sorted[-1] if not spawn_sorted.is_empty() else 0.0,
+			_max(_spawn_draw_us) / 1000.0])
 	var parts := []
 	for name in _sections:
 		parts.append("%s=%.2fms" % [name, _sections[name] / 1000.0 / maxf(_frames.size(), 1.0)])
