@@ -192,10 +192,14 @@ func _queue_portals(queue: Array, state: RealmState, content: GameData,
 		var position := state.entities.render_position(portal)
 		if not view.has_point(position):
 			continue
+		var portal_id := int(portal.get("portal_id", -1))
+		# Portals draw a tile wide by default; a definition may set a larger renderSize
+		# so a showpiece doorway (the Corrupt Lord arena rift) reads bigger than the rest.
+		var render := float(content.portals.definition(portal_id).get("renderSize", GameConstants.TILE_SIZE))
 		queue.append({"kind": "portals", "pos": position,
-			"size": GameConstants.TILE_SIZE,
-			"draw": Vector2.ONE * float(GameConstants.TILE_SIZE),
-			"texture": content.portals.texture(int(portal.get("portal_id", -1))),
+			"size": render,
+			"draw": Vector2.ONE * render,
+			"texture": content.portals.texture(portal_id),
 			"tint": Color(0.5, 0.35, 0.9), "flip": false,
 			"modulate": StatusTint.CLEAR})
 
