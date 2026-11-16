@@ -2,9 +2,11 @@ shader_type canvas_item;
 
 // Animates the chunk-cached water/lava tiles entirely on the GPU: the layer is
 // drawn once (like the ground) and this runs every frame off TIME, so an ocean or
-// a lava lake moves for free. Water vs lava is told apart from the base pixel
-// (lava reads warm, water cool) so one material covers both. No TEXTURE UV is
-// offset -- that would bleed across the atlas -- the motion is added to the colour.
+// a lava lake moves for free. Water vs lava is told apart by the per-tile data flag
+// (data.liquid), which the renderer packs into the shoreless cells' vertex-colour
+// alpha -- NOT guessed from the base pixel -- so one material covers both and lava
+// animates as lava at any colour its art uses. No TEXTURE UV is offset -- that would
+// bleed across the atlas -- the motion is added to the colour.
 //
 // The pattern is driven by WORLD position (MODEL_MATRIX * VERTEX, before the camera
 // transform), not FRAGCOORD, so it stays locked to the terrain and does NOT scroll
@@ -37,10 +39,15 @@ varying vec2 world_pos;
 varying vec2 shore_mask;
 varying vec3 lip_colour;
 varying float has_lip;
+varying float lava_mix;
 
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
 	shore_mask = floor(COLOR.rg * 15.0 + 0.5);
+	// Water (0) vs lava (1): the renderer packs data.liquid into alpha on the shoreless
+	// cells (which carry no mask); a cell with a shore mask is always water. Gating on
+	// the mask keeps a shore cell's alpha (its lip's low byte) from reading as lava.
+	lava_mix = (1.0 - step(0.5, shore_mask.r + shore_mask.g)) * step(0.5, COLOR.a);
 	float high = floor(COLOR.b * 255.0 + 0.5);
 	float low = floor(COLOR.a * 255.0 + 0.5);
 	has_lip = step(0.5, high);
@@ -106,7 +113,7 @@ void fragment() {
 	if (base.a < 0.01) {
 		discard;
 	}
-	float warm = clamp((base.r - base.b) * 3.0, 0.0, 1.0);   // lava ~1, water ~0
+	float warm = lava_mix;   // 1 on a lava tile, 0 on water -- from data.liquid, not pixels
 	// World-space (camera-independent), matched to the old screen-space frequency.
 	vec2 p = world_pos * 0.08;
 	float t = pinned_time >= 0.0 ? pinned_time : TIME;
@@ -123,9 +130,12 @@ void fragment() {
 	// CLAMP, not max(): flow*0.5+0.5 reaches 1.5, so pow(_,3) spiked hot to ~3.4 and the
 	// yellow additive below blew past 1.0 into a bloom-amplified yellow oval. Capped at 1.0.
 	float hot = pow(clamp(flow * 0.5 + 0.5, 0.0, 1.0), 3.0);
+	// Glow in the tile's OWN colour (brightened toward white-hot at the cracks) rather
+	// than a baked orange, so recolouring a lava tile's art recolours its lava. An
+	// orange lava sheet still reads orange; a red/purple/green one reads in that hue.
 	vec3 lava = base.rgb
-		+ 0.24 * pulse * vec3(1.0, 0.35, 0.05)
-		+ 0.28 * hot * vec3(1.0, 0.7, 0.1);
+		+ 0.24 * pulse * base.rgb
+		+ 0.28 * hot * mix(base.rgb, vec3(1.0), 0.6);
 
 	vec3 colour = mix(water, lava, warm);
 	if (shore_mask.r + shore_mask.g > 0.5) {

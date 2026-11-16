@@ -23,7 +23,11 @@ const CORNER_STEPS := [-1, -1, 1, 1, -1, 1, -1, 1]
 const LAND := 1
 const LIQUID := 2
 
-const NO_SHORE := Color(0.0, 0.0, 1.0, 1.0)
+## A shoreless liquid cell (no land neighbours, or any lava cell). The shader's shore
+## branch is gated on the red/green mask, which is zero here, so blue/alpha are free --
+## alpha carries the water(0)/lava(1) flag that drives the animation from data.liquid.
+const NO_SHORE_WATER := Color(0.0, 0.0, 1.0, 0.0)
+const NO_SHORE_LAVA := Color(0.0, 0.0, 1.0, 1.0)
 ## Two lips further apart than this (RGB, 0-1) are different ground.
 const MIXED_LIPS := 0.12
 
@@ -103,8 +107,15 @@ func paint_cells(canvas: CanvasItem, own: Rect2i) -> Dictionary:
 						sides |= 1 << i
 					if kinds[at + CORNER_STEPS[i] * width + CORNER_STEPS[i + 4]] == LAND:
 						corners |= 1 << i
-				var shore := NO_SHORE if (sides == 0 and corners == 0) or _is_lava(tile_id) \
-					else _shore(base, cell, tile_id, sides, corners)
+				# Lava never gets a shore (its edge stays plain); a shoreless water cell
+				# carries the water flag; otherwise water builds its shore band.
+				var shore: Color
+				if _is_lava(tile_id):
+					shore = NO_SHORE_LAVA
+				elif sides == 0 and corners == 0:
+					shore = NO_SHORE_WATER
+				else:
+					shore = _shore(base, cell, tile_id, sides, corners)
 				canvas.draw_texture_rect(texture, rect, false, shore)
 			if GroundChunk.counts(own, tile_x, tile_y):
 				drawn += 1
