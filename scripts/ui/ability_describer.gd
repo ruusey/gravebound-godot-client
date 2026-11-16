@@ -119,8 +119,22 @@ static func _effect_text(effect: Dictionary, definition: Dictionary, invested: i
 			return "Empower next basic +%d%%" % int(effect.get("baseMagnitude", 0))
 		"SPAWN_POTIONS":
 			return "Drop %d potions" % int(effect.get("baseMagnitude", 0))
+		"PROJECTILE_GROUP":
+			return "Fires a projectile volley%s" % target
 		_:
-			return ""
+			# Never silently drop an effect the card has no bespoke line for: name the
+			# effect in words (never its raw type/id) and show any magnitude / duration
+			# it carries, so the hover lists everything the ability does.
+			if kind == "":
+				return ""
+			var parts := PackedStringArray([_prettify(kind)])
+			var magnitude := int(effect.get("baseMagnitude", 0))
+			if magnitude != 0:
+				parts.append(str(magnitude))
+			var seconds := float(effect.get("baseDurationMs", 0)) / 1000.0
+			if seconds > 0.0:
+				parts.append("%.1fs" % seconds)
+			return " ".join(parts) + target
 
 
 ## A non-damage scaling: "DEX x1.5 -> Radius (+3)".
@@ -208,8 +222,9 @@ static func _status_name(raw: Variant) -> String:
 	var text := str(raw)
 	if text.is_valid_int():
 		var label := StatusChips.label_for(int(text))
-		if label != "":
-			return label
+		# Never fall through to showing the raw number: an id the chip table doesn't
+		# know renders as a generic word, so the card never prints a bare status id.
+		return label if label != "" else "status effect"
 	return _prettify(text)
 
 

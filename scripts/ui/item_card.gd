@@ -20,6 +20,8 @@ const LOSS := Color("e06060")
 const GOLD := Color("c8a86e")
 const DAMAGE := Color("e0a060")
 const DPS := Color("ffd24a")
+## Magic-find line — a standout violet shared with the loot/immune accents.
+const LOOT := Color("cc4dff")
 const CLASS_LABELS := {1: "Heavy Weapon", 2: "Light Weapon", 3: "Magic Weapon",
 	10: "Heavy Armor", 11: "Light Armor", 12: "Cloak Armor", 99: "Any class"}
 const ARCHETYPE_LABELS := {1: "Sword", 2: "Axe", 3: "Hammer", 10: "Dagger", 11: "Bow",
@@ -45,6 +47,11 @@ static func lines(item: Dictionary, content: GameData = null, viewer := {}) -> A
 			out.append(["DPS: %d (%s - %s/s)" % [dps["dps"], "1 shot" if dps["bullets"] == 1 else "%d shots" % dps["bullets"],
 				WeaponDps.rate_text(dps["per_second"])], DPS])
 	out.append_array(_stats(item.get("stats", {})))
+	# Magic find rides on the catalog template (lootFind), not the wire item, so read
+	# it by itemId like itemClass/scalingStat above. Shown as a whole-percent bonus.
+	var loot_find := float(item.get("lootFind", definition.get("lootFind", 0.0)))
+	if loot_find > 0.0:
+		out.append(["Loot Find +%d%%" % int(round(loot_find * 100.0)), LOOT])
 	out.append_array(_affix(item.get("attributeModifiers", [])))
 	out.append_array(_gem_item(item, definition))
 	out.append_array(_forge(item))
