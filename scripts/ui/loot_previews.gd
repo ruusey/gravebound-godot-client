@@ -64,12 +64,33 @@ func _show(id: int, state: RealmState, content: GameData, to_screen: Transform2D
 	if not on_screen.has_point(at):
 		return
 	var grid: LootPreview = _pool.acquire(id)
+	# Rebuild the grid only when its contents changed; most frames just reposition.
 	if chest:
-		grid.show_slots(chest_textures(container.get("items", []), content))
+		var slots: Array = container.get("items", [])
+		if grid.needs_fill(id, _chest_sig(slots)):
+			grid.show_slots(chest_textures(slots, content))
 	else:
-		grid.show_items(items.map(func(item: Dictionary) -> Texture2D: return _texture(item, content)))
+		if grid.needs_fill(id, _items_sig(items)):
+			grid.show_items(items.map(func(item: Dictionary) -> Texture2D: return _texture(item, content)))
 	grid.place(at)
 	shown += 1
+
+
+## The shown items' ids, in order: a bag's whole preview signature.
+static func _items_sig(items: Array) -> PackedInt32Array:
+	var sig := PackedInt32Array()
+	for item in items:
+		sig.append(int(item.get("itemId", -1)))
+	return sig
+
+
+## Each chest slot's item id, -1 where empty: the chest's preview signature.
+static func _chest_sig(items: Array) -> PackedInt32Array:
+	var sig := PackedInt32Array()
+	for i in Inventory.LOOT_SIZE:
+		var item: Variant = items[i] if i < items.size() else null
+		sig.append(int(item.get("itemId", -1)) if Inventory.holds(item) else -1)
+	return sig
 
 
 ## One a chest slot, null where the slot is empty.

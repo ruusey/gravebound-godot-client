@@ -27,6 +27,12 @@ var _icons: Array[TextureRect] = []
 var _shown := 0
 ## A chest's slot count; 0 for a bag, which shows only what it holds.
 var _slots := 0
+## The container id and item-id signature last filled, so a frame that finds
+## the contents unchanged skips the whole rebuild (reassigning ten TextureRects
+## and a queue_redraw) and only repositions. Driven every frame by EntityOverlay.
+var _filled := false
+var _fill_id := 0
+var _fill_sig := PackedInt32Array()
 
 
 func _init() -> void:
@@ -47,6 +53,18 @@ func _init() -> void:
 		icon.position = cell_origin(i)
 		add_child(icon)
 		_icons.append(icon)
+
+
+## Whether the grid must be refilled for this container and signature, or the
+## contents are what it already holds and the caller need only reposition it.
+## Textures depend on item id alone, so the id list is the whole signature.
+func needs_fill(id: int, sig: PackedInt32Array) -> bool:
+	if _filled and id == _fill_id and sig == _fill_sig:
+		return false
+	_filled = true
+	_fill_id = id
+	_fill_sig = sig
+	return true
 
 
 ## What of a container's items the grid shows: the real ones, in order, as
