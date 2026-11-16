@@ -134,6 +134,18 @@ func wades(position: Vector2, entity_size: int) -> bool:
 	return slows(position, entity_size)
 
 
+## The movement speed multiplier for the base-layer tile under the feet (same sample
+## point as slows()): 1.0 off a slow tile, 1/3 for a full slow, >1 on a speed-up tile.
+## Mirrors the server's TileManager.slowSpeedMul so prediction stays in sync.
+func slow_mul(position: Vector2, entity_size: int) -> float:
+	if _content == null:
+		return 1.0
+	var column := floori((position.x + entity_size * 0.5) / TILE_SIZE)
+	var row := floori((position.y + entity_size) / TILE_SIZE)
+	var tile_id: int = layers.get(BASE_LAYER, {}).get(Vector2i(column, row), -1)
+	return _content.tile_speed_mul(tile_id) if tile_id > 0 else 1.0
+
+
 func tile_at(layer: int, tile_x: int, tile_y: int) -> int:
 	return layers.get(layer, {}).get(Vector2i(tile_x, tile_y), -1)
 

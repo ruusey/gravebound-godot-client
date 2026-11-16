@@ -146,8 +146,9 @@ func _replay_step(position: Vector2, input: Vector2, snap: Dictionary, seq: int)
 	return _move(position, input, _pace(position, snap, seq))
 
 
-## Pixels per tick from here, after the slow-tile divisor -- the server's
-## `collidesSlowTile(p) ? 3.0f : 1.0f`, sampled where it samples.
+## Pixels per tick from here, after the per-tile speed multiplier -- the server's
+## TileManager.slowSpeedMul, sampled where it samples (1/3 for a full slow, >1 on a
+## speed-up tile).
 func _pace(position: Vector2, snap: Dictionary, seq: int) -> float:
 	var tiles_per_second := 4.0 + 5.6 * (float(snap.get("spd", 15)) / 75.0)
 	if snap.get("speedy", false):
@@ -155,9 +156,7 @@ func _pace(position: Vector2, snap: Dictionary, seq: int) -> float:
 	if _slowed_at(seq):
 		tiles_per_second *= 0.5
 	var pace := tiles_per_second * float(GameConstants.TILE_SIZE) / GameConstants.TICK_RATE
-	if _tiles.slows(position, GameConstants.PLAYER_SIZE):
-		pace /= 3.0
-	return pace
+	return pace * _tiles.slow_mul(position, GameConstants.PLAYER_SIZE)
 
 
 func _slowed_at(seq: int) -> bool:

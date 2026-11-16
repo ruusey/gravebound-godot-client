@@ -156,5 +156,5 @@ func _lip(land: int, liquid_id: int) -> Color:
 
 func _is_lava(liquid_id: int) -> bool:
 	if not _lava.has(liquid_id):
-		_lava[liquid_id] = TileFeather.is_lava(feathers.blending.signature(content, liquid_id))
+		_lava[liquid_id] = content.tile_is_lava(liquid_id)
 	return _lava[liquid_id]

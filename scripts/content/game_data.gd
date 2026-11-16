@@ -40,8 +40,9 @@ var ready := false
 ## shared by the 2D SceneLighting and the 3D view. See light_emitters().
 var _light_emitters := {}
 var _light_emitters_built := false
-## tile id -> true for water/lava tiles, matched by name; the animated LiquidRenderer
-## draws only these. Built once, like _light_emitters.
+## tile id -> "water"/"lava", from data.liquid; the animated LiquidRenderer draws
+## only these and branches on the value (water gets a shoreline, lava its bubbling
+## edge). Built once, like _light_emitters.
 var _liquid_tiles := {}
 var _liquid_built := false
 ## tile id -> AtlasTexture, so the per-frame wall/tile passes skip rebuilding a
@@ -218,19 +219,46 @@ func tile_slows(tile_id: int) -> bool:
 	return int(tile_data(tile_id).get("slows", 0)) != 0
 
 
-## Water or lava, matched by tile name -- what the animated liquid layer draws.
-## Cached once the content has loaded (an empty library is never cached, so a
-## lookup during the slow remote load doesn't freeze the set empty).
+## The movement speed multiplier for standing on this tile: 1.0 for normal ground,
+## 1/3 for a full slow (slowFactor 1.0, matching the server's old divide-by-3), and
+## >1 for a speed-up tile (negative slowFactor). Mirrors TileManager.slowSpeedMul so
+## local movement prediction agrees with the server.
+func tile_speed_mul(tile_id: int) -> float:
+	if not tile_slows(tile_id):
+		return 1.0
+	var factor := float(tile_data(tile_id).get("slowFactor", 0.0))
+	if factor == 0.0:
+		factor = 1.0  # legacy slows tile with no explicit factor = the old divide-by-3
+	factor = clampf(factor, -1.0, 1.0)
+	return 1.0 - (2.0 / 3.0) * factor
+
+
+## Water or lava -- what the animated liquid layer draws -- read from the tile's
+## data.liquid field ("water"|"lava"). Cached once the content has loaded (an empty
+## library is never cached, so a lookup during the slow remote load doesn't freeze
+## the set empty).
 func tile_is_liquid(tile_id: int) -> bool:
-	if not _liquid_built:
-		if library.tiles.is_empty():
-			return false
-		_liquid_built = true
-		for id in library.tiles:
-			var lower := tile_name(id).to_lower()
-			if "water" in lower or "lava" in lower:
-				_liquid_tiles[id] = true
+	_build_liquids()
 	return _liquid_tiles.has(tile_id)
+
+
+## Whether a liquid tile is lava (vs water). Drives the renderer's edge animation
+## branch; replaces the old average-colour heuristic.
+func tile_is_lava(tile_id: int) -> bool:
+	_build_liquids()
+	return _liquid_tiles.get(tile_id, "") == "lava"
+
+
+func _build_liquids() -> void:
+	if _liquid_built:
+		return
+	if library.tiles.is_empty():
+		return
+	_liquid_built = true
+	for id in library.tiles:
+		var kind := str(library.tiles[id].get("data", {}).get("liquid", "")).to_lower()
+		if kind == "water" or kind == "lava":
+			_liquid_tiles[id] = kind
 
 
 func tile_is_wall(tile_id: int) -> bool:
