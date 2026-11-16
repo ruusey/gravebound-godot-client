@@ -26,6 +26,7 @@ var _chips_key := ""
 ## the effect/stack arrays actually change, not every frame for every entity.
 var _raw_effects: Array = []
 var _raw_stacks: Array = []
+var _raw_immune: Array = []
 var _raw_known := false
 var _relayout_frames := 0
 var _chips_empty := true
@@ -51,8 +52,8 @@ func _ready() -> void:
 
 
 ## Centred on x = 0 of this control, growing upward from y = 0.
-func show_stack(effects: Array, stacks: Array, bubble: Dictionary) -> void:
-	var top := _show_chips(effects, stacks)
+func show_stack(effects: Array, stacks: Array, bubble: Dictionary, immune: Array = []) -> void:
+	var top := _show_chips(effects, stacks, immune)
 	_show_bubble(top - BUBBLE_GAP if top < 0.0 else 0.0, bubble)
 
 
@@ -65,15 +66,18 @@ func has_bubble() -> bool:
 
 
 ## Returns the top of the stack, or 0 with nothing on it.
-func _show_chips(effects: Array, stacks: Array) -> float:
+func _show_chips(effects: Array, stacks: Array, immune: Array) -> float:
 	# Cheap gate: the active-set scan (38 statuses x effects) and chip rebuild run per
-	# entity EVERY frame otherwise. Skip both unless the raw effect/stack arrays changed,
-	# compared by value (the old string key formatted both arrays every frame).
-	if not _raw_known or effects != _raw_effects or stacks != _raw_stacks:
+	# entity EVERY frame otherwise. Skip both unless the raw effect/stack/immune arrays
+	# changed, compared by value (the old string key formatted both arrays every frame).
+	if not _raw_known or effects != _raw_effects or stacks != _raw_stacks or immune != _raw_immune:
 		_raw_known = true
 		_raw_effects = effects.duplicate()
 		_raw_stacks = stacks.duplicate()
+		_raw_immune = immune.duplicate()
+		# Persistent immune pills sit above the live-effect chips.
 		var active := StatusChips.active(effects, stacks)
+		active.append_array(StatusChips.immune_chips(immune))
 		var key := str(active)
 		if key != _chips_key:
 			_chips_key = key

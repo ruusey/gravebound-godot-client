@@ -77,6 +77,7 @@ static func player_state(state: RealmState, data: Dictionary) -> void:
 		entity["health"] = int(data.get("health", entity.get("health", 0)))
 		entity["effects"] = data.get("effectIds", [])
 		entity["effect_stacks"] = data.get("effectStacks", [])
+		entity["immune_effects"] = data.get("immuneEffectIds", [])
 		return
 	entity["health"] = int(data.get("health", 0))
 	entity["mana"] = int(data.get("mana", 0))

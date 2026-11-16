@@ -200,7 +200,10 @@ func _show_enemies(to_screen: Transform2D, view: Rect2) -> void:
 		var maximum: int = maxi(enemy.get("max_health", 1), 1)
 		var health: int = enemy.get("health", maximum)
 		var effects: Array = enemy.get("effects", NO_EFFECTS) if chips_on else NO_EFFECTS
-		if health >= maximum and effects.is_empty():
+		# Phase-scoped immunities draw as persistent pills (e.g. a boss stun-immune in
+		# this phase), so a full-health immune boss still gets a tag with no bar.
+		var immune: Array = enemy.get("immune_effects", NO_EFFECTS) if chips_on else NO_EFFECTS
+		if health >= maximum and effects.is_empty() and immune.is_empty():
 			continue
 		var enemy_size := float(enemy.get("size", 16))
 		var width := enemy_size * zoom
@@ -209,7 +212,7 @@ func _show_enemies(to_screen: Transform2D, view: Rect2) -> void:
 		if health < maximum:
 			_bars.add(at, width, EntityTag.fraction(health, maximum))
 		# A tag only for the chips; it draws no bar of its own (full health passed).
-		if not effects.is_empty():
+		if not effects.is_empty() or not immune.is_empty():
 			var tag: EntityTag = _enemy_tags.acquire(id)
-			tag.show_enemy(at, width, maximum, maximum, effects, enemy.get("effect_stacks", NO_EFFECTS))
+			tag.show_enemy(at, width, maximum, maximum, effects, enemy.get("effect_stacks", NO_EFFECTS), immune)
 			chips += tag.chip_count()

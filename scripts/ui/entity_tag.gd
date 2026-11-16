@@ -141,7 +141,7 @@ static func name_settings(colour: Color) -> LabelSettings:
 
 ## An enemy: a bar over it only while hurt, chips over that.
 func show_enemy(at: Vector2, width: float, health: int, max_health: int, effects: Array,
-		stacks: Array) -> void:
+		stacks: Array, immune: Array = []) -> void:
 	position = at
 	if not _drawn or width != _drawn_size or health != _drawn_health or max_health != _drawn_max_health:
 		_drawn = true
@@ -161,7 +161,7 @@ func show_enemy(at: Vector2, width: float, health: int, max_health: int, effects
 				fraction(health, max_health), ENEMY_BAR_HEIGHT)
 		_head.position = Vector2(width * 0.5, -ENEMY_CHIP_LIFT).round()
 	# The head stack self-gates on its own content, so it is forwarded every frame.
-	_head.show_stack(effects, stacks, {})
+	_head.show_stack(effects, stacks, {}, immune)
 
 
 func chip_count() -> int:

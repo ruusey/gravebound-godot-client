@@ -366,6 +366,7 @@ const PACKETS := {
 		["effectIds", "short", true],
 		["effectTimes", "long", true],
 		["effectStacks", "short", true],
+		["immuneEffectIds", "short", true],
 	],
 	"QuestStatePacket": [
 		["playerId", "long", false],

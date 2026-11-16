@@ -38,12 +38,17 @@ const INFO_EFFECT := 4
 ## this in world units.
 const RISE_PX_PER_SEC := 19.8
 
-## By textEffectId: damage, heal, armor pierce, environment, player info.
-## Both references agree on all five.
+## By textEffectId: damage, heal, armor pierce, environment, player info, immune.
+## The first five match both older references; IMMUNE (5) is new -- a vivid
+## electric violet that reads nothing like a hit, heal or debuff, so "X Immune"
+## pops as clearly "nothing happened, on purpose" when a boss shrugs off CC.
 const COLORS := [
 	Color(1.0, 0.25, 0.25), Color(0.25, 1.0, 0.25), Color(0.30, 0.55, 1.0),
-	Color(0.25, 0.50, 1.0), Color(1.0, 0.50, 0.25),
+	Color(0.25, 0.50, 1.0), Color(1.0, 0.50, 0.25), Color(0.80, 0.30, 1.0),
 ]
+## textEffectId for IMMUNE -- also the colour the overhead immune pills use.
+const IMMUNE_EFFECT := 5
+const IMMUNE_COLOUR := Color(0.80, 0.30, 1.0)
 
 var texts: Array = []
 var _next_id := 0

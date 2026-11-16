@@ -27,6 +27,26 @@ const DEFS := [
 	[38, "Wither", Color("7a6a8a")], [39, "Venom", Color("70d040")], [40, "Dodge", Color("d0e8ff")],
 ]
 
+## The standout violet shared with the "X Immune" floating text (DamageText.IMMUNE_COLOUR).
+const IMMUNE_COLOUR := Color(0.80, 0.30, 1.0)
+
+## Persistent "immune" chips for the effects a boss cannot be hit with in its
+## current phase: [label, colour] pairs, one per id, all in the standout violet.
+## Label is the status' short name + " IMM" (ASCII only -- the game font has no
+## shield glyph), e.g. "Stun IMM", so a stun-immune boss reads at a glance.
+static func immune_chips(immune_effects: Array) -> Array:
+	var out: Array = []
+	for raw in immune_effects:
+		var id := int(raw)
+		if id < 0:
+			continue
+		var label := label_for(id)
+		if label.is_empty():
+			continue
+		out.append([label + " IMM", IMMUNE_COLOUR])
+	return out
+
+
 ## The chips an entity earns, in table order: [label, colour] pairs.
 static func active(effects: Array, stacks: Array) -> Array:
 	var out: Array = []
