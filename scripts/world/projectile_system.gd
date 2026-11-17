@@ -408,10 +408,14 @@ func _predict_hits(now: int) -> void:
 		return
 	_enemy_centres.clear()
 	_enemy_reaches.clear()
+	var now_ms := float(now)
 	for enemy_id in _entities.enemies:
 		var enemy: Dictionary = _entities.enemies[enemy_id]
 		var enemy_size := float(enemy.get("size", GameConstants.TILE_SIZE))
-		_enemy_centres.append(_entities.render_position(enemy) + Vector2(enemy_size, enemy_size) * 0.5)
+		# The non-extrapolated server position, not the drawn (possibly guessed-ahead)
+		# one: the server confirms a hit only where the enemy really was, so consuming
+		# against an extrapolation it can't confirm is what eats shots with no damage.
+		_enemy_centres.append(EntitySnapshots.hit_position(enemy, now_ms) + Vector2(enemy_size, enemy_size) * 0.5)
 		_enemy_reaches.append(enemy_size * HIT_RADIUS_FACTOR)
 	var enemy_count := _enemy_centres.size()
 	for bullet in _own_live:
