@@ -95,33 +95,6 @@ static func sampled(entity: Dictionary, now_ms: float, viewer: Vector2 = Vector2
 	return newest["pos"] + velocity * (ahead / 1000.0) * GameConstants.TICK_RATE
 
 
-## Where an enemy was for CLIENT HIT PREDICTION: the interpolated server position
-## with NO forward extrapolation and no correction smoothing. The draw path
-## (render_position) projects a stale enemy ahead along its last velocity for smooth
-## motion, but the server validates a bullet hit only against the enemy's RECORDED
-## positions (present, or rewound up to LAG_COMP_MAX_MS) and never projects one
-## forward. Consuming a bullet against a guessed-ahead position the server will never
-## confirm is the "bullet vanishes on an enemy with no damage" bug, so when the newest
-## snapshot is older than the interp delay this clamps to it and lets the server decide
-## rather than gamble on the extrapolation.
-static func hit_position(entity: Dictionary, now_ms: float) -> Vector2:
-	var snapshots: Array = entity.get("snaps", [])
-	if snapshots.is_empty():
-		return Vector2.ZERO
-	var target := float(now_ms) - INTERP_DELAY_MS
-	if target <= snapshots[0]["t"]:
-		return snapshots[0]["pos"]
-	var newest: Dictionary = snapshots[-1]
-	if target >= newest["t"]:
-		return newest["pos"]
-	for i in range(snapshots.size() - 1, 0, -1):
-		var older: Dictionary = snapshots[i - 1]
-		if target >= older["t"]:
-			var span: float = maxf(snapshots[i]["t"] - older["t"], 1.0)
-			return older["pos"].lerp(snapshots[i]["pos"], (target - older["t"]) / span)
-	return newest["pos"]
-
-
 static func _outside_viewport(entity: Dictionary, position: Vector2, viewer: Vector2) -> bool:
 	if viewer == Vector2.INF:
 		return false
