@@ -411,7 +411,7 @@ func _predict_hits(now: int) -> void:
 	for enemy_id in _entities.enemies:
 		var enemy: Dictionary = _entities.enemies[enemy_id]
 		var enemy_size := float(enemy.get("size", GameConstants.TILE_SIZE))
-		_enemy_centres.append(_entities.render_position(enemy) + Vector2(enemy_size, enemy_size) * 0.5)
+		_enemy_centres.append(_entities.sampled_position(enemy) + Vector2(enemy_size, enemy_size) * 0.5)
 		_enemy_reaches.append(enemy_size * HIT_RADIUS_FACTOR)
 	var enemy_count := _enemy_centres.size()
 	for bullet in _own_live:

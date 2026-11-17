@@ -72,6 +72,14 @@ func render_position(entity: Dictionary) -> Vector2:
 	return at
 
 
+## Where the server's rewind lands for this entity: the interpolated/extrapolated
+## position WITHOUT the anti-jitter render offset. The hit predictor tests against this
+## (not the drawn sprite position) so a consumed bullet lines up with a server-credited
+## hit instead of the smoothed offset the server never tests against.
+func sampled_position(entity: Dictionary) -> Vector2:
+	return EntitySnapshots.sampled(entity, float(_clock.call()), viewer.call())
+
+
 ## When the packet being applied was sent, as near as can be told.
 func _arrival() -> float:
 	var now := float(_clock.call())
