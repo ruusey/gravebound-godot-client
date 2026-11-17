@@ -13,7 +13,7 @@ const MULTISHOT_GEM := 3
 ## Hit-circle radius = size * this, for both bullet and enemy. Mirrors the
 ## server's GlobalConstants.HIT_RADIUS_FACTOR / circleHit so the client's
 ## predicted despawn lands where the server's damage does.
-const HIT_RADIUS_FACTOR := 0.4
+const HIT_RADIUS_FACTOR := 0.475
 ## A non-pierce bullet freezes at impact and lingers this long before the local
 ## fallback removes it, in case the server's Unload is slow.
 const CONSUME_LINGER_MS := 50
