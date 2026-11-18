@@ -13,6 +13,10 @@ extends RefCounted
 const DAMAGE_SIZE := 24
 const CAPTION_SIZE := 14
 
+## Interaction types whose floated caption reads differently from the
+## capitalized type name. Anything absent falls back to `type.capitalize()`.
+const TILE_CAPTIONS := {"display_text": "Read"}
+
 var captions := 0
 var texts := 0
 var tile_captions := 0
@@ -116,9 +120,13 @@ func _show_tile_labels(state: RealmState, content: GameData, to_screen: Transfor
 func _tile_label(state: RealmState, content: GameData, tx: int, ty: int) -> String:
 	for layer in [GameConstants.COLLISION_LAYER, TileMapState.BASE_LAYER]:
 		var definition: Dictionary = content.tiles.get(state.tiles.tile_at(layer, tx, ty), {})
-		if str(definition.get("interactionType", "")) == "":
+		var kind := str(definition.get("interactionType", ""))
+		if kind == "":
 			continue
 		var text := str(definition.get("label", ""))
+		if text == "":
+			# "fame_store" -> "Fame Store", "arena" -> "Arena"; overrides win.
+			text = TILE_CAPTIONS.get(kind, kind.capitalize())
 		if text != "":
 			return text
 	return ""
