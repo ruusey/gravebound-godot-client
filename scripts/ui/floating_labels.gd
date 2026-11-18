@@ -15,23 +15,30 @@ const CAPTION_SIZE := 14
 
 var captions := 0
 var texts := 0
+var tile_captions := 0
 
 var _captions: ControlPool
+var _tile_captions: ControlPool
 var _numbers: ControlPool
 
 
 func _init(root: Control) -> void:
 	_captions = ControlPool.new(root, func() -> Control: return _label(TagStyles.caption_label()))
+	_tile_captions = ControlPool.new(root, func() -> Control: return _label(TagStyles.caption_label()))
 	_numbers = ControlPool.new(root, func() -> Control: return _label(TagStyles.damage_label()), true)
 
 
-func show_all(state: RealmState, to_screen: Transform2D, view: Rect2, project_3d := false) -> void:
+func show_all(state: RealmState, content: GameData, to_screen: Transform2D, view: Rect2,
+		project_3d := false) -> void:
 	captions = 0
 	texts = 0
+	tile_captions = 0
 	if state != null:
 		_show_captions(state, to_screen, view, project_3d)
+		_show_tile_labels(state, content, to_screen, view, project_3d)
 		_show_numbers(state, to_screen, view)
 	_captions.sweep()
+	_tile_captions.sweep()
 	_numbers.sweep()
 
 
@@ -76,6 +83,45 @@ func _show_captions(state: RealmState, to_screen: Transform2D, view: Rect2, proj
 			var at := EntityOverlay.screen(to_screen, position)
 			label.position = Vector2(at.x + tile * 0.5 - label.size.x * 0.5, at.y + tile + 4.0).round()
 		captions += 1
+
+
+## The caption floated under an interactive tile (its `label`), like a portal's.
+## A view-bounded scan each frame; tiles are static so this stays cheap. Skipped in
+## the 3D prototype, where a flat-screen anchor would swing as the projector orbits.
+func _show_tile_labels(state: RealmState, content: GameData, to_screen: Transform2D,
+		view: Rect2, project_3d: bool) -> void:
+	if project_3d or content == null or state.tiles == null:
+		return
+	var size := float(GameConstants.TILE_SIZE)
+	var tile := size * to_screen.get_scale().x
+	var x0 := maxi(0, floori(view.position.x / size))
+	var y0 := maxi(0, floori(view.position.y / size))
+	var x1 := floori(view.end.x / size)
+	var y1 := floori(view.end.y / size)
+	for ty in range(y0, y1 + 1):
+		for tx in range(x0, x1 + 1):
+			var text := _tile_label(state, content, tx, ty)
+			if text == "":
+				continue
+			var label: Label = _tile_captions.acquire(ty * 100003 + tx)
+			if label.text != text:
+				label.text = text
+				label.reset_size()
+			var at := EntityOverlay.screen(to_screen, Vector2(tx * size, ty * size))
+			label.position = Vector2(at.x + tile * 0.5 - label.size.x * 0.5, at.y + tile + 4.0).round()
+			tile_captions += 1
+
+
+## The `label` of the interactive tile at (tx, ty), collision layer first, or "".
+func _tile_label(state: RealmState, content: GameData, tx: int, ty: int) -> String:
+	for layer in [GameConstants.COLLISION_LAYER, TileMapState.BASE_LAYER]:
+		var definition: Dictionary = content.tiles.get(state.tiles.tile_at(layer, tx, ty), {})
+		if str(definition.get("interactionType", "")) == "":
+			continue
+		var text := str(definition.get("label", ""))
+		if text != "":
+			return text
+	return ""
 
 
 func _show_numbers(state: RealmState, to_screen: Transform2D, view: Rect2) -> void:

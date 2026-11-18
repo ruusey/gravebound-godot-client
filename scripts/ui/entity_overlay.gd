@@ -107,7 +107,7 @@ func refresh() -> void:
 	_enemy_tags.sweep()
 	_bars.finish()
 	_melee.place(state, content, to_screen, world_aim.call())
-	_labels.show_all(state, to_screen, view, project_3d)
+	_labels.show_all(state, content, to_screen, view, project_3d)
 	_loot.show_all(state, content, to_screen, _root.size)
 	_vignette.follow(state, to_screen, _root.size)
 

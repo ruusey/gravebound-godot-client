@@ -106,6 +106,9 @@ func _ready() -> void:
 	screens.build(state, game_data, client, _data_service, inventory_actions, caster, shop,
 		forge_actions, _world, chat_actions)
 	add_child(screens)
+	var text_popup := TextPopup.new()
+	add_child(text_popup)
+	shop.text_popup = text_popup
 	screens.login.client_config = config   # lets the server picker retarget the connection
 	screens.death.dismissed.connect(screens.login.return_after_death)
 	screens.death.quit.connect(screens.login.forget_characters.bind("Signed out."))
@@ -128,9 +131,10 @@ func _ready() -> void:
 	inventory_input.companion_actions = screens.companion_actions
 	inventory_input.companions = state.companions
 	ability_input = AbilityInput.new(client, caster, screens.skills)
-	# A click on a panel is not a shot at, or a cast into, the world behind it.
-	input.mouse_captured = screens.captures_mouse
-	ability_input.mouse_captured = screens.captures_mouse
+	# A click on a panel (or the read-text box) is not a shot at, or a cast into, the world behind it.
+	var captures_mouse := func() -> bool: return screens.captures_mouse.call() or text_popup.captures_mouse()
+	input.mouse_captured = captures_mouse
+	ability_input.mouse_captured = captures_mouse
 	# The melee-reach reticle aims where a shot would: the 3D ground raycast when
 	# that's live (set on input by WorldView3D), else the 2D world mouse.
 	screens.overlay.world_aim = func() -> Variant:

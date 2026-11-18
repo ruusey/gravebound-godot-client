@@ -13,6 +13,8 @@ extends RefCounted
 var state: RealmState
 var client: GraveBoundClient
 var content: GameData
+## Set by Main: the read-only box shown for a "display_text" tile (client-side).
+var text_popup: TextPopup
 
 
 func _init(realm_state: RealmState, net_client: GraveBoundClient, game_data: GameData) -> void:
@@ -31,6 +33,12 @@ func interact_nearby() -> bool:
 	var found := candidate()
 	if found.is_empty():
 		return false
+	# "display_text" is handled entirely client-side: pop up the tile's own
+	# description, no server round-trip. F is consumed either way.
+	if str(found.get("type", "")) == "display_text":
+		if text_popup != null:
+			text_popup.show_text(str(found.get("name", "")), str(found.get("description", "")))
+		return true
 	return _send("InteractTilePacket", {"tileX": found["tile_x"], "tileY": found["tile_y"]})
 
 

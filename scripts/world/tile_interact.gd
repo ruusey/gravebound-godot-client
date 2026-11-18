@@ -39,7 +39,9 @@ static func nearest(tiles: TileMapState, content: GameData, position: Vector2) -
 				if d2 <= best:
 					best = d2
 					found = {"tile_x": tx, "tile_y": ty, "type": str(kind),
-						"name": str(definition.get("name", kind))}
+						"name": str(definition.get("name", kind)),
+						"description": str(definition.get("description", "")),
+						"label": str(definition.get("label", ""))}
 	return found
 
 
@@ -51,4 +53,5 @@ static func verb(candidate: Dictionary) -> String:
 		"potion_storage": return "Open Potion Storage"
 		"exchange_market": return "Open Exchange Market"
 		"arena": return "Enter the Colosseum"
+		"display_text": return "Read"
 	return "Use %s" % candidate.get("name", "")
