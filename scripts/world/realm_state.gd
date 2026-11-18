@@ -21,6 +21,8 @@ var local: LocalPlayer
 var movement: MovementPredictor
 var projectiles: ProjectileSystem
 var particles: ParticleField
+## Pixel chips sprayed off whatever a shot hits; driven by the hit packet below.
+var hit_burst: HitBurst
 var texts: DamageText
 var chat: ChatLog
 var bubbles: ChatBubbles
@@ -67,6 +69,7 @@ func _init(content: GameData = null, clock: Callable = Callable()) -> void:
 	projectiles = ProjectileSystem.new(local, content, clock, entities, tiles)
 	movement.slow_probe = projectiles.slowing_hit_ms
 	particles = ParticleField.new(null if content == null else content.projectiles_art)
+	hit_burst = HitBurst.new(content)
 	texts = DamageText.new()
 	chat = ChatLog.new(clock)
 	bubbles = ChatBubbles.new(clock)
@@ -115,6 +118,7 @@ func apply_packet(name: String, data: Dictionary) -> void:
 			movement.apply_position_ack(data)
 		"TextEffectPacket":
 			texts.apply_text_effect(data, entities, projectiles, local)
+			hit_burst.consider(data, entities, projectiles, local, settings)
 		"TextPacket":
 			for listener in [chat, bubbles, transition, minimap, party, pvp]:
 				listener.apply_text(data)
@@ -171,6 +175,7 @@ func advance(delta: float, input: Vector2, latency_ms: float) -> Array:
 	# a shot we don't draw (another player's/companion's with "show other players'
 	# bullets" off, or one hidden by Blind) spawns no particles either.
 	particles.advance(delta, projectiles.bullets, BulletVisibility.of(self))
+	hit_burst.advance(delta)
 	texts.advance(delta)
 	abilities.expire()
 	minimap.expire()
@@ -181,7 +186,7 @@ func advance(delta: float, input: Vector2, latency_ms: float) -> Array:
 
 
 func reset_world() -> void:
-	for component in [tiles, entities, projectiles, particles, texts, chat, bubbles,
+	for component in [tiles, entities, projectiles, particles, hit_burst, texts, chat, bubbles,
 			abilities, minimap, party, pvp]:
 		component.clear()
 	close_interactions()

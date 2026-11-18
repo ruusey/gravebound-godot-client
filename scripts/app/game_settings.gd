@@ -31,6 +31,7 @@ const GRAPHICS := {
 	"show_status_chips": ["Show status effects", true],
 	"show_chat_bubbles": ["Show chat bubbles", true],
 	"show_damage_numbers": ["Show damage numbers", true],
+	"hit_particles": ["Hit impact particles", true],
 	"sprite_outlines": ["Sprite outlines", true],
 	"loot_preview": ["Loot bag preview", true],
 	"wall_bands": ["Wall side-bands", true],

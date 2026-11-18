@@ -26,6 +26,10 @@ var liquid := LiquidRenderer.new()
 var entities := EntityRenderer.new()
 var wall_tops := WallOcclusionRenderer.new()
 var particles := ParticleRenderer.new()
+## Hit chips in two layers: one under the bodies (the bulk), one over them (a few),
+## so a burst frames the sprite instead of burying it. Driven by RealmState.hit_burst.
+var hit_behind := HitBurstRenderer.new()
+var hit_front := HitBurstRenderer.new()
 var bullets := BulletRenderer.new()
 var effects := EffectRenderer.new()
 var debug := CollisionOverlay.new()
@@ -51,7 +55,8 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	# Liquid sits under the ground: the ground leaves its cells transparent, so the
 	# animated water/lava shows through and props/walls on it still draw over it.
-	for layer in [liquid, tiles, entities, wall_tops, particles, bullets, effects, debug]:
+	# hit_behind sits just under the bodies, hit_front just over them.
+	for layer in [liquid, tiles, hit_behind, entities, hit_front, wall_tops, particles, bullets, effects, debug]:
 		layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		add_child(layer)
 	# Projectiles are bright overlays, not part of the lit scene. Unshaded, each bullet
@@ -67,10 +72,10 @@ func _ready() -> void:
 	# each a single pass instead of being re-shaded once per overlapping scene light
 	# (dozens in a torch-lined dungeon) -- the per-light multiply those layers paid
 	# was pure cost, since none of them is meant to be darkened by the ambient.
-	for overlay in [bullets, particles, effects, debug]:
+	for overlay in [bullets, particles, effects, debug, hit_behind, hit_front]:
 		overlay.material = unlit
 	# Liquid is chunk-cached and animates on the GPU, so it is not redrawn per frame.
-	_redraw_layers = [entities, wall_tops, particles, bullets, effects, debug]
+	_redraw_layers = [hit_behind, entities, hit_front, wall_tops, particles, bullets, effects, debug]
 	_wire()
 
 
@@ -122,6 +127,8 @@ func _wire() -> void:
 	wall_tops.state = state
 	wall_tops.content = game_data
 	particles.state = state
+	hit_behind.field = state.hit_burst.behind if state != null else null
+	hit_front.field = state.hit_burst.front if state != null else null
 	bullets.state = state
 	bullets.content = game_data
 	effects.state = state
