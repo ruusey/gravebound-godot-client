@@ -170,6 +170,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			and not _input.is_open():
 		_input.open()
 		get_viewport().set_input_as_handled()
+	elif event is InputEventKey and event.pressed and not event.echo \
+			and event.keycode == KEY_SLASH and not _input.is_open():
+		# Slash opens the line pre-filled with "/" so a command is one keystroke away.
+		_input.open("/")
+		get_viewport().set_input_as_handled()
 
 
 ## Clear of the touch buttons (`thumbs`, in the canvas's pixels): beside

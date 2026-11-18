@@ -21,9 +21,14 @@ func _ready() -> void:
 	focus_exited.connect(close)
 
 
-func open() -> void:
+## `prefill` seeds the line (e.g. "/" so typing slash opens straight into a command)
+## with the caret placed after it.
+func open(prefill: String = "") -> void:
 	visible = true
 	grab_focus()
+	if prefill != "":
+		text = prefill
+		caret_column = text.length()
 
 
 ## Hiding releases focus, which calls back in here; the guard makes that a
