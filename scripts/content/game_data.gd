@@ -169,7 +169,20 @@ func tile_render_rect(tile_id: int, cell_rect: Rect2) -> Rect2:
 	if drawn <= cell_rect.size.x:
 		return cell_rect
 	var inset := (drawn - cell_rect.size.x) * 0.5
+	if tile_anchor_bottom(tile_id):
+		# Pin the sprite's bottom edge to the cell's bottom and grow upward (centred
+		# horizontally), so the extra size spills north/sideways but never renders down
+		# over the tile below.
+		var top := cell_rect.position.y + cell_rect.size.y - drawn
+		return Rect2(Vector2(cell_rect.position.x - inset, top), Vector2(drawn, drawn))
 	return Rect2(cell_rect.position - Vector2(inset, inset), Vector2(drawn, drawn))
+
+
+## True when an oversized tile pins its bottom to the cell's bottom edge and scales upward
+## (tiles.json `anchorBottom`), instead of the default centred spill. Lets a tweaked-size
+## sprite sit on its cell without covering the tile to its south.
+func tile_anchor_bottom(tile_id: int) -> bool:
+	return bool(library.tiles.get(tile_id, {}).get("anchorBottom", false))
 
 
 ## The top `fraction` of a large decoration's sprite -- its canopy -- redrawn over the

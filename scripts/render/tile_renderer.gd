@@ -130,11 +130,10 @@ func paint_cells(canvas: CanvasItem, own: Rect2i) -> Dictionary:
 					continue
 				var rect := Rect2(tile_x * TILE_SIZE, tile_y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
 				var texture: Texture2D = look[GameData.LOOK_TEXTURE]
-				var size: float = look[GameData.LOOK_SIZE]
-				# Oversized decorations (large trees/bushes) draw at their `size`, centred
-				# on the cell (GameData.tile_render_rect).
-				var draw_rect := rect if size <= TILE_SIZE \
-					else Rect2(rect.position - Vector2.ONE * ((size - TILE_SIZE) * 0.5), Vector2(size, size))
+				# Oversized decorations (large trees/bushes) draw at their `size`: centred on
+				# the cell, or bottom-anchored and scaled upward when the tile sets anchorBottom
+				# (GameData.tile_render_rect is the single source so every pass agrees).
+				var draw_rect := content.tile_render_rect(tile_id, rect)
 				if collision and not flags & GameData.LOOK_WALL:
 					billboards.ring(canvas, texture, draw_rect, own)
 				if texture == null:
