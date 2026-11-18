@@ -53,7 +53,7 @@ func _paint(pool: ParticleField, view: Rect2) -> int:
 		var remaining := pool.life[i] / pool.max_life[i]
 		var size := pool.size_start[i] + (pool.size_end[i] - pool.size_start[i]) * (1.0 - remaining)
 		var colour: Color = pool.tint[i]
-		colour.a = minf(1.0, remaining * 1.5)
+		colour.a = minf(1.0, remaining * 2.2)
 		_multimesh.set_instance_transform_2d(count, Transform2D(0.0, Vector2(size, size), 0.0, at))
 		_multimesh.set_instance_color(count, colour)
 		count += 1

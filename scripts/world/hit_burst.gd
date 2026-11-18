@@ -9,28 +9,26 @@ extends RefCounted
 ## particle is a chip of the target's own sprite, sampled once per enemy/class
 ## and reused, falling back to blood when the sheet can't be read.
 ##
-## Kept deliberately out of the way: most chips go into `behind`, drawn under
-## the bodies, a few into `front`, drawn over them, and both spray sideways and
-## down rather than up -- so a high-rate-of-fire fight with several players
-## stippling one enemy reads as impact, not a sprite buried in pixels. A short
-## per-target cooldown caps how often one enemy can throw a burst.
+## Drawn over the body and centred on it, spraying radially out, so a hit reads
+## as a clear pop of the target's own colour. A short per-target cooldown caps
+## how often one enemy can throw a burst, so high-rate-of-fire focus-fire from
+## several players doesn't stack into a solid smear.
 
 ## Which textEffectIds count as "a hit landed" -- the same two the hit SFX uses.
 const HIT_EFFECTS := [Sfx.DAMAGE_EFFECT, Sfx.ARMOR_BREAK_EFFECT]
 ## One target can throw at most one burst this often, so focus-fire doesn't bury it.
 const COOLDOWN_MS := 45
-## Chips per burst, split across the two layers.
-const BEHIND_COUNT := 5
-const FRONT_COUNT := 1
-## Chip travel, world px/s; the field's drag slows them within ~20px of the hit.
-const SPEED_MIN := 30.0
-const SPEED_MAX := 90.0
-const LIFE_MIN := 0.28
-const LIFE_MAX := 0.46
+## Chips per burst, all drawn over the sprite.
+const CHIP_COUNT := 12
+## Chip travel, world px/s; the field's drag slows them within ~25px of the hit.
+const SPEED_MIN := 40.0
+const SPEED_MAX := 120.0
+const LIFE_MIN := 0.32
+const LIFE_MAX := 0.55
 ## Chip edge in world px, scaled off the body so a big enemy throws bigger chips.
-const PIXEL_MIN := 2.0
-const PIXEL_MAX := 5.0
-const PIXEL_PER_BODY := 0.09
+const PIXEL_MIN := 3.0
+const PIXEL_MAX := 7.0
+const PIXEL_PER_BODY := 0.12
 ## Up to this many colours sampled from a sprite; the spray picks among them.
 const SAMPLE_MAX := 10
 ## Blood, for when a sheet can't be read (or an unknown target). A static var, not
@@ -38,8 +36,7 @@ const SAMPLE_MAX := 10
 static var BLOOD := PackedColorArray([
 	Color("c81212"), Color("9e0d0d"), Color("7a0a0a"), Color("e8382a")])
 
-var behind := ParticleField.new()
-var front := ParticleField.new()
+var chips := ParticleField.new()
 
 var _content: GameData
 var rng := RandomNumberGenerator.new()
@@ -55,15 +52,13 @@ func _init(content: GameData = null) -> void:
 
 
 func clear() -> void:
-	behind.clear()
-	front.clear()
+	chips.clear()
 	_last_ms.clear()
 
 
-## Steps both pools; the fields only move and age (no emission of their own).
+## Steps the pool; it only moves and ages (no emission of its own).
 func advance(delta: float) -> void:
-	behind.advance(delta, _no_bullets)
-	front.advance(delta, _no_bullets)
+	chips.advance(delta, _no_bullets)
 
 
 ## Looks at a TextEffectPacket and throws a burst when it is a hit landing on an
@@ -101,28 +96,31 @@ func consider(data: Dictionary, entities: EntityRegistry, projectiles: Projectil
 		entity = entities.players.get(target_id, {})
 		body = float(entity.get("size", GameConstants.PLAYER_SIZE))
 
+	# Centre the burst on the body, not on the exact impact point, so the pop
+	# reads as "this thing got hit" rather than a speck at its edge. Falls back to
+	# the packet's point when the entity has already been unloaded.
+	var centre := at
+	if not entity.is_empty():
+		centre = entities.render_position(entity) + Vector2(body, body) * 0.5
+
 	var palette := _palette(entity_type, entity)
 	var pixel := clampf(body * PIXEL_PER_BODY, PIXEL_MIN, PIXEL_MAX)
-	for i in BEHIND_COUNT:
-		_spray(behind, at, body, pixel, palette)
-	for i in FRONT_COUNT:
-		_spray(front, at, body, pixel, palette)
+	for i in CHIP_COUNT:
+		_spray(chips, centre, body, pixel, palette)
 
 
-## One chip: picked colour, a sideways-and-down direction (little upward, so it
-## clears the body rather than veiling it), spawned near the hit with a touch of
-## jitter and set to shrink slightly as it fades.
-func _spray(field: ParticleField, at: Vector2, body: float, pixel: float,
+## One chip: picked colour, flung out from the body centre in any direction,
+## spawned on the centre with a little jitter and set to shrink slightly as it
+## fades.
+func _spray(field: ParticleField, centre: Vector2, body: float, pixel: float,
 		palette: PackedColorArray) -> void:
-	var direction := Vector2(rng.randf_range(-1.0, 1.0), rng.randf_range(-0.5, 0.9))
-	if direction.length() < 0.2:
-		direction = Vector2(1.0 if rng.randf() < 0.5 else -1.0, 0.1)
-	var velocity := direction.normalized() * rng.randf_range(SPEED_MIN, SPEED_MAX)
+	var angle := rng.randf_range(0.0, TAU)
+	var velocity := Vector2(cos(angle), sin(angle)) * rng.randf_range(SPEED_MIN, SPEED_MAX)
 	var colour: Color = palette[rng.randi() % palette.size()]
 	if rng.randf() < 0.4:
 		colour = colour.darkened(rng.randf_range(0.1, 0.35))
-	var jitter := body * 0.15
-	var spawn_at := at + Vector2(rng.randf_range(-jitter, jitter), rng.randf_range(-jitter, jitter))
+	var jitter := body * 0.12
+	var spawn_at := centre + Vector2(rng.randf_range(-jitter, jitter), rng.randf_range(-jitter, jitter))
 	field.spawn(spawn_at, velocity, rng.randf_range(LIFE_MIN, LIFE_MAX), pixel,
 		pixel * rng.randf_range(0.65, 1.0), colour)
 
