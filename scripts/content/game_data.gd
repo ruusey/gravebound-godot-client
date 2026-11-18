@@ -246,10 +246,9 @@ func tile_speed_mul(tile_id: int) -> float:
 	return 1.0 - (2.0 / 3.0) * factor
 
 
-## Water or lava -- what the animated liquid layer draws -- read from the tile's
-## data.liquid field ("water"|"lava"). Cached once the content has loaded (an empty
-## library is never cached, so a lookup during the slow remote load doesn't freeze
-## the set empty).
+## Whether the animated liquid layer draws this tile -- any non-empty data.liquid name
+## ("water", "lava", "acid", ...). Cached once the content has loaded (an empty library
+## is never cached, so a lookup during the slow remote load doesn't freeze the set empty).
 func tile_is_liquid(tile_id: int) -> bool:
 	_build_liquids()
 	return _liquid_tiles.has(tile_id)
@@ -270,7 +269,10 @@ func _build_liquids() -> void:
 	_liquid_built = true
 	for id in library.tiles:
 		var kind := str(library.tiles[id].get("data", {}).get("liquid", "")).to_lower()
-		if kind == "water" or kind == "lava":
+		# Any named liquid animates and blends a shoreline, not just water/lava: "lava"
+		# keeps its bubbling edge, every other name (acid, swamp, slime...) gets the
+		# water-style shore tinted from its own tile palette.
+		if kind != "":
 			_liquid_tiles[id] = kind
 
 
