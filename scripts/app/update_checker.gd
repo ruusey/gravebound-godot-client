@@ -4,26 +4,29 @@ extends Node
 ## Desktop auto-updater, mirroring the native client's UpdateChecker.
 ##
 ## On launch (desktop only) it asks GitHub for the latest release; if that tag is
-## newer than this build's application/config/version, it prompts with the release
-## notes. On accept it downloads this platform's zip, extracts the single
-## executable, and spawns a tiny helper that waits for this process to exit,
-## overwrites the running binary, and relaunches it -- then quits.
+## newer than this build's application/config/version, updating is MANDATORY: the
+## player is locked behind a modal they cannot dismiss into the game, offering an
+## in-place auto-update (download this platform's zip, swap the running binary via a
+## detached helper, relaunch) and a browser button to the releases page.
 ##
-## Everything is best-effort: any failure (offline, no asset, bad zip) is logged
-## and swallowed so the game still starts. Web and dev builds skip the check; the
-## web client is always latest (served from /play).
+## The lock only fires when GitHub is reached AND the build is genuinely behind, so
+## an offline launch, a parse failure, a dev build or the web client all fail OPEN
+## and start normally (the web client is always latest, served from /play).
 
 const OWNER := "ruusey"
 const REPO := "gravebound-godot-client"
 const LATEST_URL := "https://api.github.com/repos/%s/%s/releases/latest" % [OWNER, REPO]
+## Where the "Open download page" button sends the player.
+const RELEASES_PAGE := "https://github.com/%s/%s/releases/latest" % [OWNER, REPO]
 const USER_AGENT := "GraveBound-Godot-Client"
-const SKIP_PATH := "user://skip_update.txt"
 
 var _http: HTTPRequest
 var _download: HTTPRequest
 var _dialog: AcceptDialog
 var _progress: AcceptDialog
 var _latest := {}
+## True while the mandatory lock is up, so closing its window just re-opens it.
+var _locked := false
 
 
 ## Kick off the check. Safe to call unconditionally -- it self-gates on web/dev.
@@ -61,13 +64,10 @@ func _on_latest(result: int, code: int, _headers: PackedStringArray, body: Packe
 	if _compare(latest_ver, current) <= 0:
 		print("[UPDATE] already on latest (current=%s latest=%s)" % [current, latest_ver])
 		return
-	if _skipped_version() == latest_ver:
-		print("[UPDATE] user previously skipped %s" % latest_ver)
-		return
+	# Out of date -> updating is mandatory. The in-place auto-update is offered only
+	# when an asset for this platform exists, but the player is locked out either way
+	# and can always fall back to the browser download.
 	var asset := _asset_for_platform(release)
-	if asset.is_empty():
-		print("[UPDATE] release %s has no asset for this platform" % tag)
-		return
 	_latest = {
 		"tag": tag,
 		"version": latest_ver,
@@ -75,8 +75,8 @@ func _on_latest(result: int, code: int, _headers: PackedStringArray, body: Packe
 		"url": String(asset.get("browser_download_url", "")),
 		"name": String(asset.get("name", "")),
 	}
-	print("[UPDATE] new version available: %s (current %s)" % [latest_ver, current])
-	_prompt(current)
+	print("[UPDATE] out of date (current=%s latest=%s) -- locking" % [current, latest_ver])
+	_lock(current)
 
 
 ## The release asset zip built for the running OS, or {} if none.
@@ -96,21 +96,51 @@ func _asset_for_platform(release: Dictionary) -> Dictionary:
 	return {}
 
 
-func _prompt(current: String) -> void:
+## Mandatory lock: the player cannot reach the game until they update. Offers an
+## in-place auto-update (when a platform asset exists), a browser download, a
+## re-check, and quit. There is deliberately no "Later"/"Skip" -- closing the window
+## re-opens it, so an out-of-date build cannot be played.
+func _lock(current: String) -> void:
 	_dialog = AcceptDialog.new()
-	_dialog.title = "GraveBound Update Available"
-	_dialog.dialog_text = "GraveBound %s is available. You're on %s.\n\n%s" % [
+	_dialog.title = "Update required"
+	_dialog.dialog_text = "GraveBound %s is out -- you're on %s.\nUpdate to keep playing.\n\n%s" % [
 		_latest["version"], current, _trim_notes(String(_latest["notes"]))]
-	_dialog.ok_button_text = "Update now"
-	_dialog.add_cancel_button("Later")
-	_dialog.add_button("Skip this version", true, "skip")
-	_dialog.confirmed.connect(_start_update)
-	_dialog.custom_action.connect(func(action: StringName) -> void:
-		if action == "skip":
-			_write_skip(String(_latest["version"]))
-		_dialog.hide())
+	_dialog.exclusive = true
+	_dialog.unresizable = true
+	_dialog.dialog_close_on_escape = false
+	# No default OK -- there is no "continue into the game" path.
+	_dialog.get_ok_button().visible = false
+	_dialog.add_button("Open download page", true, "download")
+	if not String(_latest.get("url", "")).is_empty():
+		_dialog.add_button("Update now", false, "auto")
+	_dialog.add_button("Re-check", true, "retry")
+	_dialog.add_button("Quit", true, "quit")
+	_dialog.custom_action.connect(_on_lock_action)
+	# Closing the window (X, the OS) just re-opens it while locked.
+	_dialog.close_requested.connect(func() -> void:
+		if _locked and _dialog != null:
+			_dialog.popup_centered(Vector2i(560, 360)))
+	_locked = true
 	get_tree().root.add_child(_dialog)
-	_dialog.popup_centered(Vector2i(560, 320))
+	_dialog.popup_centered(Vector2i(560, 360))
+
+
+func _on_lock_action(action: StringName) -> void:
+	match String(action):
+		"download":
+			OS.shell_open(RELEASES_PAGE)
+		"auto":
+			_locked = false
+			_dialog.hide()
+			_start_update()
+		"retry":
+			_locked = false
+			if _dialog != null:
+				_dialog.queue_free()
+				_dialog = null
+			check()
+		"quit":
+			get_tree().quit()
 
 
 func _start_update() -> void:
@@ -209,24 +239,6 @@ func _trim_notes(notes: String) -> String:
 	if notes.length() <= 1200:
 		return notes
 	return notes.substr(0, 1200) + "\n..."
-
-
-func _skipped_version() -> String:
-	if not FileAccess.file_exists(SKIP_PATH):
-		return ""
-	var f := FileAccess.open(SKIP_PATH, FileAccess.READ)
-	if f == null:
-		return ""
-	var v := f.get_as_text().strip_edges()
-	f.close()
-	return v
-
-
-func _write_skip(version: String) -> void:
-	var f := FileAccess.open(SKIP_PATH, FileAccess.WRITE)
-	if f != null:
-		f.store_string(version)
-		f.close()
 
 
 func _strip_v(s: String) -> String:
