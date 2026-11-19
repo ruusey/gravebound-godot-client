@@ -9,7 +9,8 @@ extends RefCounted
 ##   godot -- --host=127.0.0.1 --email=me@example.com --password=pw \
 ##            --character=<uuid> --data-root=/path/to/resources
 ##
-## --hitch=SECONDS records a hitch report once in a realm (HitchRecorder).
+## --prod points a dev run at production the way a shipped build is; --autopilot
+## and --hitch=SECONDS run an unattended hitch capture (HitchRecorder).
 
 const DEFAULT_DATA_ROOT := "../../gravebound-data/src/main/resources"
 ## The route a TLS deployment reaches the game server on, which must match
@@ -64,9 +65,13 @@ var touch := false
 var enable_3d := false
 ## Where the options are kept. Empty -- a test's config -- keeps nothing.
 var settings_path := ""
+## Diagnostics: play unattended (Autopilot), and record a hitch report of this many
+## seconds once in a realm, quitting after it when the autopilot is driving.
+var autopilot := false
 ## Step the frame clock in whole display refreshes (FramePacer); --no-pacer for A/B runs.
 var frame_pacing := true
-## Record a hitch report of this many seconds once in a realm (--hitch).
+## The nexus portal the autopilot takes, by label or target node (--autopilot=beach-easy).
+var autopilot_realm := ""
 var hitch_seconds := 0.0
 
 
@@ -92,7 +97,7 @@ static func parse(args: PackedStringArray, on_web := OS.has_feature("web"),
 	# data. Point it at prod the same way Android/web-on-grave-bound.com do (socket
 	# + content over TLS through nginx). Editor and unversioned dev builds keep the
 	# local default; an explicit --host still overrides below.
-	elif not on_web and _is_released_build():
+	elif not on_web and (_is_released_build() or args.has("--prod")):
 		on_web = true
 		origin = {"host": PageOrigin.PRODUCTION_HOST, "port": 0, "secure": true}
 	var config := ClientConfig.new()
@@ -136,7 +141,11 @@ static func parse(args: PackedStringArray, on_web := OS.has_feature("web"),
 			"lag-jitter": config.lag_jitter_ms = float(value)
 			"touch": config.touch = true
 			"3d": config.enable_3d = true
+			"prod": pass
 			"no-pacer": config.frame_pacing = false
+			"autopilot":
+				config.autopilot = true
+				config.autopilot_realm = value
 			"hitch": config.hitch_seconds = float(value) if value != "" else HitchRecorder.DEFAULT_SECONDS
 			_:
 				push_warning("ClientConfig: ignoring unknown argument '%s'" % arg)

@@ -27,6 +27,8 @@ var screens: Screens
 var trace := MotionTrace.new()
 ## Frame-phase timing for hitch reports (F4, /hitch, --hitch).
 var hitches: HitchRecorder
+## Unattended play for diagnostics (--autopilot); null otherwise.
+var autopilot: Autopilot
 ## Seconds spent in a realm (not the nexus), so a --hitch capture starts once settled.
 var _in_realm_seconds := 0.0
 var _hitch_capture_started := false
@@ -171,6 +173,12 @@ func _ready() -> void:
 	hitches.finished.connect(_on_hitch_report)
 	if chat_actions.commands != null:
 		chat_actions.commands.hitches = hitches
+	if config.autopilot:
+		autopilot = Autopilot.new(state, client, portals, game_data)
+		if config.autopilot_realm != "":
+			autopilot.realm = config.autopilot_realm
+		input.movement_override = autopilot.movement
+		input.touch_aim = autopilot.aim
 
 	if OS.has_feature("web") and _url_wants_3d():
 		config.enable_3d = true
@@ -299,6 +307,8 @@ func _process(engine_delta: float) -> void:
 	hitches.begin_frame(delta)
 	client.tick(delta)
 	hitches.mark_network()
+	if autopilot != null:
+		autopilot.tick(delta)
 	input.tick(delta)
 	portals.tick(delta)
 	inventory_input.tick(delta)
@@ -325,7 +335,7 @@ func _presented_on_beat() -> bool:
 
 
 ## A --hitch capture starts a few seconds into the first realm past the nexus, once
-## the realm has streamed in.
+## the realm has streamed in and the autopilot has found a fight.
 func _maybe_start_hitch_capture(delta: float) -> void:
 	if config.hitch_seconds <= 0.0 or _hitch_capture_started or not client.is_in_game():
 		return
@@ -341,6 +351,8 @@ func _maybe_start_hitch_capture(delta: float) -> void:
 
 func _on_hitch_report(_report: String) -> void:
 	state.chat.apply_text({"from": ChatLog.SYSTEM, "to": state.local.name, "message": hitches.headline()})
+	if autopilot != null and config.hitch_seconds > 0.0:
+		get_tree().quit()
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -34,6 +34,8 @@ var view_yaw := 0.0
 ## camera's get_global_mouse_position is wrong there. Returns a Vector2, or null
 ## to fall back to the 2D mouse (the plain client).
 var world_mouse: Callable = func() -> Variant: return null
+## A stick in place of the keys (Autopilot); returns a Vector2, or null for the keys.
+var movement_override: Callable = func() -> Variant: return null
 
 var _next_shot_ms := 0
 ## The stick made digital, as the keys are: eight directions, full speed.
@@ -53,8 +55,10 @@ func tick(delta: float) -> void:
 		return
 
 	# Raw, no deadzone of the actions' own: StickDirection has the thresholds.
-	var movement := Vector2.ZERO if keyboard_captured.call() \
-		else _direction.filter(Input.get_vector("move_left", "move_right", "move_up", "move_down", 0.0))
+	var stick: Variant = movement_override.call()
+	if not stick is Vector2:
+		stick = Input.get_vector("move_left", "move_right", "move_up", "move_down", 0.0)
+	var movement := Vector2.ZERO if keyboard_captured.call() else _direction.filter(stick)
 	# Turn the keys into the camera's frame, so screen-up is always forward.
 	# Camera offset is (sin yaw, cos yaw), so screen-up on the ground is
 	# (-sin yaw, -cos yaw); mapping WASD onto that works out to rotate by -yaw.
