@@ -120,7 +120,12 @@ func _show_tile_labels(state: RealmState, content: GameData, to_screen: Transfor
 func _tile_label(state: RealmState, content: GameData, tx: int, ty: int) -> String:
 	for layer in [GameConstants.COLLISION_LAYER, TileMapState.BASE_LAYER]:
 		var definition: Dictionary = content.tiles.get(state.tiles.tile_at(layer, tx, ty), {})
-		var kind := str(definition.get("interactionType", ""))
+		# Every tile carries `interactionType`, null on all but the interactive few,
+		# and str(null) is "<null>" (not ""), so the key must be null-checked.
+		var type_value: Variant = definition.get("interactionType")
+		if type_value == null:
+			continue
+		var kind := str(type_value)
 		if kind == "":
 			continue
 		# `label` is often present-but-null (the model serializes the empty field),
