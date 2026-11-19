@@ -7,10 +7,14 @@ extends Node
 ##   godot --path . res://tests/tools/bench_world.tscn -- --bullets=1500 --enemies=150
 ##       --players=30 --effects=40 --seconds=10 [--data=<gravebound-data resources dir>]
 ##       [--hide=bullets,entities,lighting,overlay,chunk,...] [--out=<report file>]
+##       [--pacing=1]
 ##
 ## --headless measures the script (CPU) cost alone; windowed adds the GPU. --hide
 ## leaves world layers out to attribute draw cost; "chunk" instead turns on a probe
 ## that repaints one ground chunk every frame and reports what that costs.
+## --pacing keeps the client's own vsync and frame cap and walks the player, then
+## reports how evenly the camera, enemies and bullets step per displayed frame
+## (PacingProbe) -- the stutter an average frame time cannot show.
 
 const MAP_SIZE := 96
 const SHALLOW_WATER_TILE := 5
@@ -45,6 +49,15 @@ var walk := false
 ## each spawn are timed on their own, so a one-frame stall on "enemies loading in" shows
 ## up separately from the steady cost (which pre-spawned warmup frames hide). Off by default.
 var waves := false
+## Real-client frame timing (vsync on, the project's fps cap) with the pacing probe.
+var pacing := false
+var _probe := PacingProbe.new()
+## The frame's delta as the client would advance by it (RealmState.begin_frame).
+var _frame_delta := 0.0
+## --pacer=0 runs the old clocks (engine delta, entity clock read at first use).
+var frame_pacer := true
+## Enemies the pacing probe follows; enough to average, few enough not to cost.
+const PACING_ENEMIES := 24
 const WAVE_PERIOD := 2.0
 ## Frames attributed to a spawn after each wave lands (the stall, if any, is on the
 ## load frame and the immediate-mode redraw that follows it).
@@ -89,9 +102,12 @@ var _wave_count := 0
 func _ready() -> void:
 	_rng.seed = 7
 	_parse_args()
-	Engine.max_fps = 0
-	if DisplayServer.get_name() != "headless":
-		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	if pacing:
+		walk = true
+	else:
+		Engine.max_fps = 0
+		if DisplayServer.get_name() != "headless":
+			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	content = GameData.new()
 	if not await content.load_from(FileContentSource.new(data_root)):
 		push_error("content failed to load from %s" % data_root)
@@ -103,7 +119,9 @@ func _ready() -> void:
 	state.settings.set_on("show_ally_effects", true)
 	if "lighting" in hidden_layers:
 		state.settings.set_on("lighting", false)
-	state.settings.set_on("vsync", false)
+	state.settings.set_on("vsync", pacing)
+	state.pacer.enabled = frame_pacer
+	state.pacer.use_refresh_rate(DisplayServer.screen_get_refresh_rate())
 	_build_world()
 	_pick_groups()
 	_populate()
@@ -132,6 +150,8 @@ func _parse_args() -> void:
 			"shores": shores = parts[1] == "1"
 			"walk": walk = parts[1] == "1"
 			"waves": waves = parts[1] == "1"
+			"pacing": pacing = parts[1] == "1"
+			"pacer": frame_pacer = parts[1] != "0"
 
 
 func _build_world() -> void:
@@ -215,11 +235,13 @@ func _populate() -> void:
 		(Time.get_ticks_usec() - started) / 1000.0])
 
 	var centre := Vector2(MAP_SIZE, MAP_SIZE) * GameConstants.TILE_SIZE * 0.5
+	# Off the wall stub at the exact centre (x%12==0, y%12<3), or --walk never moves.
+	var spawn := centre + Vector2(6, 6) * GameConstants.TILE_SIZE
 	state.local.id = 1
 	state.local.name = "bench"
-	state.local.position = centre
-	state.local.previous_position = centre
-	var players := [_player_wire(1, centre)]
+	state.local.position = spawn
+	state.local.previous_position = spawn
+	var players := [_player_wire(1, spawn)]
 	for i in player_count:
 		players.append(_player_wire(100 + i, centre + _scatter(220.0)))
 	var enemies := []
@@ -245,9 +267,11 @@ static func _vec(at: Vector2) -> Dictionary:
 	return {"x": at.x, "y": at.y}
 
 
-func _process(delta: float) -> void:
+func _process(engine_delta: float) -> void:
 	if not _running:
 		return
+	_frame_delta = state.begin_frame(engine_delta, pacing)
+	var delta := _frame_delta
 	var now_us := Time.get_ticks_usec()
 	var frame_ms := (now_us - _last_frame_us) / 1000.0
 	_frames.append(frame_ms)
@@ -347,12 +371,19 @@ func mark_process_end() -> void:
 
 
 func _on_pre_draw() -> void:
+	if _running and pacing:
+		_sample_pacing()
 	if _running and _process_end_us > 0:
 		var draw_us := Time.get_ticks_usec() - _process_end_us
 		_draw_us.append(draw_us)
 		if _wave_draw_watch > 0:
 			_spawn_draw_us.append(draw_us)
 			_wave_draw_watch -= 1
+
+
+func _sample_pacing() -> void:
+	_probe.zoom = camera.zoom.x
+	_probe.sample(_frame_delta, state.local.render_centre(), HitchRecorder.moving_objects(state, PACING_ENEMIES))
 
 
 ## Arena wave turnover: drop every enemy and load a fresh batch at once, so the apply
@@ -524,6 +555,8 @@ func _report() -> void:
 		Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
 		Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
 		Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0])
+	for line in _probe.report():
+		_say(line)
 	_say("BENCH static_mem=%.1fMB objects=%d" % [Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
 		Performance.get_monitor(Performance.OBJECT_COUNT)])
 	if out_path != "":

@@ -7,6 +7,7 @@ extends Node
 ## PortalInput, and the screens over the world in Screens.
 
 const CAMERA_ZOOM := DisplayScale.WORLD_ZOOM
+const HITCH_CAPTURE_SETTLE_SECONDS := 8.0
 
 var config: ClientConfig
 var game_data: GameData
@@ -24,6 +25,11 @@ var chat_actions: ChatActions
 var ability_input: AbilityInput
 var screens: Screens
 var trace := MotionTrace.new()
+## Frame-phase timing for hitch reports (F4, /hitch, --hitch).
+var hitches: HitchRecorder
+## Seconds spent in a realm (not the nexus), so a --hitch capture starts once settled.
+var _in_realm_seconds := 0.0
+var _hitch_capture_started := false
 
 var _world: WorldRenderer
 var _lighting: SceneLighting
@@ -157,6 +163,14 @@ func _ready() -> void:
 
 	state.pacer.enabled = config.frame_pacing
 	state.pacer.use_refresh_rate(DisplayServer.screen_get_refresh_rate())
+	hitches = HitchRecorder.new()
+	hitches.client = client
+	hitches.state = state
+	hitches.ground = _world.tiles.chunks
+	add_child(hitches)
+	hitches.finished.connect(_on_hitch_report)
+	if chat_actions.commands != null:
+		chat_actions.commands.hitches = hitches
 
 	if OS.has_feature("web") and _url_wants_3d():
 		config.enable_3d = true
@@ -282,11 +296,15 @@ func _on_entered_realm(_response: Dictionary) -> void:
 func _process(engine_delta: float) -> void:
 	# One clock for the frame, read before anything else: see FramePacer.
 	var delta := state.begin_frame(engine_delta, _presented_on_beat())
+	hitches.begin_frame(delta)
 	client.tick(delta)
+	hitches.mark_network()
 	input.tick(delta)
 	portals.tick(delta)
 	inventory_input.tick(delta)
 	ability_input.tick(delta)
+	hitches.mark_simulation()
+	_maybe_start_hitch_capture(delta)
 	if client.is_in_game():
 		# While slowed the player creeps sub-pixel per tick, where the pixel grid's
 		# whole-pixel camera steps round unevenly and read as jitter; scroll the ground
@@ -306,6 +324,25 @@ func _presented_on_beat() -> bool:
 	return OS.has_feature("web") or DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED
 
 
+## A --hitch capture starts a few seconds into the first realm past the nexus, once
+## the realm has streamed in.
+func _maybe_start_hitch_capture(delta: float) -> void:
+	if config.hitch_seconds <= 0.0 or _hitch_capture_started or not client.is_in_game():
+		return
+	if state.tiles.map_id <= 0 or game_data.maps.is_nexus(state.tiles.map_id):
+		_in_realm_seconds = 0.0
+		return
+	_in_realm_seconds += delta
+	if _in_realm_seconds >= HITCH_CAPTURE_SETTLE_SECONDS:
+		_hitch_capture_started = true
+		print("[hitch] recording %.0fs on map %d" % [config.hitch_seconds, state.tiles.map_id])
+		hitches.start(config.hitch_seconds)
+
+
+func _on_hitch_report(_report: String) -> void:
+	state.chat.apply_text({"from": ChatLog.SYSTEM, "to": state.local.name, "message": hitches.headline()})
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
@@ -320,6 +357,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_world.show_collision = not _world.show_collision
 		KEY_F3:
 			state.settings.set_on("lighting", not state.settings.is_on("lighting"))
+		KEY_F4:
+			_toggle_hitch_recording()
 		# Tilde rather than an F key: on a Mac the F row is brightness and
 		# volume unless fn is held, which is not something to do mid-fight.
 		KEY_QUOTELEFT:
@@ -330,3 +369,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_ESCAPE:
 			if client.is_in_game():
 				screens.options.toggle()
+
+
+func _toggle_hitch_recording() -> void:
+	if hitches.recording():
+		hitches.stop()
+		return
+	hitches.start()
+	state.chat.apply_text({"from": ChatLog.SYSTEM, "to": state.local.name,
+		"message": "Recording frame hitches for %ds (F4 again to stop early)." % HitchRecorder.DEFAULT_SECONDS})

@@ -8,6 +8,8 @@ extends RefCounted
 ##
 ##   godot -- --host=127.0.0.1 --email=me@example.com --password=pw \
 ##            --character=<uuid> --data-root=/path/to/resources
+##
+## --hitch=SECONDS records a hitch report once in a realm (HitchRecorder).
 
 const DEFAULT_DATA_ROOT := "../../gravebound-data/src/main/resources"
 ## The route a TLS deployment reaches the game server on, which must match
@@ -64,6 +66,8 @@ var enable_3d := false
 var settings_path := ""
 ## Step the frame clock in whole display refreshes (FramePacer); --no-pacer for A/B runs.
 var frame_pacing := true
+## Record a hitch report of this many seconds once in a realm (--hitch).
+var hitch_seconds := 0.0
 
 
 static func from_command_line() -> ClientConfig:
@@ -133,6 +137,7 @@ static func parse(args: PackedStringArray, on_web := OS.has_feature("web"),
 			"touch": config.touch = true
 			"3d": config.enable_3d = true
 			"no-pacer": config.frame_pacing = false
+			"hitch": config.hitch_seconds = float(value) if value != "" else HitchRecorder.DEFAULT_SECONDS
 			_:
 				push_warning("ClientConfig: ignoring unknown argument '%s'" % arg)
 	return config

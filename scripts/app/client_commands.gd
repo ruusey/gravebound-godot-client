@@ -14,11 +14,13 @@ extends RefCounted
 ##   /lag    steps the delay line (LagTransport) 50ms at a time to 350 and off;
 ##           /lag N sets N ms one way -- what the L key did before the quest
 ##           log took it, as the web's does
+##   /hitch  records frame hitches for 60s (/hitch N for N seconds; again to stop)
 
 var state: RealmState
 var dev: DevOverlay
 var hud: DebugHud
 var client: GraveBoundClient
+var hitches: HitchRecorder
 
 
 func _init(realm_state: RealmState, dev_overlay: DevOverlay, debug_hud: DebugHud,
@@ -43,6 +45,16 @@ func run(line: String) -> bool:
 			_note("Diagnostics %s" % _on(hud.shown))
 		"clear":
 			state.chat.clear()
+		"hitch":
+			if hitches == null:
+				return false
+			if hitches.recording():
+				hitches.stop()
+			else:
+				var seconds := words[1].to_float() if words.size() > 1 and words[1].is_valid_float() \
+					else HitchRecorder.DEFAULT_SECONDS
+				hitches.start(seconds)
+				_note("Recording frame hitches for %ds; /hitch again to stop early." % roundi(seconds))
 		"lag":
 			var delay: Variant = client.connection.transport if client != null else null
 			if not delay is LagTransport:

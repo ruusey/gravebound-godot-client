@@ -40,6 +40,8 @@ var input_seq := 0
 var corrections := 0
 var last_correction_px := 0.0
 var unacked_inputs := 0
+## The stick the last tick ran with.
+var last_input := Vector2.ZERO
 ## Applied pixels-per-tick as of the last predict(), for the walk cadence:
 ## the speed the player is really moving at, slow tiles included.
 var pace_px := 0.0
@@ -97,6 +99,7 @@ func predict(delta: float, input: Vector2) -> Array:
 	# What is left over is how far this frame sits into the next tick.
 	_player.tick_alpha = _accumulator / GameConstants.TICK_DELTA
 	unacked_inputs = _history.size()
+	last_input = input
 	_player.moving = input.length() > 0.001
 	pace_px = _pace(_player.position, _effect_snapshot(), input_seq + 1) if _player.moving else 0.0
 	if _player.moving:

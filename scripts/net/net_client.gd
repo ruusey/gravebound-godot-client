@@ -27,6 +27,8 @@ var player_id := 0
 var login_response := {}
 var connection := NetConnection.new()
 var clock: Callable = func() -> int: return Time.get_ticks_msec()
+## When this frame's read and decode finished and packet handling began (HitchRecorder).
+var read_done_us := 0
 
 var stats: NetStats:
 	get: return connection.stats
@@ -134,7 +136,9 @@ func _advance_connection() -> bool:
 
 
 func _receive() -> void:
-	for event in SessionInbox.process(connection.read(), connection.stats, clock.call()):
+	var events := SessionInbox.process(connection.read(), connection.stats, clock.call())
+	read_done_us = Time.get_ticks_usec()
+	for event in events:
 		_apply(event)
 		if state == State.CLOSED:
 			return
