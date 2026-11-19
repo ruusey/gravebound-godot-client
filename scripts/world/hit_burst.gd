@@ -20,6 +20,11 @@ const HIT_EFFECTS := [Sfx.DAMAGE_EFFECT, Sfx.ARMOR_BREAK_EFFECT]
 const COOLDOWN_MS := 45
 ## Chips per burst, all drawn over the sprite.
 const CHIP_COUNT := 12
+## The pool is bounded here, well under ParticleField.CAP: past this many live
+## chips new bursts are dropped, so a flood of hits -- many DoT ticks at once, a
+## brawl off-screen -- can't make the per-frame age/pack and paint loops (both
+## O(live chips)) expensive. A dense on-screen fight stays under it.
+const SOFT_CAP := 512
 ## Chip travel, world px/s; the field's drag slows them within ~25px of the hit.
 const SPEED_MIN := 40.0
 const SPEED_MAX := 120.0
@@ -83,25 +88,42 @@ func consider(data: Dictionary, entities: EntityRegistry, projectiles: Projectil
 	if _last_ms.size() > 512:
 		_prune(now)
 
-	var at := Vector2(data.get("posX", 0.0), data.get("posY", 0.0))
-	if at == Vector2.ZERO:
-		at = TextAnchor.of(entity_type, target_id, entities, projectiles, local)
+	if chips.count >= SOFT_CAP:
+		return
 
 	var entity: Dictionary = {}
 	var body := float(GameConstants.PLAYER_SIZE)
-	if entity_type == GameConstants.ENTITY_ENEMY:
+	var centre := Vector2.ZERO
+	var anchored := false
+	if entity_type == GameConstants.ENTITY_PLAYER and local != null and local.is_present() \
+			and target_id == local.id:
+		# Our own roster entry trails the server snapshots, so the packet point and
+		# the players map both lag where we are; the predicted position is where the
+		# sprite is drawn. TextAnchor.of special-cases us for the number the same way.
+		body = float(local.size)
+		centre = local.render_centre()
+		entity = {"class_id": local.class_id}
+		anchored = true
+	elif entity_type == GameConstants.ENTITY_ENEMY:
 		entity = entities.enemies.get(target_id, {})
 		body = float(entity.get("size", GameConstants.TILE_SIZE))
+		if not entity.is_empty():
+			centre = entities.render_position(entity) + Vector2(body, body) * 0.5
+			anchored = true
 	else:
 		entity = entities.players.get(target_id, {})
 		body = float(entity.get("size", GameConstants.PLAYER_SIZE))
+		if not entity.is_empty():
+			centre = entities.render_position(entity) + Vector2(body, body) * 0.5
+			anchored = true
 
-	# Centre the burst on the body, not on the exact impact point, so the pop
-	# reads as "this thing got hit" rather than a speck at its edge. Falls back to
-	# the packet's point when the entity has already been unloaded.
-	var centre := at
-	if not entity.is_empty():
-		centre = entities.render_position(entity) + Vector2(body, body) * 0.5
+	# Centre on the body so the pop reads as "this got hit", not a speck at its
+	# edge. A target already unloaded (a kill usually beats its own number) falls
+	# back to the packet's impact point, then the world origin.
+	if not anchored:
+		centre = Vector2(data.get("posX", 0.0), data.get("posY", 0.0))
+		if centre == Vector2.ZERO:
+			centre = TextAnchor.of(entity_type, target_id, entities, projectiles, local)
 
 	var palette := _palette(entity_type, entity)
 	var pixel := clampf(body * PIXEL_PER_BODY, PIXEL_MIN, PIXEL_MAX)
