@@ -62,6 +62,8 @@ var touch := false
 var enable_3d := false
 ## Where the options are kept. Empty -- a test's config -- keeps nothing.
 var settings_path := ""
+## Step the frame clock in whole display refreshes (FramePacer); --no-pacer for A/B runs.
+var frame_pacing := true
 
 
 static func from_command_line() -> ClientConfig:
@@ -130,6 +132,7 @@ static func parse(args: PackedStringArray, on_web := OS.has_feature("web"),
 			"lag-jitter": config.lag_jitter_ms = float(value)
 			"touch": config.touch = true
 			"3d": config.enable_3d = true
+			"no-pacer": config.frame_pacing = false
 			_:
 				push_warning("ClientConfig: ignoring unknown argument '%s'" % arg)
 	return config

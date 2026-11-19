@@ -43,6 +43,8 @@ var settings := GameSettings.new()
 var progress := AccountProgress.new()   # masteries, quests, stars: kept across realms
 var guild := GuildState.new()           # account-wide guild: roster, dialog, invite
 var companions := CompanionState.new()  # account-wide AI party roster: kept across realms
+## The frame's clock: remote entities and the frame's delta both read it (begin_frame).
+var pacer := FramePacer.new()
 var _frame := -1
 var _frame_ms := 0.0
 
@@ -85,7 +87,18 @@ func _init(content: GameData = null, clock: Callable = Callable()) -> void:
 	transition = RealmTransition.new(self, clock)
 
 
+## Starts a frame on the paced clock and returns the delta everything advances by.
+## Called once, first thing in the frame; without it (or with the pacer off) the
+## realm runs on the engine's delta and a clock read at first use.
+func begin_frame(engine_delta: float, synced: bool) -> float:
+	if not pacer.enabled:
+		return engine_delta
+	return pacer.tick(Time.get_ticks_usec() * 0.001, engine_delta * 1000.0, synced)
+
+
 func _frame_clock() -> float:
+	if pacer.enabled and pacer.pacing:
+		return pacer.now_ms
 	var frame := Engine.get_process_frames()
 	if frame != _frame:
 		_frame = frame

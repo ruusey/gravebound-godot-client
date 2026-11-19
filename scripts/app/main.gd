@@ -155,6 +155,9 @@ func _ready() -> void:
 	screens.prompt.portals = portals
 	screens.prompt.touch = screens.touch.enabled
 
+	state.pacer.enabled = config.frame_pacing
+	state.pacer.use_refresh_rate(DisplayServer.screen_get_refresh_rate())
+
 	if OS.has_feature("web") and _url_wants_3d():
 		config.enable_3d = true
 	if config.enable_3d:
@@ -276,7 +279,9 @@ func _on_entered_realm(_response: Dictionary) -> void:
 ## step, so the world, the camera and the tags over it are drawn from one
 ## state. Doing the network after the camera drew the sprite up to 3px off
 ## the camera's centre on every correction frame.
-func _process(delta: float) -> void:
+func _process(engine_delta: float) -> void:
+	# One clock for the frame, read before anything else: see FramePacer.
+	var delta := state.begin_frame(engine_delta, _presented_on_beat())
 	client.tick(delta)
 	input.tick(delta)
 	portals.tick(delta)
@@ -291,6 +296,14 @@ func _process(delta: float) -> void:
 		else:
 			PixelSnap.camera(_camera, state.local.render_centre(), state.local.render_position())
 		trace.observe(delta, state)
+
+
+## Whether frames reach the screen on the display's beat: always in a browser
+## (requestAnimationFrame), and on the desktop while vsync is on.
+func _presented_on_beat() -> bool:
+	if DisplayServer.get_name() == "headless":
+		return false
+	return OS.has_feature("web") or DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED
 
 
 func _unhandled_input(event: InputEvent) -> void:
