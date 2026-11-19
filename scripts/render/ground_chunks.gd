@@ -19,9 +19,25 @@ const PREFETCH := 2
 ## view centre first, and the rest follow. A just-entered realm (no chunks yet) is the
 ## exception -- the whole view paints at once so the first frame is framed on the player.
 const MAX_IN_VIEW_REDRAW := 3
+## Of those, how many may be repaints of a chunk already drawn.
+const MAX_STALE_REDRAW := 1
+## The tile stream's edge sits near the view's edge, so walking delivers a new column
+## of cells every few frames and re-marks the same chunk each time: a chunk crossed
+## by the edge was repainted a dozen times or more. A drawn chunk repaints at most this
+## often; a mark after a quiet spell still paints at once (a wall cracking), and marks
+## inside the window collect into one repaint when it ends.
+const REPAINT_INTERVAL_MS := 200
 
+## REPAINT_INTERVAL_MS, as a field so a test can repaint on every change.
+var repaint_interval_ms := REPAINT_INTERVAL_MS
 var chunks := {}   # chunk -> GroundChunk
-var dirty := {}    # chunk -> true
+## chunk -> the cells changed since it was drawn (Rect2i), or true for all of them
+var dirty := {}
+## Running totals for diagnostics (HitchRecorder): chunk paints, how many of them
+## repainted a chunk already drawn, and the time spent painting.
+var paints := 0
+var repaints := 0
+var paint_us := 0
 
 
 ## Drops every chunk: a new map.
@@ -47,7 +63,11 @@ func mark(cells: Dictionary) -> void:
 			for y in range(low_y, high_y + 1):
 				var chunk := Vector2i(x, y)
 				if chunks.has(chunk):
-					dirty[chunk] = true
+					var area: Variant = dirty.get(chunk)
+					if area is Rect2i:
+						dirty[chunk] = area.expand(cell)
+					elif area == null:
+						dirty[chunk] = Rect2i(cell, Vector2i.ONE)
 
 
 func mark_all() -> void:
@@ -69,16 +89,26 @@ func update(ground: TileRenderer, view: Rect2) -> void:
 	var stale: Array = []    # in view, drawn but a tile has since changed
 	var beyond: Array = []   # the ring past the view, streamed ahead
 	var ring := seen.grow(1)
+	var now := Time.get_ticks_msec()
+	var near := view.grow(GroundChunk.TILE_SIZE * 2)
 	for x in range(ring.position.x, ring.end.x):
 		for y in range(ring.position.y, ring.end.y):
 			var chunk := Vector2i(x, y)
 			var exists := chunks.has(chunk)
-			if exists and not dirty.has(chunk):
+			if exists and (not dirty.has(chunk) or now - chunks[chunk].painted_at < repaint_interval_ms):
 				continue
 			if not seen.has_point(chunk):
-				beyond.append(chunk)
+				# Off screen, a drawn chunk waits for the view to reach it: the stream's
+				# edge re-marks the ring constantly, and nobody sees it.
+				if not exists:
+					beyond.append(chunk)
 			elif exists:
-				stale.append(chunk)
+				# A chunk is far bigger than the stream's margin past the view, so most
+				# cells arrive in an on-screen chunk but off screen themselves: the
+				# repaint waits until what changed is about to show, by which time the
+				# rest of the band has arrived with it.
+				if _changes_near(chunk, near):
+					stale.append(chunk)
 			else:
 				fresh.append(chunk)
 	var middle := Vector2(seen.position) + Vector2(seen.size) * 0.5
@@ -88,12 +118,15 @@ func update(ground: TileRenderer, view: Rect2) -> void:
 	stale.sort_custom(nearer)
 	# Entering a realm (nothing drawn yet) paints the whole view at once, so the first
 	# frame is framed on the player instead of filling in; after that the cap holds.
-	var budget := fresh.size() + stale.size() if chunks.is_empty() else MAX_IN_VIEW_REDRAW
+	var entering := chunks.is_empty()
+	var budget := fresh.size() + stale.size() if entering else MAX_IN_VIEW_REDRAW
 	for chunk in fresh:
 		if budget <= 0:
 			break
 		_draw(ground, chunk)
 		budget -= 1
+	if not entering:
+		budget = mini(budget, MAX_STALE_REDRAW)
 	for chunk in stale:
 		if budget <= 0:
 			break
@@ -102,6 +135,15 @@ func update(ground: TileRenderer, view: Rect2) -> void:
 	beyond.sort_custom(nearer)
 	for chunk in beyond.slice(0, PREFETCH):
 		_draw(ground, chunk)
+
+
+func _changes_near(chunk: Vector2i, near: Rect2) -> bool:
+	var area: Variant = dirty[chunk]
+	if not area is Rect2i:
+		return true
+	var cells: Rect2i = area
+	var world := Rect2(Vector2(cells.position * GroundChunk.TILE_SIZE), Vector2(cells.size * GroundChunk.TILE_SIZE))
+	return world.grow(GroundChunk.TILE_SIZE * 2).intersects(near)
 
 
 ## The chunks a world rect touches, in chunk coordinates.
@@ -132,4 +174,5 @@ func _draw(ground: TileRenderer, at: Vector2i) -> void:
 		chunks[at] = chunk
 		ground.add_child(chunk)
 	dirty.erase(at)
+	chunks[at].painted_at = Time.get_ticks_msec()
 	chunks[at].queue_redraw()

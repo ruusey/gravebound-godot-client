@@ -16,6 +16,7 @@ func before_each():
 	state = RealmState.new(data, func() -> int: return 0)
 	renderer = WorldRenderer.new()
 	renderer.setup(state, data)
+	renderer.tiles.chunks.repaint_interval_ms = 0
 	add_child_autofree(renderer)
 	camera = Camera2D.new()
 	add_child_autofree(camera)
@@ -143,6 +144,7 @@ func test_a_stale_strip_is_repainted_a_few_chunks_a_frame_not_all_at_once():
 	# Drive update() directly: the first call fills the whole view (entry), so the
 	# chunks exist; a small zoom makes the view span many chunks.
 	var chunks := GroundChunks.new()
+	chunks.repaint_interval_ms = 0
 	var ground := TileRenderer.new()
 	add_child_autofree(ground)
 	camera.zoom = Vector2(0.25, 0.25)
@@ -164,8 +166,29 @@ func test_a_stale_strip_is_repainted_a_few_chunks_a_frame_not_all_at_once():
 	for at in in_view:
 		if not chunks.dirty.has(at):
 			repainted += 1
-	assert_lte(repainted, GroundChunks.MAX_IN_VIEW_REDRAW,
-		"a stale strip repaints a few chunks a frame, not all at once: %d of %d" % [repainted, in_view.size()])
+	assert_eq(repainted, GroundChunks.MAX_STALE_REDRAW,
+		"a stale strip repaints a chunk a frame, not all at once: %d of %d" % [repainted, in_view.size()])
+
+
+func test_a_chunk_marked_again_soon_after_a_repaint_waits_for_the_window():
+	_ground([WireHelper.tile(1, 0, 5, 5)])
+	await _frames()
+	var chunks := renderer.tiles.chunks
+	chunks.repaint_interval_ms = 60_000
+	var home := _chunk(Vector2i(0, 0))
+	home.painted_at = -1_000_000
+	_ground([WireHelper.tile(2, 0, 5, 5)])
+	await _frames()
+	var once := home.draws
+	assert_eq(once, 2, "a change after a quiet spell repaints at once")
+	_ground([WireHelper.tile(3, 0, 5, 5)])
+	_ground([WireHelper.tile(4, 0, 6, 5)])
+	await _frames(5)
+	assert_eq(home.draws, once, "the stream edge re-marking it inside the window waits")
+	assert_true(chunks.dirty.has(Vector2i(0, 0)), "still owed a repaint")
+	chunks.repaint_interval_ms = 0
+	await _frames()
+	assert_eq(home.draws, once + 1, "and the marks collected land as one repaint")
 
 
 func test_a_chunk_takes_the_grounds_material():

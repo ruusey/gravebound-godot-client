@@ -18,6 +18,7 @@ func before_each():
 
 	renderer = WorldRenderer.new()
 	renderer.setup(state, data)
+	renderer.tiles.chunks.repaint_interval_ms = 0
 	add_child_autofree(renderer)
 
 	camera = Camera2D.new()

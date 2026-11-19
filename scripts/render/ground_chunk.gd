@@ -22,7 +22,7 @@ extends Node2D
 ## order, so which is on top cannot show. The clip is also the box the
 ## engine culls an off-screen chunk by.
 
-const SIZE := 16
+const SIZE := 8
 const TILE_SIZE := GameConstants.TILE_SIZE
 ## How far the clip reaches past the square, in world units: more than a
 ## screen pixel at any scale the world draws at, far less than the ring.
@@ -35,6 +35,8 @@ var painter: TileRenderer
 var stats := {}
 ## How many times it has been drawn: once, unless its ground changed.
 var draws := 0
+## When GroundChunks last asked it to draw (ticks msec).
+var painted_at := -1000000
 
 
 func _init(chunk: Vector2i = Vector2i.ZERO, ground: TileRenderer = null) -> void:
@@ -52,8 +54,13 @@ func _ready() -> void:
 
 func _draw() -> void:
 	if painter != null:
+		var started := Time.get_ticks_usec()
 		stats = painter.paint_cells(self, cells())
 		draws += 1
+		var tally := painter.chunks
+		tally.paints += 1
+		tally.repaints += 1 if draws > 1 else 0
+		tally.paint_us += Time.get_ticks_usec() - started
 
 
 ## Its cells, first to last.
