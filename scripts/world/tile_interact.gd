@@ -39,10 +39,16 @@ static func nearest(tiles: TileMapState, content: GameData, position: Vector2) -
 				if d2 <= best:
 					best = d2
 					found = {"tile_x": tx, "tile_y": ty, "type": str(kind),
-						"name": str(definition.get("name", kind)),
-						"description": str(definition.get("description", "")),
-						"label": str(definition.get("label", ""))}
+						"name": _text(definition.get("name"), str(kind)),
+						"description": _text(definition.get("description")),
+						"label": _text(definition.get("label"))}
 	return found
+
+
+## A model field is often present-but-null; str(null) is "<null>", so null and
+## absent both collapse to the fallback.
+static func _text(value: Variant, fallback: String = "") -> String:
+	return fallback if value == null else str(value)
 
 
 ## What the prompt says, in the web client's words.

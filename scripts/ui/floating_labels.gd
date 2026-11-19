@@ -123,12 +123,13 @@ func _tile_label(state: RealmState, content: GameData, tx: int, ty: int) -> Stri
 		var kind := str(definition.get("interactionType", ""))
 		if kind == "":
 			continue
-		var text := str(definition.get("label", ""))
-		if text == "":
-			# "fame_store" -> "Fame Store", "arena" -> "Arena"; overrides win.
-			text = TILE_CAPTIONS.get(kind, kind.capitalize())
-		if text != "":
-			return text
+		# `label` is often present-but-null (the model serializes the empty field),
+		# and str(null) is "<null>", so guard the null before falling back.
+		var override: Variant = definition.get("label")
+		if override != null and str(override) != "":
+			return str(override)
+		# "fame_store" -> "Fame Store", "arena" -> "Arena"; overrides win.
+		return str(TILE_CAPTIONS.get(kind, kind.capitalize()))
 	return ""
 
 
