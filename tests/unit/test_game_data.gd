@@ -92,6 +92,27 @@ func test_tile_flags_and_names():
 	assert_eq(data.tile_name(9999), "Unknown_9999")
 
 
+func test_solid_rows_follow_the_art_height_past_two_cells():
+	data.library.tiles = {
+		1: {"tileId": 1},
+		2: {"tileId": 2, "spriteSize": 8, "spriteHeight": 16},
+		3: {"tileId": 3, "spriteSize": 8, "spriteHeight": 24},
+		4: {"tileId": 4, "spriteSize": 8, "spriteHeight": 32},
+	}
+	assert_eq(data.tile_solid_rows(1), 1, "a square tile")
+	assert_eq(data.tile_solid_rows(2), 1, "an 8x16 wall: its face is walked in front of")
+	assert_eq(data.tile_solid_rows(3), 3, "8x24: every row it covers")
+	assert_eq(data.tile_solid_rows(4), 4)
+	assert_eq(data.tallest_solid_rows(), 4)
+	assert_eq(data.tallest_spill_rows(), 3, "8x32 art reaches three rows below its cell")
+
+
+func test_spill_is_one_row_when_no_wall_is_taller_than_8x16():
+	await data.load_from(FileContentSource.new(_fixture_root()))
+	assert_eq(data.tallest_spill_rows(), 1)
+	assert_eq(data.tallest_solid_rows(), 1)
+
+
 func test_enemy_texture_and_name():
 	await data.load_from(FileContentSource.new(_fixture_root()))
 	assert_eq(data.enemy_texture(1).region, Rect2(40, 32, 8, 8))

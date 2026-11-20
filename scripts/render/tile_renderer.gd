@@ -6,8 +6,9 @@ extends Node2D
 ## Its own canvas item, so a shader can be hung on the ground without touching
 ## the entities standing on it; its chunks use their parent's material.
 ##
-## Tiles are square cells, except walls: their art is twice as tall as it is
-## wide and carries its own front face, so it is drawn two cells tall.
+## Tiles are square cells, except walls: their art is taller than it is wide and
+## carries its own front face, so it is drawn at its full height (two cells for
+## 8x16, three for 8x24), anchored at its cell's top and spilling south.
 ##
 ## Tile id 0 is Void_Tile: "no tile here", not a black square. The overlay
 ## layer is almost entirely void -- 16109 of 16384 cells in Nexus_Auru_V1 --
@@ -67,7 +68,7 @@ func refresh() -> void:
 	_drawn_for = [content, WallBandPass.enabled, skip_liquids]
 	tiles.cleared = false
 	if not tiles.changed_cells.is_empty():
-		chunks.mark(tiles.changed_cells)
+		chunks.mark(tiles.changed_cells, 1 + 2 * content.tallest_spill_rows())
 		tiles.changed_cells.clear()
 	var view := ViewRect.of(self)
 	chunks.update(self, view)
@@ -80,10 +81,11 @@ func paint_cells(canvas: CanvasItem, own: Rect2i) -> Dictionary:
 	if state == null or content == null:
 		return {}
 	var tiles := state.tiles
-	# Two rows north, not one: the ring's floor is painted over whatever the chunk
-	# above put there, so a wall two rows up must be drawn again here or its front
-	# face, which spills into the ring row, is covered.
-	var first := own.position - Vector2i(1, 2)
+	# The ring's floor is painted over whatever the chunk above put there, so it reaches
+	# one row north plus the deepest wall face's spill: a wall that far up must be drawn
+	# again here or its front face, which spills into the ring, is covered.
+	var spill := content.tallest_spill_rows()
+	var first := own.position - Vector2i(1, 1 + spill)
 	var last := own.end
 	var drawn := 0
 	billboards.ringed = 0
@@ -104,15 +106,13 @@ func paint_cells(canvas: CanvasItem, own: Rect2i) -> Dictionary:
 		if layer == GameConstants.COLLISION_LAYER:
 			shadows.paint(canvas, tiles, content, first, last, own)
 			bands.paint_under(canvas, tiles, content, first, last, own)
-			strokes.paint_under(canvas, tiles, content, first, last)
+			strokes.paint_under(canvas, tiles, content, first - Vector2i(0, spill), last)
 		var collision: bool = layer == GameConstants.COLLISION_LAYER
 		var liquids_elsewhere: bool = layer == BASE_LAYER and skip_liquids
-		# Walls are 8x16 and spill their front face one cell south, while this chunk
-		# repaints the ring's floor two rows north. A wall three rows north therefore
-		# has its face land in that northmost ring row -- painted over here -- yet sits
-		# a row above the floor ring, so redraw walls one row further north than the
-		# floor or that one face is lost (a wall at chunk-top-minus-3, e.g. the nexus).
-		var north: int = first.y - 1 if collision else first.y
+		# Wall faces spill `spill` rows south, so a wall that far above the floor ring
+		# lands its face in the ring rows painted over here; redraw walls that much
+		# further north than the floor or those faces are lost at the chunk seam.
+		var north: int = first.y - spill if collision else first.y
 		# Everything per cell reads the cached tile_look, not GameData's getters:
 		# a call into another script per cell cost more than drawing the cell.
 		for tile_x in range(first.x, last.x + 1):
@@ -141,9 +141,9 @@ func paint_cells(canvas: CanvasItem, own: Rect2i) -> Dictionary:
 				elif draw_rect != rect:
 					canvas.draw_texture_rect(texture, draw_rect, false)
 				else:
-					# Wall art is 8x16 -- top face above, front face below -- so it draws
-					# cell-wide and aspect-scaled tall, anchored at the cell top, spilling
-					# one cell south over the floor (see _draw_tile).
+					# Wall art is a top face above a front face, so it draws cell-wide and
+					# aspect-scaled tall, anchored at the cell top, spilling south over the
+					# floor (see _draw_tile).
 					canvas.draw_texture_rect(texture,
 						Rect2(rect.position, Vector2(TILE_SIZE, look[GameData.LOOK_HEIGHT])), false)
 				if collision and not cracks.is_empty():
@@ -173,9 +173,9 @@ func _draw_tile(canvas: CanvasItem, content: GameData, tile_id: int, rect: Rect2
 		if draw_rect != rect:
 			canvas.draw_texture_rect(texture, draw_rect, false)
 			return
-		# Wall art is 8x16 -- top face above, front face below -- so it draws
-		# cell-wide and aspect-scaled tall, anchored at the cell top, spilling
-		# one cell south over the floor. Layers ascend and rows run north to
+		# Wall art is a top face above a front face, so it draws cell-wide and
+		# aspect-scaled tall, anchored at the cell top, spilling south over the
+		# floor. Layers ascend and rows run north to
 		# south, so a wall below re-covers the spill with its own top face,
 		# exactly as both reference clients do it.
 		var height := content.tile_render_height(tile_id)

@@ -175,13 +175,17 @@ func blocks(position: Vector2, entity_size: int) -> bool:
 	var box := Rect2(position + Vector2(inset, inset), Vector2(hit_size, hit_size))
 	var first := Vector2i(floori(box.position.x / TILE_SIZE), floori(box.position.y / TILE_SIZE))
 	var last := Vector2i(floori(box.end.x / TILE_SIZE), floori(box.end.y / TILE_SIZE))
+	# A wall taller than two cells is solid down its whole face, so one standing a few
+	# rows north can still reach the box (TileManager.collisionBounds on the server).
+	var north := first.y - (_content.tallest_solid_rows() - 1)
 
 	for tile_x in range(first.x, last.x + 1):
-		for tile_y in range(first.y, last.y + 1):
+		for tile_y in range(north, last.y + 1):
 			var tile_id: int = layer.get(Vector2i(tile_x, tile_y), -1)
 			if tile_id < 0 or not _content.tile_has_collision(tile_id):
 				continue
-			if Rect2(tile_x * TILE_SIZE, tile_y * TILE_SIZE, TILE_SIZE, TILE_SIZE).intersects(box):
+			var rows := _content.tile_solid_rows(tile_id)
+			if Rect2(tile_x * TILE_SIZE, tile_y * TILE_SIZE, TILE_SIZE, TILE_SIZE * rows).intersects(box):
 				return true
 	return false
 

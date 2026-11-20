@@ -32,11 +32,13 @@ const ROCK_TILE := 21
 ## A square wall -- 8x8, no front face of its own -- which is what the
 ## side-bands are for.
 const SQUARE_WALL_TILE := 184
+## An 8x24 wall: a top face over a two-cell front face.
+const TALL_WALL_TILE := 593
 
 
 static func names() -> Array:
 	return ["terrain", "entities", "ysort", "bullets", "collision", "overlap",
-		"walk_left", "walk_right", "walk_up", "walk_down", "walls", "feather", "effects", "walldepth", "shadows", "attack_left", "attack_right", "attack_up", "spin", "portals", "transition", "transition_named", "damage", "damage_fading", "chat", "death", "wading", "inventory", "abilities", "potion_storage", "fame_store", "forge", "minimap", "trails", "login", "exchange_market", "wall_bands", "effects_cast", "effects_generic", "effects_holy", "effects_dark", "effects_arcane", "effects_knight", "effects_rogue", "effects_trapper", "effects_heavy", "trade", "player_hud", "party", "nearby", "item_card", "options", "options_controls", "masteries", "dev_overlay", "blind", "dyes", "quests", "quest_stars", "login_delete", "login_stats", "terms", "how_to", "leaderboard", "loot_preview", "minimap_hop", "billboards", "chunk_seams", "shores", "vault", "touch_phone", "quest_complete", "companions", "phone_play", "phone_bag", "phone_menu", "phone_chat", "phone_map", "phone_loot", "phone_loot_bag", "login_account", "wall_plus", "buy_fame", "buy_fame_waiting"]
+		"walk_left", "walk_right", "walk_up", "walk_down", "walls", "feather", "effects", "walldepth", "shadows", "attack_left", "attack_right", "attack_up", "spin", "portals", "transition", "transition_named", "damage", "damage_fading", "chat", "death", "wading", "inventory", "abilities", "potion_storage", "fame_store", "forge", "minimap", "trails", "login", "exchange_market", "wall_bands", "effects_cast", "effects_generic", "effects_holy", "effects_dark", "effects_arcane", "effects_knight", "effects_rogue", "effects_trapper", "effects_heavy", "trade", "player_hud", "party", "nearby", "item_card", "options", "options_controls", "masteries", "dev_overlay", "blind", "dyes", "quests", "quest_stars", "login_delete", "login_stats", "terms", "how_to", "leaderboard", "loot_preview", "minimap_hop", "billboards", "chunk_seams", "tall_walls", "shores", "vault", "touch_phone", "quest_complete", "companions", "phone_play", "phone_bag", "phone_menu", "phone_chat", "phone_map", "phone_loot", "phone_loot_bag", "login_account", "wall_plus", "buy_fame", "buy_fame_waiting"]
 
 
 ## A second step, applied after the first rendered frame, for scenarios whose
@@ -121,6 +123,7 @@ static func apply(name: String, state: RealmState) -> void:
 		"trails": _trails(state)
 		"billboards": _billboards(state)
 		"chunk_seams": _chunk_seams(state)
+		"tall_walls": _tall_walls(state)
 		"shores": _shores(state)
 		"buy_fame", "buy_fame_waiting", "leaderboard": _entities(state)
 		# The login screen: no realm at all, the capture raises the screen itself.
@@ -1220,6 +1223,23 @@ static func _chunk_seams(state: RealmState) -> void:
 	state.local.id = 1
 	state.local.position = Vector2(-16, 64)
 	state.apply_packet("LoadPacket", {"players": [_player(1, "Ruu", Vector2(-16, 64), 0)]})
+
+
+## 8x24 walls drawn at their full height across the chunk seam at y=0: runs whose
+## two-row faces end just above, on and just below the seam, so a face the chunk
+## below paints its floor ring over is drawn again. One of us stands at the foot.
+static func _tall_walls(state: RealmState) -> void:
+	var tiles: Array = []
+	for x in range(-10, 10):
+		for y in range(-9, 7):
+			tiles.append({"tileId": FLOOR_TILE, "layer": 0, "xIndex": y, "yIndex": x})
+	for run in [[-8, -4, -5], [-3, 1, -4], [2, 6, -3]]:
+		for x in range(run[0], run[1]):
+			tiles.append({"tileId": TALL_WALL_TILE, "layer": 1, "xIndex": run[2], "yIndex": x})
+	state.apply_packet("LoadMapPacket", _map(tiles))
+	state.local.id = 1
+	state.local.position = Vector2(-32, -32)
+	state.apply_packet("LoadPacket", {"players": [_player(1, "Ruu", Vector2(-32, -32), 0)]})
 
 
 ## Liquid against land: a ragged pond of shallow water around deep water in

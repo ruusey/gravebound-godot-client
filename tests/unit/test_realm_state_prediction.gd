@@ -123,6 +123,38 @@ func test_collision_resolves_axes_independently():
 	assert_gt(state.local.position.y, 0.0, "y still advances")
 
 
+func test_a_wall_taller_than_two_cells_blocks_down_its_whole_face():
+	# 8x24 art covers its own cell and two below; all three are solid, as the server's
+	# TileModel.solidRows has it, so nobody stands on the lower face.
+	data.library.tiles[4] = {"tileId": 4, "spriteSize": 8, "spriteHeight": 24,
+		"data": {"hasCollision": 1, "isWall": 1}}
+	state.apply_packet("LoadMapPacket", {"realmId": 1, "tiles": [WireHelper.tile(4, GameConstants.COLLISION_LAYER, 1, 0)]})
+	var size := GameConstants.TILE_SIZE
+	for row in 3:
+		assert_true(state.tiles.blocks(Vector2(size, row * size), size), "row %d of the wall" % row)
+	assert_false(state.tiles.blocks(Vector2(size, 3 * size), size), "the floor in front of it")
+
+
+func test_an_8x16_wall_blocks_only_its_own_cell():
+	data.library.tiles[5] = {"tileId": 5, "spriteSize": 8, "spriteHeight": 16,
+		"data": {"hasCollision": 1, "isWall": 1}}
+	state.apply_packet("LoadMapPacket", {"realmId": 1, "tiles": [WireHelper.tile(5, GameConstants.COLLISION_LAYER, 1, 0)]})
+	var size := GameConstants.TILE_SIZE
+	assert_true(state.tiles.blocks(Vector2(size, 0), size))
+	assert_false(state.tiles.blocks(Vector2(size, size), size), "its front face is walked in front of")
+
+
+func test_walking_north_stops_at_the_foot_of_a_tall_wall():
+	data.library.tiles[4] = {"tileId": 4, "spriteSize": 8, "spriteHeight": 24,
+		"data": {"hasCollision": 1, "isWall": 1}}
+	state.apply_packet("LoadMapPacket", {"realmId": 1, "tiles": [WireHelper.tile(4, GameConstants.COLLISION_LAYER, 0, 0)]})
+	state.local.position = Vector2(0.0, 4.0 * GameConstants.TILE_SIZE)
+	state.movement.predict(TICK * 8.0, Vector2.UP)
+	var hit := floorf(GameConstants.PLAYER_SIZE * GameConstants.COLLISION_HITBOX_SCALE)
+	var box_top := state.local.position.y + (GameConstants.PLAYER_SIZE - hit) * 0.5
+	assert_gte(box_top, 3.0 * GameConstants.TILE_SIZE, "held at the bottom of the third row")
+
+
 func test_non_colliding_tiles_do_not_block():
 	# Decoration tiles live in the collision layer with hasCollision = 0.
 	state.apply_packet("LoadMapPacket", {"realmId": 1, "tiles": [WireHelper.tile(1, GameConstants.COLLISION_LAYER, 1, 0)]})

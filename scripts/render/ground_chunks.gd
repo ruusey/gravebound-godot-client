@@ -50,15 +50,16 @@ func drop_all() -> void:
 
 ## A cell's look reads its neighbours (seams, bands), and a chunk draws the
 ## ring of cells around its own, so a change reaches every chunk within two
-## cells of it.
-func mark(cells: Dictionary) -> void:
-	# GroundChunk.of, inlined: a LoadMap can carry hundreds of cells, and two
+## cells of it -- and, southward, every chunk that redraws a wall that far north
+## for its spilling face (`south` rows; TileRenderer.paint_cells).
+func mark(cells: Dictionary, south := 2) -> void:
+	# GroundChunk.of, inlined: a LoadMap can carry hundreds of cells, and a few
 	# cells either side of one fall in at most two chunks along each axis.
 	for cell in cells:
 		var low_x := floori((cell.x - 2) / float(GroundChunk.SIZE))
 		var high_x := floori((cell.x + 2) / float(GroundChunk.SIZE))
 		var low_y := floori((cell.y - 2) / float(GroundChunk.SIZE))
-		var high_y := floori((cell.y + 2) / float(GroundChunk.SIZE))
+		var high_y := floori((cell.y + maxi(south, 2)) / float(GroundChunk.SIZE))
 		for x in range(low_x, high_x + 1):
 			for y in range(low_y, high_y + 1):
 				var chunk := Vector2i(x, y)

@@ -69,6 +69,12 @@ var _slow_ms_by_group := {}
 ## tile id -> tile_look(), read directly by the ground passes (a call per cell into
 ## another script costs more than the cell's draw).
 var tile_looks := {}
+## tile id -> tile_solid_rows(), read per collision cell by movement prediction.
+var _solid_rows_by_id := {}
+## The most rows any tile blocks, and the most rows any tile's art reaches below its
+## own cell; 0 until first asked once the content is ready.
+var _tallest_solid := 0
+var _tallest_spill := 0
 
 
 ## Content first, then every sheet it refers to. Awaited, because over HTTP
@@ -150,6 +156,48 @@ func tile_render_height(tile_id: int) -> float:
 	if size <= 0 or height <= size:
 		return float(TILE_RENDER_SIZE)
 	return TILE_RENDER_SIZE * (float(height) / float(size))
+
+
+## Rows of the map a collision tile blocks, counting down from its own cell: its own
+## cell for a square tile or an 8x16 wall, every row it covers for taller wall art.
+## Mirrors the server's TileModel.solidRows; prediction and the server must agree.
+func tile_solid_rows(tile_id: int) -> int:
+	if _solid_rows_by_id.has(tile_id):
+		return _solid_rows_by_id[tile_id]
+	var definition: Dictionary = library.tiles.get(tile_id, {})
+	var size := int(definition.get("spriteSize", 0))
+	if size <= 0:
+		size = DEFAULT_TILE_SPRITE_SIZE
+	var rows := ceili(float(int(definition.get("spriteHeight", 0))) / size)
+	rows = rows if rows > 2 else 1
+	if ready:
+		_solid_rows_by_id[tile_id] = rows
+	return rows
+
+
+## The most rows any tile blocks: how far north a collision test has to look.
+func tallest_solid_rows() -> int:
+	if _tallest_solid > 0:
+		return _tallest_solid
+	var tallest := 1
+	for tile_id in library.tiles:
+		tallest = maxi(tallest, tile_solid_rows(tile_id))
+	if ready:
+		_tallest_solid = tallest
+	return tallest
+
+
+## The most rows any tile's art reaches south of its own cell: one for an 8x16 wall,
+## two for 8x24. How far a chunk has to look north for faces spilling into it.
+func tallest_spill_rows() -> int:
+	if _tallest_spill > 0:
+		return _tallest_spill
+	var tallest := 1
+	for tile_id in library.tiles:
+		tallest = maxi(tallest, ceili(tile_render_height(tile_id) / TILE_RENDER_SIZE) - 1)
+	if ready:
+		_tallest_spill = tallest
+	return tallest
 
 
 ## The square px a tile's sprite is drawn at (tiles.json `size`). Oversized decorations

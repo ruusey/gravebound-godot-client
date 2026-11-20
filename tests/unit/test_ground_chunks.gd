@@ -93,6 +93,18 @@ func test_a_changed_tile_redraws_only_the_chunks_it_touches():
 	assert_eq(edge[Vector2i(-1, 0)], after[Vector2i(-1, 0)] + 1, "the neighbour across the border too")
 
 
+func test_a_change_reaches_the_chunks_that_redraw_a_tall_wall_above_them():
+	# A chunk redraws walls up to 1 + 2 * spill rows north for their spilling faces,
+	# so a change that far above it must mark it.
+	var ground := GroundChunks.new()
+	for at in [Vector2i(0, 0), Vector2i(0, 1)]:
+		ground.chunks[at] = null
+	ground.mark({Vector2i(3, 4): true})
+	assert_false(ground.dirty.has(Vector2i(0, 1)), "an ordinary change stays two rows deep")
+	ground.mark({Vector2i(3, 4): true}, 5)
+	assert_true(ground.dirty.has(Vector2i(0, 1)), "an 8x24 wall's reach")
+
+
 func test_ground_walked_away_from_is_kept_not_drawn_again():
 	_ground([WireHelper.tile(1, 0, 0, 0), WireHelper.tile(1, 0, 200, 200)])
 	await _frames()
