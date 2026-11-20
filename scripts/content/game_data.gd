@@ -20,6 +20,8 @@ const LOOK_NO_BLEND := 16
 const NO_LOOK: Array = []
 ## StatusEffectType.SLOWED.
 const SLOWED_EFFECT := 21
+## The data.liquid kinds a player stands in up to the shins, and is drawn sunk into.
+const SUBMERGING_LIQUIDS := ["water", "lava"]
 
 var library := ContentLibrary.new()
 var sprites := SpriteCache.new()
@@ -259,6 +261,11 @@ func tile_is_liquid(tile_id: int) -> bool:
 func tile_is_lava(tile_id: int) -> bool:
 	_build_liquids()
 	return _liquid_tiles.get(tile_id, "") == "lava"
+
+
+func tile_submerges(tile_id: int) -> bool:
+	_build_liquids()
+	return SUBMERGING_LIQUIDS.has(_liquid_tiles.get(tile_id, ""))
 
 
 func _build_liquids() -> void:

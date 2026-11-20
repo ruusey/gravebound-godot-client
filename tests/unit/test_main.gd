@@ -63,7 +63,7 @@ func test_the_loading_screen_has_lifted_once_the_content_is_in():
 
 
 func test_loads_content_from_the_configured_root():
-	assert_eq(main.game_data.tiles.size(), 12)
+	assert_eq(main.game_data.tiles.size(), 13)
 	assert_true(main.state.tiles.blocks(Vector2.ZERO, 28) == false, "the state has content wired for collision")
 	assert_eq(main.game_data.items.size(), 15)
 

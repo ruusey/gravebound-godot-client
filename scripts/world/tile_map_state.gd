@@ -113,37 +113,41 @@ func _apply_crack(cell: Vector2i, stage: int) -> void:
 	changed_cells[cell] = true
 
 
-## Whether the ground under an entity's feet slows it -- and, since the
-## slowing tiles are the liquids, whether it wades.
+## Whether the ground under an entity's feet slows it.
+func slows(position: Vector2, entity_size: int) -> bool:
+	var tile_id := _feet_tile(position, entity_size)
+	return tile_id > 0 and _content.tile_slows(tile_id)
+
+
+## Whether an entity stands in water or lava, and is drawn sunk into it. Keyed
+## on the tile's liquid, not on slowing: bushes and swamp slow without being
+## liquid, and speed paths "slow" by a negative factor.
+func wades(position: Vector2, entity_size: int) -> bool:
+	var tile_id := _feet_tile(position, entity_size)
+	return tile_id > 0 and _content.tile_submerges(tile_id)
+
+
+## The movement speed multiplier for the base-layer tile under the feet: 1.0 off a
+## slow tile, 1/3 for a full slow, >1 on a speed-up tile. Mirrors the server's
+## TileManager.slowSpeedMul so prediction stays in sync.
+func slow_mul(position: Vector2, entity_size: int) -> float:
+	var tile_id := _feet_tile(position, entity_size)
+	return _content.tile_speed_mul(tile_id) if tile_id > 0 else 1.0
+
+
+## The base-layer tile under an entity's feet, or -1.
 ##
 ## Mirror of TileManager.feetOnFlaggedTile, which all three clients copy:
 ## one sample of the BASE layer at the horizontal middle and the BOTTOM of
 ## the hitbox. Sampling the centre instead, or the collision layer, is a
 ## third of a step of disagreement on every tick spent in shallow water --
 ## which the nexus has plenty of -- and reads as a correction on every ack.
-func slows(position: Vector2, entity_size: int) -> bool:
+func _feet_tile(position: Vector2, entity_size: int) -> int:
 	if _content == null:
-		return false
+		return -1
 	var column := floori((position.x + entity_size * 0.5) / TILE_SIZE)
 	var row := floori((position.y + entity_size) / TILE_SIZE)
-	var tile_id: int = layers.get(BASE_LAYER, {}).get(Vector2i(column, row), -1)
-	return tile_id > 0 and _content.tile_slows(tile_id)
-
-
-func wades(position: Vector2, entity_size: int) -> bool:
-	return slows(position, entity_size)
-
-
-## The movement speed multiplier for the base-layer tile under the feet (same sample
-## point as slows()): 1.0 off a slow tile, 1/3 for a full slow, >1 on a speed-up tile.
-## Mirrors the server's TileManager.slowSpeedMul so prediction stays in sync.
-func slow_mul(position: Vector2, entity_size: int) -> float:
-	if _content == null:
-		return 1.0
-	var column := floori((position.x + entity_size * 0.5) / TILE_SIZE)
-	var row := floori((position.y + entity_size) / TILE_SIZE)
-	var tile_id: int = layers.get(BASE_LAYER, {}).get(Vector2i(column, row), -1)
-	return _content.tile_speed_mul(tile_id) if tile_id > 0 else 1.0
+	return layers.get(BASE_LAYER, {}).get(Vector2i(column, row), -1)
 
 
 func tile_at(layer: int, tile_x: int, tile_y: int) -> int:

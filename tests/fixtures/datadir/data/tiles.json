@@ -128,6 +128,21 @@
   }
  },
  {
+  "tileId": 10,
+  "name": "Water",
+  "spriteKey": "atlas.png",
+  "row": 1,
+  "col": 1,
+  "size": 32,
+  "data": {
+   "hasCollision": 0,
+   "slows": 1,
+   "damaging": 0,
+   "isWall": 0,
+   "liquid": "water"
+  }
+ },
+ {
   "tileId": 300,
   "name": "Forge",
   "interactionType": "forge",

@@ -18,7 +18,7 @@ func test_loads_every_content_file():
 	assert_true(await data.load_from(FileContentSource.new(_fixture_root())), "load reports success")
 	assert_eq(data.errors, ["sprite sheet not found: does-not-exist.png"] as Array[String],
 		"the one deliberately-broken fixture sheet, found at load rather than at first draw")
-	assert_eq(data.tiles.size(), 12)
+	assert_eq(data.tiles.size(), 13)
 	assert_eq(data.enemies.size(), 2)
 	assert_eq(data.library.classes.size(), 2)
 	assert_eq(data.library.animations.size(), 3, "player and enemy entries are animation sets, nothing else")
@@ -26,7 +26,7 @@ func test_loads_every_content_file():
 
 func test_summary_reports_what_was_loaded():
 	await data.load_from(FileContentSource.new(_fixture_root()))
-	assert_string_contains(data.summary(), "12 tiles")
+	assert_string_contains(data.summary(), "13 tiles")
 	assert_string_contains(data.summary(), "2 enemies")
 
 

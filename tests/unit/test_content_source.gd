@@ -117,7 +117,7 @@ func test_the_whole_content_set_loads_over_http():
 	var data := GameData.new()
 
 	assert_true(await data.load_from(HttpContentSource.new("http://d:8080", backend)))
-	assert_eq(data.tiles.size(), 12)
+	assert_eq(data.tiles.size(), 13)
 	assert_eq(data.enemies.size(), 2)
 	assert_not_null(data.tile_texture(1), "a sheet fetched over HTTP is usable art")
 	assert_eq(data.tile_texture(1).region, Rect2(24, 16, 8, 8))

@@ -932,7 +932,7 @@ func test_a_player_standing_in_a_liquid_still_draws():
 	var wet: Array = []
 	for x in range(-2, 3):
 		for y in range(-2, 3):
-			wet.append({"tileId": 3, "layer": 0, "xIndex": y, "yIndex": x})
+			wet.append({"tileId": 10, "layer": 0, "xIndex": y, "yIndex": x})
 	state.apply_packet("LoadMapPacket", {"realmId": 1, "mapId": 2, "tiles": wet})
 	state.local.id = 1
 	state.apply_packet("LoadPacket", {"players": [WireHelper.player(1, "me", Vector2.ZERO)]})

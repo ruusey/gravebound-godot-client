@@ -3,9 +3,9 @@ extends RefCounted
 
 ## Legs under the water.
 ##
-## A character standing in a liquid is drawn sunk into it: the body drops by
-## 30% of its cell and is then clipped back to the cell, so what is left is
-## the top seven tenths sitting low in the water. The web client does it with
+## A character standing in water or lava is drawn sunk into it: the body drops
+## by 30% of its cell and is then clipped back to the cell, so what is left is
+## the top seven tenths sitting low in the liquid. The web client does it with
 ## a mask and the same 0.30; clipping the drawn rect and taking the matching
 ## slice of the sheet is the same picture without a material, which an
 ## immediate-mode layer cannot carry per command.

@@ -1,15 +1,15 @@
 extends GutTest
 
-## Standing in water: the legs go under, and only ours do.
+## Standing in water or lava: the legs go under, and only ours do.
 
 var state: RealmState
 var content: GameData
 var queue := EntityQueue.new()
 
-## The unit suite runs against the fixture content, where the slowing tile is
-## 3 (Swamp). Water's real ids mean nothing here -- 5 is a sprite-less tile in
-## the fixture -- which is the whole reason check-content.sh exists.
-const WET := 3
+## The unit suite runs against the fixture content, where 10 is liquid water
+## and 3 (Swamp) slows without being a liquid.
+const WET := 10
+const SWAMP := 3
 const GRASS := 1
 const VIEW := Rect2(-500, -500, 1000, 1000)
 
@@ -53,6 +53,20 @@ func test_the_feet_decide_not_the_middle():
 func test_dry_ground_is_not_waded():
 	_ground(GRASS)
 	assert_false(state.tiles.wades(Vector2(0, 0), 32))
+
+
+func test_a_slowing_tile_that_is_not_a_liquid_is_not_waded():
+	_ground(SWAMP)
+	assert_true(state.tiles.slows(Vector2(0, 0), 32), "it still slows")
+	assert_false(state.tiles.wades(Vector2(0, 0), 32), "but the feet stay out")
+
+
+func test_only_water_and_lava_submerge():
+	content.library.tiles[SWAMP]["data"]["liquid"] = "acid"
+	content.library.tiles[GRASS]["data"]["liquid"] = "lava"
+	assert_true(content.tile_submerges(WET), "water")
+	assert_true(content.tile_submerges(GRASS), "lava")
+	assert_false(content.tile_submerges(SWAMP), "another liquid animates but does not sink you")
 
 
 func test_an_unknown_tile_is_not_water():
