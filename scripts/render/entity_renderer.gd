@@ -28,14 +28,19 @@ const BLACK_BAG_GLOW_RADIUS_MUL := 0.95
 var state: RealmState
 var content: GameData
 var queue := EntityQueue.new()
+## Tall walls and canopies, drawn in among the bodies by depth.
+var covers := WallCovers.new()
 var counts := EMPTY_COUNTS.duplicate()
 var _static_outlined := 0
 
 
 func _draw() -> void:
 	if state == null or content == null:
+		covers.drawn = 0
 		return
-	counts = draw_ground(self, queue.build(state, content, ViewRect.of(self)))
+	var view := ViewRect.of(self)
+	covers.collect(state, content, view)
+	counts = draw_ground(self, queue.build(state, content, view), covers)
 
 
 ## Shadows go down in a pass of their own, ahead of the bodies, so the
@@ -45,7 +50,7 @@ func _draw() -> void:
 ## is sorted on feet -- a later entity is always lower, so its shadow can
 ## never reach the body of one already drawn. Measured: interleaving the two
 ## loops renders byte-identical output.
-func draw_ground(canvas: CanvasItem, items: Array) -> Dictionary:
+func draw_ground(canvas: CanvasItem, items: Array, walls: WallCovers = null) -> Dictionary:
 	var counts := EMPTY_COUNTS.duplicate()
 	_static_outlined = 0
 	# Every body on the pixel grid -- the same snap the overlay applies to
@@ -56,7 +61,13 @@ func draw_ground(canvas: CanvasItem, items: Array) -> Dictionary:
 	# per entity inside PixelSnap.world (an affine_inverse per sprite per frame).
 	var to_screen := canvas.get_global_transform_with_canvas()
 	var inverse := to_screen.affine_inverse()
-	for item in items:
+	var depths := PackedInt64Array()
+	if walls != null:
+		depths.resize(items.size())
+	for i in items.size():
+		var item: Dictionary = items[i]
+		if walls != null:
+			depths[i] = EntityQueue.depth(item)
 		# Smooth items (remote players) keep their interpolated sub-pixel position so
 		# slow walkers glide instead of stair-stepping between whole pixels.
 		if item.get("smooth", false):
@@ -78,9 +89,14 @@ func draw_ground(canvas: CanvasItem, items: Array) -> Dictionary:
 			LockOnRing.draw(canvas, item["pos"], size)
 	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	var outlines := SpriteOutline.enabled
-	for item in items:
+	for i in items.size():
+		var item: Dictionary = items[i]
+		if walls != null:
+			walls.draw_through(canvas, depths[i])
 		_draw_entity(canvas, item, outlines)
 		counts[item["kind"]] += 1
+	if walls != null:
+		walls.draw_rest(canvas)
 	return counts
 
 

@@ -24,7 +24,7 @@ func _draw() -> void:
 func test_the_particle_layer_sits_under_the_bullets():
 	var order := renderer.get_children()
 	assert_lt(order.find(renderer.particles), order.find(renderer.bullets), "fx under bodies")
-	assert_gt(order.find(renderer.particles), order.find(renderer.wall_tops), "and over the walls")
+	assert_gt(order.find(renderer.particles), order.find(renderer.entities), "and over the bodies and walls")
 	assert_eq(renderer.particles.texture_filter, CanvasItem.TEXTURE_FILTER_LINEAR, "a soft dot sampled nearest is a stepped one")
 
 

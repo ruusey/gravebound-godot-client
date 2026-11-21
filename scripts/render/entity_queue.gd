@@ -45,16 +45,19 @@ static func by_feet(queue: Array) -> Array:
 	var keys := PackedInt64Array()
 	keys.resize(count)
 	for i in count:
-		var item: Dictionary = queue[i]
-		var feet: float = item["pos"].y + float(item["size"])
-		var layer: int = item.get("layer", 0)
-		keys[i] = ((int(roundf(feet * 16.0)) + FEET_BIAS + layer * LAYER_STEP) << 16) | i
+		keys[i] = (depth(queue[i]) << 16) | i
 	keys.sort()
 	var sorted := []
 	sorted.resize(count)
 	for i in count:
 		sorted[i] = queue[keys[i] & 0xFFFF]
 	return sorted
+
+
+## An entry's sort depth: its draw layer, then its feet to a sixteenth of a pixel.
+static func depth(item: Dictionary) -> int:
+	var feet: float = item["pos"].y + float(item["size"])
+	return int(roundf(feet * 16.0)) + FEET_BIAS + int(item.get("layer", 0)) * LAYER_STEP
 
 
 ## Most bodies carry no effect, and those skip the call into StatusTint.

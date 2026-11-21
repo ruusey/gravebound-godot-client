@@ -24,7 +24,6 @@ var tiles := TileRenderer.new()
 ## the "animated_liquids" setting is off, and then the ground draws them static.
 var liquid := LiquidRenderer.new()
 var entities := EntityRenderer.new()
-var wall_tops := WallOcclusionRenderer.new()
 var particles := ParticleRenderer.new()
 ## Hit chips, drawn over the bodies and centred on whatever was hit. RealmState.hit_burst.
 var hit_chips := HitBurstRenderer.new()
@@ -41,9 +40,9 @@ var show_collision: bool:
 
 
 func _ready() -> void:
-	# Added in draw order: ground, what stands on it, the wall tops that must
-	# cover anything behind them, what flies over all of it, then the debug
-	# view. Names, bars and numbers are not here: they are UI, Controls on
+	# Added in draw order: ground, what stands on it (with the tall walls redrawn
+	# among the bodies by depth, so they cover whatever stands behind them), what
+	# flies over all of it, then the debug view. Names, bars and numbers are not here: they are UI, Controls on
 	# EntityOverlay's own CanvasLayer, outside the camera.
 	# Nearest on every layer, said outright rather than inherited from the
 	# project default: the web export drew the zoomed world with linear
@@ -54,7 +53,7 @@ func _ready() -> void:
 	# Liquid sits under the ground: the ground leaves its cells transparent, so the
 	# animated water/lava shows through and props/walls on it still draw over it.
 	# hit_chips sits just over the bodies, so a burst reads on top of the sprite.
-	for layer in [liquid, tiles, entities, hit_chips, wall_tops, particles, bullets, effects, debug]:
+	for layer in [liquid, tiles, entities, hit_chips, particles, bullets, effects, debug]:
 		layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		add_child(layer)
 	# Projectiles are bright overlays, not part of the lit scene. Unshaded, each bullet
@@ -73,7 +72,7 @@ func _ready() -> void:
 	for overlay in [bullets, particles, effects, debug, hit_chips]:
 		overlay.material = unlit
 	# Liquid is chunk-cached and animates on the GPU, so it is not redrawn per frame.
-	_redraw_layers = [entities, hit_chips, wall_tops, particles, bullets, effects, debug]
+	_redraw_layers = [entities, hit_chips, particles, bullets, effects, debug]
 	_wire()
 
 
@@ -93,7 +92,7 @@ var draw_stats: Dictionary:
 		stats["bullets"] = bullets.drawn
 		stats["particles"] = particles.drawn
 		stats["effects"] = effects.drawn
-		stats["wall_tops"] = wall_tops.drawn
+		stats["wall_tops"] = entities.covers.drawn
 		stats["object_shadows"] = int(tiles.stats.get("shadows", 0))
 		stats["wall_bands"] = int(tiles.stats.get("bands", 0))
 		stats["billboard_rings"] = int(tiles.stats.get("rings", 0))
@@ -122,8 +121,6 @@ func _wire() -> void:
 	liquid.content = game_data
 	entities.state = state
 	entities.content = game_data
-	wall_tops.state = state
-	wall_tops.content = game_data
 	particles.state = state
 	hit_chips.field = state.hit_burst.chips if state != null else null
 	bullets.state = state
