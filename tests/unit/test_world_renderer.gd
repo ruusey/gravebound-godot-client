@@ -404,6 +404,19 @@ func test_an_ordinary_enemy_is_not_rotated():
 	assert_false(_queue()[0].has("rotation"), "mirrored as usual, not turned")
 
 
+func test_a_higher_draw_layer_draws_over_lower_feet():
+	# A flyer high on the screen still covers a walker standing below it.
+	data.library.enemies[2]["drawLayer"] = 1
+	state.apply_packet("LoadPacket", {
+		"players": [WireHelper.player(2, "you", Vector2(0, 120))],
+		"enemies": [WireHelper.enemy(3, 2, Vector2(0, 0)), WireHelper.enemy(4, 1, Vector2(0, 100))],
+	})
+	var order: Array = []
+	for item in _queue():
+		order.append(item["pos"].y)
+	assert_eq(order, [100.0, 120.0, 0.0], "the layered enemy draws last")
+
+
 func _move_remote_enemy(id: int, velocity: Vector2) -> void:
 	state.apply_packet("ObjectMovePacket", {"movements": [{
 		"entityId": id, "entityType": 1, "posX": 0.0, "posY": 0.0,

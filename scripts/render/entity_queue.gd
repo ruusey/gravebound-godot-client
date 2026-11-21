@@ -18,6 +18,8 @@ const PLAYER_RENDER_SIZE := GameConstants.PLAYER_RENDER_SIZE
 const SIMPLE_SIZE := 16
 ## Keeps a feet key positive for bodies standing just off the top of the map.
 const FEET_BIAS := 1 << 24
+## One draw layer outweighs any feet depth (which, biased, stays under 1 << 25).
+const LAYER_STEP := 1 << 25
 const NO_EFFECTS: Array = []
 
 
@@ -32,9 +34,10 @@ func build(state: RealmState, content: GameData, view: Rect2) -> Array:
 	return by_feet(queue)
 
 
-## The queue in feet order. Sorted as packed integers -- feet depth to a
-## sixteenth of a pixel over the entry's index -- because a scripted comparator
-## is one script call per comparison, the bulk of this pass in a crowd.
+## The queue in feet order. Sorted as packed integers -- layer, then feet depth
+## to a sixteenth of a pixel, over the entry's index -- because a scripted
+## comparator is one script call per comparison, the bulk of this pass in a crowd.
+## A higher layer draws over every lower one wherever its feet are.
 static func by_feet(queue: Array) -> Array:
 	var count := queue.size()
 	if count < 2:
@@ -44,7 +47,8 @@ static func by_feet(queue: Array) -> Array:
 	for i in count:
 		var item: Dictionary = queue[i]
 		var feet: float = item["pos"].y + float(item["size"])
-		keys[i] = ((int(roundf(feet * 16.0)) + FEET_BIAS) << 16) | i
+		var layer: int = item.get("layer", 0)
+		keys[i] = ((int(roundf(feet * 16.0)) + FEET_BIAS + layer * LAYER_STEP) << 16) | i
 	keys.sort()
 	var sorted := []
 	sorted.resize(count)
@@ -182,12 +186,13 @@ func _queue_enemies(queue: Array, state: RealmState, content: GameData, view: Re
 		queue.append(item)
 
 
-## Applies an enemy type's enemy_look: turned to face its travel, so it never
-## mirrors.
+## Applies an enemy type's enemy_look: turned to face its travel (so it never
+## mirrors) and/or lifted onto a draw layer.
 static func _pose(item: Dictionary, enemy: Dictionary, look: Dictionary) -> void:
 	if look.get("rotates", false):
 		item["rotation"] = MotionHeading.advance(enemy, item["pos"], Time.get_ticks_msec() / 1000.0)
 		item["flip"] = false
+	item["layer"] = look.get("layer", 0)
 
 
 func _enemy_moving(enemy: Dictionary) -> bool:

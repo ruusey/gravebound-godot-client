@@ -485,7 +485,9 @@ func enemy_light_resolved(enemy_id: int) -> Dictionary:
 
 ## How an enemy type is posed on the ground layer: `rotates` turns the sprite to
 ## face its travel instead of mirroring it (data.rotateToMotion -- chain bosses,
-## wyrms). Empty for the ordinary enemy, so the queue can skip it in one test.
+## wyrms), and `layer` lifts it above every body on a lower layer regardless of
+## depth (data.drawLayer -- flyers over walkers, a head over its own neck). Empty
+## for the ordinary enemy, so the queue can skip it in one test.
 func enemy_look(enemy_id: int) -> Dictionary:
 	if enemy_looks.has(enemy_id):
 		return enemy_looks[enemy_id]
@@ -493,6 +495,8 @@ func enemy_look(enemy_id: int) -> Dictionary:
 	var look := {}
 	if bool(entry.get("rotateToMotion", false)):
 		look["rotates"] = true
+	if int(entry.get("drawLayer", 0)) != 0:
+		look["layer"] = int(entry["drawLayer"])
 	if ready:
 		enemy_looks[enemy_id] = look
 	return look
