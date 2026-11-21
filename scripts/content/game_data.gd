@@ -64,6 +64,8 @@ var _proj_light_by_group := {}
 ## enemy id -> {color: Color, radius, flickers}, the resolved enemy glow (e.g. the
 ## cult effigies) the lighting scan reads; same shape and parse-once rule as above.
 var _enemy_light_by_id := {}
+## enemy id -> enemy_look(), read directly by the enemy queue each frame.
+var enemy_looks := {}
 ## group id -> how long its shots slow a player they hit, in ms (0: they don't).
 var _slow_ms_by_group := {}
 ## tile id -> tile_look(), read directly by the ground passes (a call per cell into
@@ -479,6 +481,21 @@ func enemy_light_resolved(enemy_id: int) -> Dictionary:
 	if ready:
 		_enemy_light_by_id[enemy_id] = resolved
 	return resolved
+
+
+## How an enemy type is posed on the ground layer: `rotates` turns the sprite to
+## face its travel instead of mirroring it (data.rotateToMotion -- chain bosses,
+## wyrms). Empty for the ordinary enemy, so the queue can skip it in one test.
+func enemy_look(enemy_id: int) -> Dictionary:
+	if enemy_looks.has(enemy_id):
+		return enemy_looks[enemy_id]
+	var entry: Dictionary = library.enemies.get(enemy_id, {})
+	var look := {}
+	if bool(entry.get("rotateToMotion", false)):
+		look["rotates"] = true
+	if ready:
+		enemy_looks[enemy_id] = look
+	return look
 
 
 func item_name(item_id: int) -> String:

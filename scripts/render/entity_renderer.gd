@@ -129,6 +129,7 @@ static func body_draw(item: Dictionary) -> Dictionary:
 func _draw_entity(canvas: CanvasItem, item: Dictionary, outlines: bool) -> void:
 	# A downed companion lies on its side (fallen); facing-flip no longer applies.
 	var downed: bool = item.get("downed", false)
+	var rotation: float = item.get("rotation", 0.0)
 	var flip: bool = item["flip"] and not downed
 	var texture: Texture2D = item["texture"]
 	var rect: Rect2
@@ -139,11 +140,11 @@ func _draw_entity(canvas: CanvasItem, item: Dictionary, outlines: bool) -> void:
 		slice = body["slice"]
 	else:
 		rect = frame_rect(item["pos"], float(item["size"]), item["draw"], flip)
-	if downed:
-		# Rotate the whole frame a quarter-turn about its centre so a standing
-		# sprite reads as collapsed on the ground.
+	if downed or rotation != 0.0:
+		# Turn the whole frame about its centre: a quarter-turn lays a downed
+		# sprite on its side; a heading points a turning body along its travel.
 		var centre := rect.position + rect.size * 0.5
-		canvas.draw_set_transform(centre, PI * 0.5, Vector2.ONE)
+		canvas.draw_set_transform(centre, PI * 0.5 if downed else rotation, Vector2.ONE)
 		rect = Rect2(-rect.size * 0.5, rect.size)
 	elif flip:
 		# Origin at the sprite's right edge with x negated, so local x in
@@ -186,5 +187,5 @@ func _draw_entity(canvas: CanvasItem, item: Dictionary, outlines: bool) -> void:
 	else:
 		canvas.draw_rect(rect, item["tint"])
 
-	if flip or downed:
+	if flip or downed or rotation != 0.0:
 		canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

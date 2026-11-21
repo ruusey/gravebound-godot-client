@@ -163,7 +163,7 @@ func _queue_enemies(queue: Array, state: RealmState, content: GameData, view: Re
 			texture = content.enemy_texture(enemy_id)
 			flip = false
 			draw = Vector2.ONE * float(size)
-		queue.append({
+		var item := {
 			"kind": "enemies",
 			"pos": position,
 			"size": size,
@@ -173,7 +173,21 @@ func _queue_enemies(queue: Array, state: RealmState, content: GameData, view: Re
 			"modulate": _tint(enemy.get("effects", NO_EFFECTS)),
 			"flip": flip,
 			"lock": id == state.entities.lock_on,
-		})
+		}
+		var look: Variant = content.enemy_looks.get(enemy_id)
+		if look == null:
+			look = content.enemy_look(enemy_id)
+		if not look.is_empty():
+			_pose(item, enemy, look)
+		queue.append(item)
+
+
+## Applies an enemy type's enemy_look: turned to face its travel, so it never
+## mirrors.
+static func _pose(item: Dictionary, enemy: Dictionary, look: Dictionary) -> void:
+	if look.get("rotates", false):
+		item["rotation"] = MotionHeading.advance(enemy, item["pos"], Time.get_ticks_msec() / 1000.0)
+		item["flip"] = false
 
 
 func _enemy_moving(enemy: Dictionary) -> bool:

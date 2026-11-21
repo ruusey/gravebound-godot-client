@@ -387,6 +387,30 @@ func test_the_local_mirror_does_not_leak_onto_remotes():
 	assert_false(_queue()[0]["flip"], "the local mirror must not leak onto others")
 
 
+func test_a_turning_enemy_is_rotated_instead_of_mirrored():
+	data.library.enemies[1]["rotateToMotion"] = true
+	state.apply_packet("LoadPacket", {"enemies": [WireHelper.enemy(3, 1, Vector2.ZERO)]})
+	_move_remote_enemy(3, Vector2(-2, 0))
+	var item: Dictionary = _queue()[0]
+	assert_false(item["flip"], "a turning body never mirrors")
+	assert_true(item.has("rotation"))
+	await _render()
+	assert_eq(renderer.draw_stats["enemies"], 1, "drawn rotated without error")
+
+
+func test_an_ordinary_enemy_is_not_rotated():
+	state.apply_packet("LoadPacket", {"enemies": [WireHelper.enemy(3, 1, Vector2.ZERO)]})
+	_move_remote_enemy(3, Vector2(0, 2))
+	assert_false(_queue()[0].has("rotation"), "mirrored as usual, not turned")
+
+
+func _move_remote_enemy(id: int, velocity: Vector2) -> void:
+	state.apply_packet("ObjectMovePacket", {"movements": [{
+		"entityId": id, "entityType": 1, "posX": 0.0, "posY": 0.0,
+		"velX": velocity.x, "velY": velocity.y, "flags": 0}]})
+	state.advance(RealmState.TICK_DELTA, Vector2.ZERO, 0.0)
+
+
 func test_bullets_with_a_sprite_are_drawn_rotated():
 	# Group 10 exists in the fixture content, so this takes the textured path
 	# rather than the placeholder circle.
