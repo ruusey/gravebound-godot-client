@@ -148,6 +148,9 @@ jobs:
       - name: Package release zips
         run: |
           set -euo pipefail
+          # Precompressed copies for nginx's gzip_static: the 40MB wasm goes out
+          # ~4x smaller without the box compressing it per request.
+          gzip -9 -k -n build/web/index.wasm build/web/index.pck build/web/index.js
           # index.html at the zip root so it unpacks straight into the /play mount.
           (cd build/web && zip -r "$GITHUB_WORKSPACE/$WEB_ASSET" .)
           (cd build/windows && zip "$GITHUB_WORKSPACE/$WIN_ASSET" GraveBound.exe)
