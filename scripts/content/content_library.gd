@@ -26,6 +26,9 @@ const SOURCES := {
 	"dye-assets.json": ["dyes", "dyeId"],
 	"character-class-masks.json": ["class_masks", "classId"],
 }
+## The content files read outside SOURCES; prefetched together with them.
+const OTHER_FILES := ["fame-store.json", "exp-levels.json", "animations.json", "dungeons.json",
+		"dungeon-rooms.json", "sounds.json"]
 
 var tiles := {}
 var enemies := {}
@@ -65,6 +68,10 @@ func load_from(source: ContentSource) -> bool:
 	if blocked != "":
 		errors.append(blocked)
 		return false
+
+	var prefetched := PrefetchingContentSource.new(source)
+	await prefetched.prefetch(SOURCES.keys() + OTHER_FILES)
+	source = prefetched
 
 	for filename in SOURCES:
 		var target: String = SOURCES[filename][0]
