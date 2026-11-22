@@ -6,10 +6,15 @@ extends HttpBackend
 ##
 ## One node serves one request at a time. A request takes an idle node or
 ## adds one, up to MAX_IN_FLIGHT; past that it waits for a node to free.
-## The sheet preload is what needs this -- 51 fetches started together --
-## and a browser holds a handful of connections per host anyway.
+## The sheet preload is what needs this -- 70-odd fetches started together.
+## Over HTTP/2 the browser multiplexes them all on one connection, so a low cap
+## only queued them into back-to-back rounds of round trips.
 
-const MAX_IN_FLIGHT := 8
+const MAX_IN_FLIGHT := 32
+## HTTPRequest reads one chunk of a response body per frame, so at the default
+## 64 KiB a multi-megabyte content file took seconds of frames to arrive no
+## matter how fast the connection was.
+const DOWNLOAD_CHUNK_BYTES := 1 << 22
 
 signal freed
 
@@ -41,6 +46,7 @@ func perform(method: int, url: String, headers: PackedStringArray, body: String)
 
 func _spawn() -> HTTPRequest:
 	var request := HTTPRequest.new()
+	request.download_chunk_size = DOWNLOAD_CHUNK_BYTES
 	_host.add_child(request)
 	return request
 
