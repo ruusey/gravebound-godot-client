@@ -46,7 +46,13 @@ func perform(method: int, url: String, headers: PackedStringArray, body: String)
 
 func _spawn() -> HTTPRequest:
 	var request := HTTPRequest.new()
-	request.download_chunk_size = DOWNLOAD_CHUNK_BYTES
+	# Not on the web, where HTTPClientWeb keeps a read buffer of this size per
+	# request; content there goes through BrowserFetchBackend instead.
+	if not OS.has_feature("web"):
+		request.download_chunk_size = DOWNLOAD_CHUNK_BYTES
+	# In a browser, fetch() has already inflated a gzipped body but the
+	# Content-Encoding header survives, and HTTPRequest would inflate it again.
+	request.accept_gzip = not OS.has_feature("web")
 	_host.add_child(request)
 	return request
 

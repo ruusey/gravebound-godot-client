@@ -258,7 +258,7 @@ func _on_pre_draw() -> void:
 ## it, so the UI is already up while it fills; against the data repo on disk
 ## nothing suspends and it is finished before _ready returns.
 func _load_content() -> void:
-	var source := config.open_content_source(_http)
+	var source := config.open_content_source(BrowserFetchBackend.new() if OS.has_feature("web") else _http)
 	_startup.mark("screens built")
 	game_data.tables_loaded.connect(_startup.mark.bind("content in"), CONNECT_ONE_SHOT)
 	var loaded: bool = await game_data.load_from(source)
