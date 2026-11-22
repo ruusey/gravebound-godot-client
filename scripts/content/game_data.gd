@@ -4,6 +4,9 @@ extends RefCounted
 ## Resolves wire ids into sprites and gameplay definitions: a thin facade over
 ## ContentLibrary (the JSON) and SpriteCache (the atlases).
 
+## The JSON is in and the sheets it names are about to be fetched.
+signal tables_loaded
+
 const DEFAULT_TILE_SPRITE_SIZE := SpriteCache.DEFAULT_SPRITE_SIZE
 const TILE_RENDER_SIZE := 32
 const CRACK_CELL_HEIGHT := 16
@@ -84,6 +87,7 @@ var _tallest_spill := 0
 ## desktop path stays effectively synchronous through the same call.
 func load_from(source: ContentSource) -> bool:
 	var loaded: bool = await library.load_from(source)
+	tables_loaded.emit()
 	levels.parse(library.exp_levels)
 	await sprites.preload_sheets(source, library.sheet_keys())
 	ready = true

@@ -39,12 +39,15 @@ var _camera: Camera2D
 var _view_3d: WorldView3D
 var _data_service: DataService
 var _http: HttpBackend
+var _startup: StartupTrace
 
 
 func _ready() -> void:
 	# Assigned ahead of _ready by tests; otherwise taken from the command line.
 	if config == null:
 		config = ClientConfig.from_command_line()
+	_startup = StartupTrace.new()
+	add_child(_startup)
 	if OS.has_feature("web"):
 		_hide_web_input_caret()
 	var display := DisplayScale.new()
@@ -256,7 +259,12 @@ func _on_pre_draw() -> void:
 ## nothing suspends and it is finished before _ready returns.
 func _load_content() -> void:
 	var source := config.open_content_source(_http)
-	if await game_data.load_from(source):
+	_startup.mark("screens built")
+	game_data.tables_loaded.connect(_startup.mark.bind("content in"), CONNECT_ONE_SHOT)
+	var loaded: bool = await game_data.load_from(source)
+	_startup.mark("sprites in")
+	_startup.watch_frames()
+	if loaded:
 		print("[content] %s from %s" % [game_data.summary(), source.describe()])
 	else:
 		push_error("Content failed to load from %s:\n  %s" % [
