@@ -44,14 +44,17 @@ static func bounds(fx: Dictionary) -> Rect2:
 	return box.grow(fx["radius"])
 
 
-## "Play ability animations" off hides every effect; "Show other players'
-## ability effects" off hides those another player cast, as the web
-## client's CREATE_EFFECT handler does. What enemies cast always shows --
-## a boss's beam warning is how you know to move.
+## What enemies cast (no owner: players' effects always carry one) shows
+## whatever the settings -- a boss's beam warning is how you know to move.
+## "Play ability animations" off hides every player's effect; "Show other
+## players' ability effects" off hides those another player cast, as the
+## web client's CREATE_EFFECT handler does.
 static func shown(realm: RealmState, fx: Dictionary) -> bool:
+	var owner := int(fx.get("owner", 0))
+	if owner == 0:
+		return true
 	if not realm.settings.is_on("ability_animations"):
 		return false
-	var owner := int(fx.get("owner", 0))
 	return realm.settings.is_on("show_ally_effects") or owner == realm.local.id \
 		or not realm.entities.players.has(owner)
 
