@@ -52,6 +52,11 @@ var _predictions := {}
 ## hit us (id -> input seq), so each lands once and a wall once per interval.
 var _slowing := {}
 var _slow_hits := {}
+## When advance() last moved the shots, and the slowing shots loaded since (which
+## the load already ran up to its own now): prediction probes before the frame's
+## advance, so every other shot still stands where the last frame left it.
+var _advanced_ms := -1
+var _loaded_since_advance := {}
 ## tile id -> whether it stops a bullet, once the content has loaded.
 var _tile_stops := {}
 ## Scratch lists reused every frame: what advance() drops, and the own shots that
@@ -91,6 +96,7 @@ func clear() -> void:
 	_predictions.clear()
 	_slowing.clear()
 	_slow_hits.clear()
+	_loaded_since_advance.clear()
 
 
 ## A locally predicted bullet, registered so its server copy can claim it.
@@ -130,6 +136,7 @@ func _note_slowing(bullet: Projectile) -> void:
 	var slow_ms := _content.slow_ms(bullet.group_id)
 	if slow_ms > 0:
 		_slowing[bullet.id] = slow_ms
+		_loaded_since_advance[bullet.id] = true
 
 
 ## How long the enemy shot touching a player whose top-left is `position` slows
@@ -137,13 +144,18 @@ func _note_slowing(bullet: Projectile) -> void:
 ## predicted. The server judges an enemy shot where this client saw it (rewound by
 ## half the round trip, the same half our catch-up runs bullets ahead), so a shot
 ## touching the predicted player here is the one the server lands on that input:
-## a swept circle over the shot's last tick, or a wall's capsule.
+## a swept circle over the shot's last tick, or a wall's capsule. Each shot is
+## tested where it is now, run on from where the last frame's advance left it.
 func slowing_hit_ms(position: Vector2, size: int, seq: int) -> int:
 	if _slowing.is_empty():
 		return 0
 	var centre := position + Vector2(size, size) * 0.5
 	var body := size * HIT_RADIUS_FACTOR
 	var longest := 0
+	var stale_ticks := 0.0
+	if _advanced_ms >= 0:
+		stale_ticks = clampf(float(int(_clock.call()) - _advanced_ms), 0.0, 100.0) \
+			* GameConstants.TICK_RATE / 1000.0
 	for id in _slowing.keys():
 		var bullet: Projectile = bullets.get(id)
 		if bullet == null:
@@ -152,7 +164,10 @@ func slowing_hit_ms(position: Vector2, size: int, seq: int) -> int:
 			continue
 		var reach := bullet.size * HIT_RADIUS_FACTOR + body
 		var half := bullet.size * 0.5
+		var step := Vector2(sin(bullet.angle), cos(bullet.angle)) * bullet.magnitude
 		var bullet_centre := bullet.pos + Vector2(half, half)
+		if not _loaded_since_advance.has(id):
+			bullet_centre += step * stale_ticks
 		var start: Vector2
 		var end: Vector2
 		if bullet.flag_bits & (1 << ProjectileKind.LINE_SEGMENT):
@@ -164,7 +179,7 @@ func slowing_hit_ms(position: Vector2, size: int, seq: int) -> int:
 		else:
 			if _slow_hits.has(id):
 				continue
-			start = bullet_centre - Vector2(sin(bullet.angle), cos(bullet.angle)) * bullet.magnitude
+			start = bullet_centre - step
 			end = bullet_centre
 		if Geometry2D.get_closest_point_to_segment(centre, start, end).distance_squared_to(centre) \
 				>= reach * reach:
@@ -218,10 +233,12 @@ func apply_unload(data: Dictionary) -> void:
 ## traits, and dropped ids are erased after the walk instead of iterating a
 ## copied key list.
 func advance(delta: float) -> void:
+	var now: int = _clock.call()
+	_advanced_ms = now
+	_loaded_since_advance.clear()
 	if bullets.is_empty():
 		return
 	var bullet_scale := delta * GameConstants.TICK_RATE
-	var now: int = _clock.call()
 	var tracking := _entities != null
 	var solid := _solid_layer()
 	_dropped.clear()

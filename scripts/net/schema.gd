@@ -4,7 +4,7 @@
 #   python3 tools/gen_schema.py <java-src-root>
 #
 # Source tree : C:\Users\ruuse\Documents\GitHub\openrealm\src
-# Generated   : 2026-11-09 20:57:54Z
+# Generated   : 2026-11-24 03:07:35Z
 # Packets     : 58
 # Entities    : 22
 #
@@ -350,6 +350,7 @@ const PACKETS := {
 		["seq", "int", false],
 		["posX", "float", false],
 		["posY", "float", false],
+		["slowedMs", "short", false],
 	],
 	"PlayerShootPacket": [
 		["projectileId", "long", false],

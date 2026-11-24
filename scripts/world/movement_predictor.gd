@@ -19,22 +19,20 @@ const TELEPORT_PX := 64.0
 const MAX_INPUT_HISTORY := 256
 ## Never replay more than this after a stall (window drag, breakpoint).
 const MAX_CATCHUP_TICKS := 8.0
-## How far (in ticks) the server's view of a slow may sit from ours before it
-## counts as a disagreement: the hit lands on the server a tick or two either side
-## of the input we saw it on, and an ack can be read before the state packet the
-## server sent with it.
-const SLOW_MARGIN_TICKS := 3
-## The server's slow outlasting a predicted span by this many acked ticks means
-## the span ended too early, not that the two are a tick apart.
-const SLOW_OVERRUN_TICKS := 3
-const OPEN_SPAN := 1 << 62
+## How many inputs past a predicted slow's first one the acks may run before the
+## server's silence on it means it never landed: the server judges a hit a tick
+## or two either side of the input we saw it on.
+const SLOW_MARGIN_TICKS := 4
 const INVINCIBLE := 6
+## Blocks every debuff on the server, so a slowing hit under it is not predicted.
+const WARDED := 29
+## Doubles every debuff's duration on the server.
+const VULNERABLE := 31
 const DOWNED := 43
 ## Negates three hits in four on the server, so a hit under it is not predicted.
 const DODGE := 40
 const SPAN_FROM := 0
 const SPAN_TO := 1
-const SPAN_CONFIRMED := 2
 
 var input_seq := 0
 var corrections := 0
@@ -56,15 +54,19 @@ var _history: Array = []   # [{seq, input: Vector2, position: Vector2}]
 var _send_policy := MoveSendPolicy.new()
 var _accumulator := 0.0
 var _acked_seq := 0
-## The input spans the server runs slowed, as [from, to, confirmed]. The server
-## slows a player on the tick its shot lands, a round trip before its state
-## packet says so, and every input predicted at full speed in between would come
-## back as a correction -- the hitch on being slowed. So a slowing shot the client
-## sees touching the player opens a span from the next input, for the shot's
-## duration, before the server says a word; the state packet then confirms it, or
-## a span the server never matched is dropped. The server decides where the
-## player is either way: the span only decides what the client expects.
+## Slows predicted from shots, as [from, to] input spans. The server slows a
+## player on the tick its shot lands, a round trip before any packet says so, and
+## every input predicted at full speed in between would come back as a correction
+## -- the hitch on being slowed. So a slowing shot the client sees touching the
+## player opens a span from the next input, for the shot's duration, before the
+## server says a word. Once the acks are past it the server's own forecast below
+## has the answer, and the span goes. The server decides where the player is
+## either way: these only decide what the client expects.
 var _slow_spans: Array = []
+## The last input the server will run slowed, by its newest ack: the acked input
+## plus the ticks its slowedMs (how long SLOWED outlasts that input) still covers.
+## -1 when the server has no slow on us.
+var _server_slow_to := -1
 
 
 func _init(player: LocalPlayer, tiles: TileMapState) -> void:
@@ -163,6 +165,8 @@ func _pace(position: Vector2, snap: Dictionary, seq: int) -> float:
 
 
 func _slowed_at(seq: int) -> bool:
+	if seq <= _server_slow_to:
+		return true
 	for span in _slow_spans:
 		if seq >= span[SPAN_FROM] and seq <= span[SPAN_TO]:
 			return true
@@ -175,41 +179,26 @@ func _slowed_at(seq: int) -> bool:
 func _probe_slow(seq: int) -> void:
 	if not slow_probe.is_valid():
 		return
-	if _player.effects.has(INVINCIBLE) or _player.effects.has(DOWNED) or _player.effects.has(DODGE):
+	var effects := _player.effects
+	if effects.has(INVINCIBLE) or effects.has(DOWNED) or effects.has(DODGE) or effects.has(WARDED):
 		return
 	var slow_ms: int = slow_probe.call(_player.position, GameConstants.PLAYER_SIZE, seq)
-	if slow_ms > 0:
-		_slow_spans.append([seq + 1, seq + roundi(slow_ms * GameConstants.TICK_RATE / 1000.0), false])
+	if slow_ms <= 0:
+		return
+	if effects.has(VULNERABLE):
+		slow_ms *= 2
+	_slow_spans.append([seq + 1, seq + roundi(slow_ms * GameConstants.TICK_RATE / 1000.0)])
 
 
-## Squares the spans with what the server has said. The state packet's effects are
-## the server's as of the newest ack (it sends a change the tick it happens), so:
-## slowed there confirms a span the ack has reached, and holds open one the ack has
-## run past; not slowed there ends a confirmed span at the ack and drops a predicted
-## one the server has passed without slowing (a dodge, a shot it never landed). A
-## slow no span accounts for (an ability, an AoE) slows the inputs from the next one
-## on, and its unacked inputs come back as corrections as before.
+## Drops the predicted spans the acks have settled: one the server has run past
+## its end, and one it has run a margin past the start of -- by then the server's
+## forecast says whether it landed (and how long it really lasts: a debuff resist
+## or VULNERABLE the client cannot see), or that it never did (a dodge, a deflect).
 func _reconcile_slow_spans() -> void:
-	var server_slowed: bool = _player.effects.has(LocalPlayer.SLOWED)
-	var explained := false
 	for index in range(_slow_spans.size() - 1, -1, -1):
 		var span: Array = _slow_spans[index]
-		if server_slowed:
-			if _acked_seq >= span[SPAN_FROM]:
-				span[SPAN_CONFIRMED] = true
-			if span[SPAN_CONFIRMED] and _acked_seq >= span[SPAN_TO] + SLOW_OVERRUN_TICKS:
-				span[SPAN_TO] = OPEN_SPAN
-			if span[SPAN_TO] >= _acked_seq - SLOW_OVERRUN_TICKS \
-					and (span[SPAN_CONFIRMED] or span[SPAN_FROM] <= _acked_seq + SLOW_MARGIN_TICKS):
-				explained = true
-		elif span[SPAN_CONFIRMED]:
-			span[SPAN_TO] = mini(span[SPAN_TO], _acked_seq)
-		elif _acked_seq >= span[SPAN_FROM] + SLOW_MARGIN_TICKS:
-			span[SPAN_TO] = -1
-		if span[SPAN_TO] <= _acked_seq:
+		if span[SPAN_TO] <= _acked_seq or _acked_seq >= span[SPAN_FROM] + SLOW_MARGIN_TICKS:
 			_slow_spans.remove_at(index)
-	if server_slowed and not explained:
-		_slow_spans.append([input_seq + 1, OPEN_SPAN, true])
 
 
 ## The effect state to record with an input, for accurate replay later. Effects
@@ -247,6 +236,10 @@ func apply_position_ack(data: Dictionary) -> void:
 	# and a lambda on every 32Hz ack. Equivalent to keeping every `seq > acked`.
 	while not _history.is_empty() and int(_history[0]["seq"]) <= acked_seq:
 		_history.pop_front()
+	if acked_seq >= _acked_seq:
+		# One input per tick from the acked one, so its slowedMs is a count of inputs.
+		var slowed_ms := int(data.get("slowedMs", 0))
+		_server_slow_to = acked_seq + int(slowed_ms * GameConstants.TICK_RATE / 1000.0) if slowed_ms > 0 else -1
 	_acked_seq = maxi(_acked_seq, acked_seq)
 	_reconcile_slow_spans()
 
@@ -286,6 +279,7 @@ func apply_position_ack(data: Dictionary) -> void:
 func clear_pending() -> void:
 	_history.clear()
 	_slow_spans.clear()
+	_server_slow_to = -1
 	unacked_inputs = 0
 
 

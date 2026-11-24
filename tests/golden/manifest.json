@@ -178,10 +178,10 @@
   "packet": "PlayerStatePacket",
   "id": 24,
   "offset": 295,
-  "frame_size": 63,
-  "payload_size": 58,
+  "frame_size": 67,
+  "payload_size": 62,
   "compressed": false,
-  "payload_hex": "000000000000002a000004b00000012c0000000300040007000c0000000300000000000003e800000000000007d00000000000000bb800000000",
+  "payload_hex": "000000000000002a000004b00000012c0000000300040007000c0000000300000000000003e800000000000007d00000000000000bb80000000000000000",
   "expected": {
    "playerId": 42,
    "health": 1200,
@@ -196,13 +196,14 @@
     2000,
     3000
    ],
-   "effectStacks": []
+   "effectStacks": [],
+   "immuneEffectIds": []
   }
  },
  {
   "packet": "ObjectMovePacket",
   "id": 3,
-  "offset": 358,
+  "offset": 362,
   "frame_size": 61,
   "payload_size": 56,
   "compressed": false,
@@ -233,7 +234,7 @@
  {
   "packet": "CompactMovePacket",
   "id": 25,
-  "offset": 419,
+  "offset": 423,
   "frame_size": 24,
   "payload_size": 19,
   "compressed": false,
@@ -254,7 +255,7 @@
  {
   "packet": "CommandPacket",
   "id": 7,
-  "offset": 443,
+  "offset": 447,
   "frame_size": 96,
   "payload_size": 91,
   "compressed": false,
@@ -268,7 +269,7 @@
  {
   "packet": "LoadPacket",
   "id": 9,
-  "offset": 539,
+  "offset": 543,
   "frame_size": 194,
   "payload_size": 601,
   "compressed": true,
@@ -458,7 +459,7 @@
  {
   "packet": "LoadPacket",
   "id": 9,
-  "offset": 733,
+  "offset": 737,
   "frame_size": 354,
   "payload_size": 903,
   "compressed": true,

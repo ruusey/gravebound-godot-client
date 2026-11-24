@@ -269,9 +269,12 @@ func test_the_speed_effects_the_server_applies():
 	state.movement.predict(TICK, Vector2.RIGHT)
 	assert_almost_eq(state.local.position.x, _step_px() * 1.5, 0.0001, "SPEEDY is half again")
 	state.local.position = Vector2.ZERO
-	state.local.effects = [LocalPlayer.SLOWED]
+	state.local.effects = []
+	state.apply_packet("PlayerPosAckPacket", {"seq": state.movement.input_seq, "posX": 0.0, "posY": 0.0,
+		"slowedMs": 1000})
 	state.movement.predict(TICK, Vector2.RIGHT)
 	assert_almost_eq(state.local.position.x, _step_px() * 0.5, 0.0001, "SLOWED is half")
+	state.apply_packet("PlayerPosAckPacket", {"seq": state.movement.input_seq, "posX": 0.0, "posY": 0.0})
 	state.local.position = Vector2.ZERO
 	state.local.effects = [LocalPlayer.PARALYZED]
 	var sent := state.movement.predict(TICK, Vector2.RIGHT)
