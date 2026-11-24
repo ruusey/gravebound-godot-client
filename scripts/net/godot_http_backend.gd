@@ -50,6 +50,10 @@ func _spawn() -> HTTPRequest:
 	# request; content there goes through BrowserFetchBackend instead.
 	if not OS.has_feature("web"):
 		request.download_chunk_size = DOWNLOAD_CHUNK_BYTES
+		# Polled per frame, each step of the TLS handshake and each ~16 KB TLS
+		# record read waits for the next frame: prod's 4 MB of content took 12 s
+		# at 60 fps. On a thread it drains as fast as the socket does (~1.6 s).
+		request.use_threads = true
 	# In a browser, fetch() has already inflated a gzipped body but the
 	# Content-Encoding header survives, and HTTPRequest would inflate it again.
 	request.accept_gzip = not OS.has_feature("web")
