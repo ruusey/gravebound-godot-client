@@ -176,6 +176,11 @@ func _ready() -> void:
 	hitches.finished.connect(_on_hitch_report)
 	if chat_actions.commands != null:
 		chat_actions.commands.hitches = hitches
+	if config.perf_log:
+		var telemetry := PerfTelemetry.new()
+		telemetry.state = state
+		telemetry.client = client
+		add_child(telemetry)
 	if config.autopilot:
 		autopilot = Autopilot.new(state, client, portals, game_data)
 		if config.autopilot_realm != "":
@@ -317,6 +322,9 @@ func _process(engine_delta: float) -> void:
 	hitches.mark_network()
 	if autopilot != null:
 		autopilot.tick(delta)
+	elif config.loadout and client.is_in_game() and state.local.is_present():
+		config.loadout = false
+		client.send_server_command("/loadout")
 	input.tick(delta)
 	portals.tick(delta)
 	inventory_input.tick(delta)

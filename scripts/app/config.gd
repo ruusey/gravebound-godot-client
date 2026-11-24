@@ -73,6 +73,10 @@ var frame_pacing := true
 ## The nexus portal the autopilot takes, by label or target node (--autopilot=beach-easy).
 var autopilot_realm := ""
 var hitch_seconds := 0.0
+## Print PerfTelemetry's once-a-second counters to the console (the web perf harness reads them).
+var perf_log := false
+## Ask for /loadout (max gear, invincible) on reaching a realm; load-test bot accounts only.
+var loadout := false
 
 
 static func from_command_line() -> ClientConfig:
@@ -143,6 +147,8 @@ static func parse(args: PackedStringArray, on_web := OS.has_feature("web"),
 			"3d": config.enable_3d = true
 			"prod": pass
 			"no-pacer": config.frame_pacing = false
+			"perf-log": config.perf_log = true
+			"loadout": config.loadout = true
 			"autopilot":
 				config.autopilot = true
 				config.autopilot_realm = value
