@@ -150,6 +150,40 @@ func test_the_world_is_torn_down_either_way():
 	assert_eq(state.local.id, 0, "and we are nobody until the next login")
 
 
+## A teammate and a passer-by in view, and the party the two of us are in.
+func _among_company() -> void:
+	state.apply_packet("LoadPacket", {"players": [
+		WireHelper.player(41, "Ally", Vector2.ZERO), WireHelper.player(42, "Passerby", Vector2.ZERO)]})
+	state.apply_packet("PartyUpdatePacket", {"partyId": 7, "leaderId": 41,
+		"members": [{"playerId": 41}, {"playerId": state.local.id}]})
+
+
+func test_choosing_again_before_the_hangup_leaves_no_phantoms():
+	# The server hangs up in answer to the ack, but the picker can beat that, and the
+	# next session never unloads players or a party it did not send itself.
+	_among_company()
+	_dies(state.local.id)
+	_sign_in()
+	assert_true(state.entities.players.is_empty(), "no one from the last realm in the nearby list")
+	assert_false(state.party.in_party(), "and no party the new character never joined")
+
+
+func test_a_new_character_never_inherits_the_last_ones_world():
+	_among_company()
+	_sign_in()
+	assert_true(state.entities.players.is_empty())
+	assert_false(state.party.in_party())
+
+
+func test_the_session_being_replaced_is_hung_up_quietly():
+	_dies(state.local.id)
+	var closes_before := transport.disconnect_count
+	_sign_in()
+	assert_gt(transport.disconnect_count, closes_before, "the old socket is ours to close now")
+	assert_false(login._status.text.contains("Disconnected"), "a close we asked for is not news")
+	assert_true(client.is_in_game(), "and the new session still comes up")
+
+
 func test_the_next_session_can_die_again():
 	_dies(state.local.id)
 	assert_eq(_acks(), 1)

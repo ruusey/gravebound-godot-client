@@ -22,6 +22,8 @@ var data_service: DataService
 var credentials := {}
 
 var _death_acked := false
+## True while begin() hangs up the session it replaces, which is no news to report.
+var _replacing := false
 
 
 func _init(net_client: GraveBoundClient, realm_state: RealmState,
@@ -43,7 +45,18 @@ func _init(net_client: GraveBoundClient, realm_state: RealmState,
 
 ## Connects and authenticates. The game server does its own lookup against the
 ## data service, so a character uuid is all it needs beyond the credentials.
+##
+## A session starts from an empty world. The last one may still be open -- after
+## a death we wait for the server to hang up -- and nothing it streamed is ever
+## unloaded by the next: its players stay in the nearby list, and its party stays
+## in the party panel because no update addresses a player who is no longer in it.
 func begin(email: String, password: String, character_uuid: String) -> void:
+	if client.state != GraveBoundClient.State.IDLE and client.state != GraveBoundClient.State.CLOSED:
+		_replacing = true
+		client.disconnect_from_server()
+		_replacing = false
+	state.reset_world()
+	state.local.reset()
 	credentials = {"email": email, "password": password, "character_uuid": character_uuid}
 	_death_acked = false
 	print("[net] connecting to %s:%d" % [ServerAddress.game_host(config), ServerAddress.game_port(config)])
@@ -132,7 +145,7 @@ func _on_disconnected(reason: String) -> void:
 	# After a death the disconnect is the server answering our ack, and the
 	# death screen is already up saying so. Raising the login screen over it
 	# would replace the explanation with "Disconnected: ...".
-	if _death_acked:
+	if _death_acked or _replacing:
 		return
 	login_screen.visible = true
 	login_screen.set_status("Disconnected: %s" % reason, true)
