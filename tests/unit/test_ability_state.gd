@@ -121,15 +121,6 @@ func test_a_persistent_effect_replaces_its_predecessor():
 	assert_eq(state.abilities.effects[0]["started"], 1250, "the newer one")
 
 
-func test_a_crowd_of_casts_never_pushes_out_a_boss_warning():
-	state.apply_packet("CreateEffectPacket", {"effectType": EffectType.BEAM_WARNING, "duration": 2500,
-		"targetPosX": 500.0, "targetPosY": 0.0, "radius": 24.0, "ownerId": 0})
-	for i in AbilityState.MAX_EFFECTS + 20:
-		_effect(0)
-	assert_eq(state.abilities.effects.size(), AbilityState.MAX_EFFECTS)
-	assert_eq(state.abilities.effects[0]["type"], EffectType.BEAM_WARNING)
-
-
 func test_the_cast_ring_lingers_for_the_web_clients_duration():
 	state.abilities.show_ring(Vector2.ZERO, 96.0)
 	now += AbilityState.RING_MS - 1

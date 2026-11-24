@@ -103,16 +103,7 @@ func apply_effect(data: Dictionary, entities: EntityRegistry = null, local: Loca
 		fx["origin"] = origin
 	effects.append(fx)
 	if effects.size() > MAX_EFFECTS:
-		effects.remove_at(_oldest_player_effect())   # stay bounded under crowd load
-
-
-## The oldest effect a player cast, so a crowd's casts never push out a boss's
-## warning (no owner); the oldest of all when only enemy effects are left.
-func _oldest_player_effect() -> int:
-	for i in effects.size():
-		if int(effects[i]["owner"]) != 0:
-			return i
-	return 0
+		effects.remove_at(0)   # drop the oldest to stay bounded under crowd load
 
 
 ## Where the caster stands right now, or INF when we cannot place them.

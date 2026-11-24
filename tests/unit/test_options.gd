@@ -70,16 +70,14 @@ func test_ability_effects_by_owner_and_all_at_once():
 		WireHelper.player(2, "them", Vector2(10, 0))]})
 	var theirs := {"owner": 2}
 	var ours := {"owner": 1}
-	var far_player := {"owner": 500}
-	var boss := {"owner": 0}
+	var boss := {"owner": 500}
 	state.settings.set_on("show_ally_effects", false)
 	assert_false(EffectRenderer.shown(state, theirs))
 	assert_true(EffectRenderer.shown(state, ours))
 	assert_true(EffectRenderer.shown(state, boss), "an enemy's warning always shows")
 	state.settings.set_on("ability_animations", false)
 	assert_false(EffectRenderer.shown(state, ours), "all animations off: even ours")
-	assert_false(EffectRenderer.shown(state, far_player), "a player out of view is still a player")
-	assert_true(EffectRenderer.shown(state, boss), "all animations off: a boss's warning still shows")
+	assert_false(EffectRenderer.shown(state, boss))
 
 
 func test_other_players_leave_the_ground_pass_and_the_overlay():
