@@ -1,6 +1,6 @@
 extends GutTest
 
-## A trade from the request to the swap, as the four packets drive it.
+## A trade from its opening to the swap, as the three packets drive it.
 
 var state: RealmState
 var now := 10_000
@@ -39,22 +39,9 @@ func _selections(mine_flags: Array, mine_confirmed: bool, their_flags: Array, th
 		"player1Selection": {"playerId": 4, "selection": their_flags, "itemRefs": [], "confirmed": their_confirmed}}})
 
 
-func test_a_request_names_who_asked_and_lasts_fifteen_seconds():
-	state.apply_packet("RequestTradePacket", {"requestingPlayerName": "Mingau"})
-	assert_eq(trade.request_from, "Mingau")
-	now += TradeSession.REQUEST_TTL_MS - 1
-	trade.expire()
-	assert_eq(trade.request_from, "Mingau", "still standing")
-	now += 1
-	trade.expire()
-	assert_eq(trade.request_from, "", "the server's TTL")
-
-
 func test_an_accepted_trade_opens_with_the_partner_and_their_bag_whichever_side_we_are():
-	state.apply_packet("RequestTradePacket", {"requestingPlayerName": "Mingau"})
 	_open(true)
 	assert_true(trade.active)
-	assert_eq(trade.request_from, "", "the popup goes")
 	assert_eq(trade.partner_name, "Mingau")
 	assert_eq(trade.partner_id, 4)
 	assert_eq(int(trade.partner_item(5)["itemId"]), 105, "their first page slot")
@@ -122,11 +109,9 @@ func test_a_close_while_open_is_held_a_second_and_then_gone():
 
 
 func test_a_decline_before_anything_opened_just_clears():
-	state.apply_packet("RequestTradePacket", {"requestingPlayerName": "Mingau"})
 	state.apply_packet("AcceptTradeRequestPacket", {"accepted": false, "player0": {}, "player1": {}, "player0Inv": [], "player1Inv": []})
 	assert_false(trade.active)
 	assert_false(trade.closing())
-	assert_eq(trade.request_from, "")
 
 
 func test_it_goes_with_the_world():

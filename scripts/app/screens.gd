@@ -26,13 +26,13 @@ var vault: VaultPanel
 var banner: RealmBanner
 var dialogue: DialoguePrompt
 var tutorial_exit: TutorialExitConfirm
-var trade_request: TradeRequestPopup
+## One Accept/Decline prompt per interaction kind, and the notices about them.
+var requests: Array[InteractionRequestPopup] = []
+var interaction_notices: InteractionNotices
 var trade: TradePanel
-var party_invite: PartyInvitePopup
 var party: PartyPanel
 var companions: CompanionPanel
 var companion_actions: CompanionActions
-var pvp_challenge: PvpChallengePopup
 var guild_dialog: CreateGuildDialog
 var guild_roster: GuildRosterPanel
 var guild_invite: GuildInvitePopup
@@ -110,17 +110,20 @@ func build(state: RealmState, game_data: GameData, client: GraveBoundClient,
 	add_child(dialogue)
 	tutorial_exit = TutorialExitConfirm.new()
 	add_child(tutorial_exit)
+	var interaction_actions := InteractionActions.new(state, client)
+	for kind in Interaction.Kind.values():
+		var popup := InteractionRequestPopup.new()
+		popup.setup(state, interaction_actions, kind)
+		add_child(popup)
+		requests.append(popup)
+	interaction_notices = InteractionNotices.new()
+	interaction_notices.setup(state)
+	add_child(interaction_notices)
 	var trade_actions := TradeActions.new(state, client)
-	trade_request = TradeRequestPopup.new()
-	trade_request.setup(state, trade_actions)
-	add_child(trade_request)
 	trade = TradePanel.new()
 	trade.setup(state, game_data, trade_actions)
 	add_child(trade)
 	var party_actions := PartyActions.new(state, client)
-	party_invite = PartyInvitePopup.new()
-	party_invite.setup(state, party_actions)
-	add_child(party_invite)
 	companion_actions = CompanionActions.new(client)
 	party = PartyPanel.new()
 	party.setup(state, game_data, party_actions, hud, companion_actions)
@@ -128,9 +131,6 @@ func build(state: RealmState, game_data: GameData, client: GraveBoundClient,
 	companions = CompanionPanel.new()
 	companions.setup(state, game_data, companion_actions)
 	add_child(companions)
-	pvp_challenge = PvpChallengePopup.new()
-	pvp_challenge.setup(state, chat_actions)
-	add_child(pvp_challenge)
 	var guild_actions := GuildActions.new(state, client, data_service)
 	guild_dialog = CreateGuildDialog.new()
 	guild_dialog.setup(state, guild_actions)
@@ -199,9 +199,10 @@ func build(state: RealmState, game_data: GameData, client: GraveBoundClient,
 ## A click on the bag, the bar or the sheet is a gesture on it, not a shot.
 func captures_mouse() -> bool:
 	return [inventory, abilities, skills, masteries, quests, store, fame, forge, minimap, minimap_expanded, market, trade,
-		trade_request, party, party_invite, pvp_challenge, guild_dialog, guild_roster, guild_invite,
+		party, guild_dialog, guild_roster, guild_invite,
 		nearby, options, chat, player, prompt, loot, leaderboard, touch, tutorial_exit, vault, companions,
-		buy_fame].any(func(panel) -> bool: return panel.captures_mouse())
+		buy_fame].any(func(panel) -> bool: return panel.captures_mouse()) \
+		or requests.any(func(popup: InteractionRequestPopup) -> bool: return popup.captures_mouse())
 
 func captures_keyboard() -> bool:
 	return chat.is_typing() or options.capturing() or guild_dialog.is_typing() \

@@ -857,8 +857,10 @@ static func _party(state: RealmState) -> void:
 		member.call(1, "Ruu", 0, 150, 0, [13000, 0, 13002, 0], [0, 0, 0, 0]),
 		member.call(3, "Bort", 0, 100, 999, [13000, 0, 13002, 0], [0, 0, 0, 0]),
 	]})
-	state.apply_packet("TextPacket", {"from": "SYSTEM", "to": "Ruu",
-		"message": "Zed invited you to a party. Type /party accept or /party decline."})
+	state.apply_packet("InteractionPacket", {"kind": Interaction.Kind.PARTY,
+		"event": Interaction.Event.REQUESTED, "otherName": "Zed", "detail": "", "durationMs": 60_000})
+	state.apply_packet("InteractionPacket", {"kind": Interaction.Kind.PARTY,
+		"event": Interaction.Event.ACCEPTED, "otherName": "Bort", "detail": "", "durationMs": 0})
 
 
 ## A phone mid-play: a party, a few lines of chat and the vitals.

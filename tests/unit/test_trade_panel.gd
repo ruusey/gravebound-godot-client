@@ -7,7 +7,7 @@ var state: RealmState
 var client: GraveBoundClient
 var transport: FakeTransport
 var actions: TradeActions
-var popup: TradeRequestPopup
+var popup: InteractionRequestPopup
 var panel: TradePanel
 
 
@@ -20,8 +20,8 @@ func before_each():
 	client.connection.transport = transport
 	add_child_autofree(client)
 	actions = TradeActions.new(state, client)
-	popup = TradeRequestPopup.new()
-	popup.setup(state, actions)
+	popup = InteractionRequestPopup.new()
+	popup.setup(state, actions.interactions, Interaction.Kind.TRADE)
 	add_child_autofree(popup)
 	panel = TradePanel.new()
 	panel.setup(state, content, actions)
@@ -59,19 +59,16 @@ func test_the_popup_names_who_asked_and_its_buttons_answer():
 	_in_game()
 	popup._process(0.0)
 	assert_false(popup.visible)
-	state.apply_packet("RequestTradePacket", {"requestingPlayerName": "Mingau"})
+	state.apply_packet("InteractionPacket", WireHelper.interaction(Interaction.Kind.TRADE,
+		Interaction.Event.REQUESTED, "Mingau", "", 15_000))
 	popup._process(0.0)
 	assert_true(popup.visible)
 	assert_eq(popup._line.text, "Mingau wants to trade")
 	assert_true(actions.accept())
-	assert_true(actions.decline())
-	var commands := _sent().map(func(p: Dictionary) -> String: return p["data"]["command"])
-	assert_eq(commands.size(), 2)
-	assert_string_contains(commands[0], "accept")
-	assert_string_contains(commands[1], "decline")
-	state.trade.clear()
 	popup._process(0.0)
-	assert_false(popup.visible)
+	assert_false(popup.visible, "answered, so gone at once")
+	assert_true(actions.decline())
+	assert_eq(WireHelper.interaction_actions(transport), ["TRADE ACCEPT", "TRADE DECLINE"])
 
 
 func test_the_panel_shows_both_pages_and_lights_what_is_on_the_table():
@@ -141,8 +138,7 @@ func test_nothing_is_sent_outside_a_realm():
 	assert_false(popup.captures_mouse())
 
 
-func test_a_request_goes_out_as_the_trade_command():
+func test_a_request_goes_out_as_an_interaction_action():
 	_in_game()
 	assert_true(actions.request("Mingau"))
-	assert_string_contains(_sent()[0]["data"]["command"], "trade")
-	assert_string_contains(_sent()[0]["data"]["command"], "Mingau")
+	assert_eq(WireHelper.interaction_actions(transport), ["TRADE REQUEST Mingau"])

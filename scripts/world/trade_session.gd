@@ -1,22 +1,20 @@
 class_name TradeSession
 extends RefCounted
 
-## A trade with another player, from the request to the swap.
+## A trade with another player, once both have agreed to it (the request
+## itself lives in InteractionState).
 ##
-## Four packets: RequestTradePacket names who asked; AcceptTradeRequestPacket
-## opens the trade with both players and both bags, or closes it;
+## Three packets: AcceptTradeRequestPacket opens the trade with both players
+## and both bags, or closes it;
 ## UpdateTradePacket carries both sides' selections and confirmations,
 ## UpdatePlayerTradeSelectionPacket one side's. The web client's rules: only
-## the bag's first page is on the table; a request lives the server's fifteen
-## seconds; a trade closed while open is held a second, both sides shown
+## the bag's first page is on the table; a trade closed while open is held a second, both sides shown
 ## confirmed, before it goes (the native's scheduleTradeOverlayClose too).
 
 const SLOTS := 20
 const FIRST_SLOT := Inventory.BACKPACK_START
-const REQUEST_TTL_MS := 15_000
 const CLOSING_HOLD_MS := 1_000
 
-var request_from := ""
 var active := false
 var partner_name := ""
 var partner_id := 0
@@ -30,7 +28,6 @@ var theirs := {}
 var version := 0
 
 var _clock: Callable
-var _request_at := 0
 var _closing_at := 0
 
 
@@ -39,7 +36,6 @@ func _init(clock: Callable = func() -> int: return Time.get_ticks_msec()) -> voi
 
 
 func clear() -> void:
-	request_from = ""
 	active = false
 	partner_name = ""
 	partner_id = 0
@@ -53,9 +49,6 @@ func clear() -> void:
 
 func apply(name: String, data: Dictionary, local_id: int) -> void:
 	match name:
-		"RequestTradePacket":
-			request_from = String(data.get("requestingPlayerName", ""))
-			_request_at = _clock.call()
 		"AcceptTradeRequestPacket":
 			_apply_accept(data, local_id)
 		"UpdateTradePacket":
@@ -68,7 +61,6 @@ func apply(name: String, data: Dictionary, local_id: int) -> void:
 
 
 func _apply_accept(data: Dictionary, local_id: int) -> void:
-	request_from = ""
 	if bool(data.get("accepted", false)):
 		var first: Dictionary = data.get("player0", {})
 		var second: Dictionary = data.get("player1", {})
@@ -139,12 +131,7 @@ func status() -> String:
 	return TradeStatus.line(mine, theirs, closing(), partner_name)
 
 
-## A request the server would have expired by now, and a closed trade
-## that has been held on screen long enough.
+## A closed trade that has been held on screen long enough.
 func expire() -> void:
-	var now: int = _clock.call()
-	if request_from != "" and now - _request_at >= REQUEST_TTL_MS:
-		request_from = ""
-		version += 1
-	if closing() and now - _closing_at >= CLOSING_HOLD_MS:
+	if closing() and int(_clock.call()) - _closing_at >= CLOSING_HOLD_MS:
 		clear()

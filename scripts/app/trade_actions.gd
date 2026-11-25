@@ -3,31 +3,34 @@ extends RefCounted
 
 ## What the trade panels send.
 ##
-## The server drives trading by command -- /trade, /accept, /decline and
-## /confirm true, the same commands the chat line could send -- and by one
-## packet, the selection, which goes whenever a slot is put on or taken
-## off the table. Cancel is /decline: the server's decline handler ends a
-## pending request and an open trade alike.
+## Requests, answers and the open trade's Cancel go on InteractionActionPacket;
+## the selection packet goes whenever a slot is put on or taken off the table,
+## and /confirm true seals our side.
 
 var state: RealmState
 var client: GraveBoundClient
+var interactions: InteractionActions
 
 
 func _init(realm_state: RealmState, net_client: GraveBoundClient) -> void:
 	state = realm_state
 	client = net_client
+	interactions = InteractionActions.new(realm_state, net_client)
 
 
 func request(player_name: String) -> bool:
-	return _command("/trade %s" % player_name) if player_name.strip_edges() != "" else false
+	return interactions.request(Interaction.Kind.TRADE, player_name)
 
 
 func accept() -> bool:
-	return _command("/accept")
+	return interactions.accept(Interaction.Kind.TRADE)
 
 
+## Answers a request with no, or cancels the trade already open.
 func decline() -> bool:
-	return _command("/decline")
+	if state.trade.active:
+		return interactions.leave(Interaction.Kind.TRADE)
+	return interactions.decline(Interaction.Kind.TRADE)
 
 
 func confirm() -> bool:

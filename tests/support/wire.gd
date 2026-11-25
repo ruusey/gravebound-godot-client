@@ -57,3 +57,17 @@ static func portal(id: int, portal_id: int, position: Vector2, label := "",
 		"targetPurificationProgress": 0, "targetPurificationGoal": 0,
 		"targetTier": tier, "targetModifiers": "",
 	}
+
+
+## An InteractionPacket as the server sends it.
+static func interaction(kind: int, event: int, other_name := "", detail := "", duration_ms := 0) -> Dictionary:
+	return {"kind": kind, "event": event, "otherName": other_name, "detail": detail, "durationMs": duration_ms}
+
+
+## Each InteractionActionPacket sent, as "KIND ACTION target" (e.g. "PARTY KICK Mingau").
+static func interaction_actions(transport: FakeTransport) -> Array:
+	return transport.sent_packets().filter(func(p: Dictionary) -> bool: return p["name"] == "InteractionActionPacket") \
+		.map(func(p: Dictionary) -> String:
+			var data: Dictionary = p["data"]
+			var line := "%s %s" % [Interaction.Kind.keys()[int(data["kind"])], Interaction.Action.keys()[int(data["action"])]]
+			return line + (" " + String(data["targetName"]) if String(data["targetName"]) != "" else ""))

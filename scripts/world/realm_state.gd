@@ -34,7 +34,8 @@ var market: ExchangeMarket
 var minimap: MinimapState
 var trade: TradeSession
 var party: PartyState
-var pvp: PvpChallengeState
+## Trade/party/PvP requests waiting on us, and what became of ours.
+var interactions: InteractionState
 var transition: RealmTransition
 ## The difficulty of the realm being entered, when a portal said so.
 var transition_difficulty := 0.0
@@ -82,8 +83,8 @@ func _init(content: GameData = null, clock: Callable = Callable()) -> void:
 	market = ExchangeMarket.new()
 	minimap = MinimapState.new(content, clock)
 	trade = TradeSession.new(clock)
-	party = PartyState.new(clock)
-	pvp = PvpChallengeState.new(clock)
+	party = PartyState.new()
+	interactions = InteractionState.new(clock)
 	transition = RealmTransition.new(self, clock)
 
 
@@ -133,7 +134,7 @@ func apply_packet(name: String, data: Dictionary) -> void:
 			texts.apply_text_effect(data, entities, projectiles, local)
 			hit_burst.consider(data, entities, projectiles, local, settings)
 		"TextPacket":
-			for listener in [chat, bubbles, transition, minimap, party, pvp]:
+			for listener in [chat, bubbles, transition, minimap]:
 				listener.apply_text(data)
 		"GlobalPlayerPositionPacket":
 			minimap.apply_global_positions(data)
@@ -153,7 +154,9 @@ func apply_packet(name: String, data: Dictionary) -> void:
 			forge.apply_open(data, local.id)
 		"OpenExchangeMarketPacket":
 			market.apply_open(data, local.id)
-		"RequestTradePacket", "AcceptTradeRequestPacket", "UpdateTradePacket", \
+		"InteractionPacket":
+			interactions.apply(data)
+		"AcceptTradeRequestPacket", "UpdateTradePacket", \
 				"UpdatePlayerTradeSelectionPacket":
 			trade.apply(name, data, local.id)
 		"SkillsPacket", "QuestStatePacket":
@@ -193,14 +196,13 @@ func advance(delta: float, input: Vector2, latency_ms: float) -> Array:
 	abilities.expire()
 	minimap.expire()
 	trade.expire()
-	party.expire()
-	pvp.expire()
+	interactions.expire()
 	return to_send
 
 
 func reset_world() -> void:
 	for component in [tiles, entities, projectiles, particles, hit_burst, texts, chat, bubbles,
-			abilities, minimap, party, pvp]:
+			abilities, minimap, party, interactions]:
 		component.clear()
 	close_interactions()
 

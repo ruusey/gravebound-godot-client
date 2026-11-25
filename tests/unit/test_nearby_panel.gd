@@ -128,7 +128,9 @@ func test_the_menu_opens_on_a_click_and_each_choice_is_the_chats_command():
 	assert_true(panel.menu.choose("invite"))
 	panel.open_menu(state.entities.players[20])
 	assert_true(panel.menu.choose("pvp"))
-	assert_eq(_commands(), ["/trade Mingau", "/tp Mingau", "/party invite Mingau", "/pvp Mingau"])
+	assert_eq(_commands(), ["/tp Mingau"])
+	assert_eq(WireHelper.interaction_actions(transport), ["TRADE REQUEST Mingau", "PARTY REQUEST Mingau",
+		"PVP REQUEST Mingau"])
 	assert_false(panel.menu.choose("pvp"), "nothing open")
 
 

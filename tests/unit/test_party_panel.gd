@@ -7,7 +7,7 @@ var state: RealmState
 var client: GraveBoundClient
 var transport: FakeTransport
 var actions: PartyActions
-var popup: PartyInvitePopup
+var popup: InteractionRequestPopup
 var panel: PartyPanel
 var wall := 1_700_000_000_000
 
@@ -22,8 +22,8 @@ func before_each():
 	client.connection.transport = transport
 	add_child_autofree(client)
 	actions = PartyActions.new(state, client)
-	popup = PartyInvitePopup.new()
-	popup.setup(state, actions)
+	popup = InteractionRequestPopup.new()
+	popup.setup(state, actions.interactions, Interaction.Kind.PARTY)
 	add_child_autofree(popup)
 	panel = PartyPanel.new()
 	panel.setup(state, content, actions)
@@ -42,12 +42,8 @@ func _in_game() -> void:
 	transport.clear_sent()
 
 
-## Each CommandPacket sent, back as the line it was typed as.
-func _commands() -> Array:
-	return transport.sent_packets().filter(func(p: Dictionary) -> bool: return p["name"] == "CommandPacket") \
-		.map(func(p: Dictionary) -> String:
-			var parsed: Dictionary = JSON.parse_string(p["data"]["command"])
-			return "/" + " ".join([parsed["command"]] + Array(parsed["args"])))
+func _sent() -> Array:
+	return WireHelper.interaction_actions(transport)
 
 
 func _member(id: int, name: String, class_id := 0, extra := {}) -> Dictionary:
@@ -65,8 +61,8 @@ func _party(leader: int, members: Array) -> void:
 
 
 func _invited() -> void:
-	state.apply_packet("TextPacket", {"from": "SYSTEM", "to": "Ruu",
-		"message": "Zed invited you to a party. Type /party accept or /party decline."})
+	state.apply_packet("InteractionPacket", WireHelper.interaction(Interaction.Kind.PARTY,
+		Interaction.Event.REQUESTED, "Zed", "", 60_000))
 	popup._process(0.0)
 
 
@@ -78,14 +74,14 @@ func test_the_prompt_names_who_asked_and_its_buttons_answer():
 	assert_true(popup.visible)
 	assert_eq(popup._line.text, "Zed wants you in their party")
 	assert_true(actions.accept())
-	assert_eq(_commands(), ["/party accept"])
+	assert_eq(_sent(), ["PARTY ACCEPT"])
 	popup._process(0.0)
 	assert_false(popup.visible, "answered, so gone at once")
 	assert_false(actions.accept(), "nothing to answer now")
 	_invited()
 	transport.clear_sent()
 	assert_true(actions.decline())
-	assert_eq(_commands(), ["/party decline"])
+	assert_eq(_sent(), ["PARTY DECLINE"])
 
 
 func test_the_panel_lists_everyone_but_you_and_counts_the_whole_party():
@@ -122,11 +118,11 @@ func test_the_leader_can_kick_and_only_the_leader():
 	_party(9, [_member(9, "Ruu"), _member(4, "Mingau")])
 	assert_true(panel._rows[0]._kick.visible)
 	panel._rows[0]._kick.pressed.emit()
-	assert_eq(_commands(), ["/party kick Mingau"])
+	assert_eq(_sent(), ["PARTY KICK Mingau"])
 	transport.clear_sent()
 	_party(4, [_member(9, "Ruu"), _member(4, "Mingau")])
 	assert_false(actions.kick("Mingau"), "refused here, as the server would refuse it")
-	assert_eq(_commands(), [])
+	assert_eq(_sent(), [])
 
 
 func test_leave_invite_and_the_gates():
@@ -136,7 +132,7 @@ func test_leave_invite_and_the_gates():
 	assert_true(actions.invite("Mingau"))
 	_party(4, [_member(9, "Ruu"), _member(4, "Mingau")])
 	assert_true(actions.leave())
-	assert_eq(_commands(), ["/party invite Mingau", "/party leave"])
+	assert_eq(_sent(), ["PARTY REQUEST Mingau", "PARTY LEAVE"])
 	state.apply_packet("PartyUpdatePacket", {"partyId": 0, "leaderId": 0, "members": []})
 	panel._process(0.0)
 	assert_false(panel.visible, "partyId 0: gone")

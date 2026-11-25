@@ -335,8 +335,7 @@ func _advance_sections(delta: float) -> void:
 	state.abilities.expire()
 	state.minimap.expire()
 	state.trade.expire()
-	state.party.expire()
-	state.pvp.expire()
+	state.interactions.expire()
 	_section("rest", t)
 
 

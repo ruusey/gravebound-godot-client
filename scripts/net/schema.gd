@@ -4,8 +4,8 @@
 #   python3 tools/gen_schema.py <java-src-root>
 #
 # Source tree : C:\Users\ruuse\Documents\GitHub\openrealm\src
-# Generated   : 2026-11-25 05:50:48Z
-# Packets     : 58
+# Generated   : 2026-11-25 06:12:32Z
+# Packets     : 59
 # Entities    : 22
 #
 # Field tuples are [name, wire_type, is_collection]; list order is wire order.
@@ -36,7 +36,6 @@ const PACKET_NAMES := {
 	13: "UsePortalPacket",
 	14: "TextEffectPacket",
 	15: "PlayerDeathPacket",
-	16: "RequestTradePacket",
 	17: "AcceptTradeRequestPacket",
 	18: "UpdatePlayerTradeSelectionPacket",
 	19: "UpdateTradePacket",
@@ -74,6 +73,8 @@ const PACKET_NAMES := {
 	51: "OpenGuildEditorPacket",
 	52: "GuildInvitePacket",
 	53: "GuildInviteResponsePacket",
+	54: "InteractionPacket",
+	55: "InteractionActionPacket",
 	56: "CompanionActionPacket",
 	57: "CompanionRosterPacket",
 	58: "PartyVitalsPacket",
@@ -106,6 +107,8 @@ const PACKET_IDS := {
 	"HeartbeatPacket": 5,
 	"HotbarSwapPacket": 39,
 	"InteractTilePacket": 28,
+	"InteractionActionPacket": 55,
+	"InteractionPacket": 54,
 	"InvestSkillPointPacket": 40,
 	"ItemStoreMovePacket": 36,
 	"ItemStoreUpdatePacket": 35,
@@ -129,7 +132,6 @@ const PACKET_IDS := {
 	"PlayerStatePacket": 24,
 	"QuestStatePacket": 46,
 	"RealmPurificationPacket": 42,
-	"RequestTradePacket": 16,
 	"SkillsPacket": 43,
 	"SplitStackPacket": 37,
 	"TestPacket": 101,
@@ -264,6 +266,18 @@ const PACKETS := {
 		["tileX", "int", false],
 		["tileY", "int", false],
 	],
+	"InteractionActionPacket": [
+		["kind", "byte", false],
+		["action", "byte", false],
+		["targetName", "string", false],
+	],
+	"InteractionPacket": [
+		["kind", "byte", false],
+		["event", "byte", false],
+		["otherName", "string", false],
+		["detail", "string", false],
+		["durationMs", "int", false],
+	],
 	"InvestSkillPointPacket": [
 		["slot", "byte", false],
 	],
@@ -381,9 +395,6 @@ const PACKETS := {
 		["difficulty", "float", false],
 		["tier", "int", false],
 		["modifiers", "string", false],
-	],
-	"RequestTradePacket": [
-		["requestingPlayerName", "string", false],
 	],
 	"SkillsPacket": [
 		["playerId", "long", false],
