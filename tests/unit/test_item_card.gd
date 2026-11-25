@@ -80,10 +80,22 @@ func test_a_melee_swing_counts_its_bolts_at_the_servers_share():
 	var viewer := {"class_id": BARBARIAN, "stats": {"str": 10, "dex": 25}}
 	var archetype_id := WeaponDps.archetype_id({}, content.item_definition(101))
 	content.library.weapon_archetypes[archetype_id]["melee"] = true
+	var group_id := int(content.item_definition(101)["damage"]["projectileGroupId"])
+	content.library.projectile_groups[group_id]["projectiles"][1]["damage"] = 0
 	# The 3-hit volley is the cone, the group's second projectile a bolt at 40%:
 	# 13.5 x (3 + 0.4) x 3/s.
 	assert_eq(_text(_item(101), "DPS", viewer), "DPS: 138 (6 shots - 3/s)")
 	assert_eq(WeaponDps.of(_item(200), {}, {}, content), {}, "a potion deals nothing")
+
+
+func test_a_melee_bolt_with_its_own_damage_counts_that_flat():
+	var viewer := {"class_id": BARBARIAN, "stats": {"str": 10, "dex": 25}}
+	var definition := content.item_definition(101)
+	content.library.weapon_archetypes[WeaponDps.archetype_id({}, definition)]["melee"] = true
+	var group: Dictionary = content.library.projectile_groups[int(definition["damage"]["projectileGroupId"])]
+	group["projectiles"][1]["damage"] = 20
+	# The 3-hit cone plus a flat 20 bolt: (13.5 x 3 + 20) x 3/s.
+	assert_eq(_text(_item(101), "DPS", viewer), "DPS: 182 (6 shots - 3/s)")
 
 
 func test_the_subtitle_affix_and_stack():
