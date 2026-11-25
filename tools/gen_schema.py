@@ -47,7 +47,7 @@ CLASS_RE = re.compile(r"^\s*(?:public\s+|final\s+|abstract\s+)*class\s+(\w+)", r
 PACKET_ID_RE = re.compile(r"@PacketId\s*\(\s*packetId\s*=\s*\(\s*byte\s*\)\s*(-?\d+)\s*\)")
 FIELD_RE = re.compile(
     r"@SerializableField\s*\(([^)]*)\)\s*"          # annotation args
-    r"(?:@\w+(?:\([^)]*\))?\s*)*"                    # any extra annotations
+    r"(?:@[\w.]+(?:\([^)]*\))?\s*)*"                 # any extra annotations, dotted ones too
     r"(?:public|private|protected)\s+"
     r"(?:static\s+|final\s+|transient\s+)*"
     r"([\w.]+(?:\s*\[\s*\])?)\s+"                    # java type
