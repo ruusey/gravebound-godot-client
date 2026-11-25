@@ -233,8 +233,8 @@ func test_a_bullet_with_no_optional_groups_costs_one_mask_byte():
 	wavy["frequency"] = 3
 	var waved := NetCodec.encode_payload("NetBullet", wavy)
 	# Both carry the mask byte; the difference is the group itself, which is
-	# bool(1) + long(8) + short(2) + short(2).
-	assert_eq(waved.size() - plain.size(), 13, "the wavy group rides only when asked for")
+	# bool(1) + long(8) + short(2) + float(4).
+	assert_eq(waved.size() - plain.size(), 15, "the wavy group rides only when asked for")
 
 
 func test_absent_sections_do_not_appear_when_decoded():
@@ -251,11 +251,12 @@ func test_a_present_section_round_trips():
 	wavy["invert"] = true
 	wavy["timeStep"] = 16
 	wavy["amplitude"] = 12
-	wavy["frequency"] = 3
+	wavy["frequency"] = 7.0588
 	var decoded := NetCodec.decode_payload("NetBullet", NetCodec.encode_payload("NetBullet", wavy))
 	assert_eq(decoded["_mask"], 1, "only the wavy bit is set")
 	assert_true(decoded["invert"])
 	assert_eq(decoded["amplitude"], 12)
+	assert_almost_eq(decoded["frequency"], 7.0588, 0.0001, "a fractional wave speed survives the wire")
 	assert_eq(decoded["timeStep"], 16)
 
 

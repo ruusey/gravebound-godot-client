@@ -4,7 +4,7 @@
 #   python3 tools/gen_schema.py <java-src-root>
 #
 # Source tree : C:\Users\ruuse\Documents\GitHub\openrealm\src
-# Generated   : 2026-11-24 03:07:35Z
+# Generated   : 2026-11-25 05:50:48Z
 # Packets     : 58
 # Entities    : 22
 #
@@ -491,7 +491,7 @@ const ENTITIES := {
 				["invert", "bool", false],
 				["timeStep", "long", false],
 				["amplitude", "short", false],
-				["frequency", "short", false],
+				["frequency", "float", false],
 			]],
 			[2, [
 				["orbitCenterX", "float", false],
