@@ -6,13 +6,13 @@ extends CanvasLayer
 ## sign-in side, CharacterStage the account's -- the whole panel, sized for
 ## a thumb; the leaderboard is on the in-game Menu. Signed in, the form
 ## gives way to a SignedInRow and the email is kept (LastEmail). TermsGate covers an account yet to accept the
-## Terms of Use; the Wiki button opens the player guide and the rest of the wiki.
+## Terms of Use; the wiki link under the form opens the player guide and the rest of the wiki.
 
 signal character_chosen(email: String, password: String, character_uuid: String)
 
 ## Width of the spacer that sits between the server and account in the phone header.
 const HEADER_EDGE := int(TouchSize.ROW)
-## Height of the header row holding the one-line wordmark beside the Wiki button.
+## Height of the header row holding the one-line wordmark.
 const BANNER_HEIGHT := 64.0
 ## The public game wiki, served only on the production domain. Opened in a new
 ## browser tab on web, the OS browser on desktop.
@@ -92,7 +92,7 @@ func _ready() -> void:
 		header.add_theme_constant_override(gap, 12)
 	column.add_child(header)
 	# The phone's header row is shared with the server and account, so it keeps
-	# the stacked logo; elsewhere the one-line wordmark spans up to the Wiki button.
+	# the stacked logo; elsewhere the one-line wordmark spans the header.
 	var spacer := Control.new()
 	spacer.custom_minimum_size = Vector2(HEADER_EDGE, 0)
 	var title := TextureRect.new()
@@ -108,9 +108,6 @@ func _ready() -> void:
 	if PhoneLayout.on:
 		title.custom_minimum_size = PHONE_LOGO
 		title.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	var wiki_button := InventoryLayout.button(header, "Wiki", _open_wiki)
-	wiki_button.tooltip_text = "Open the game wiki (guide, items, classes and more)"
-	wiki_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 
 	# Server picker above the sign-in fields; applies the choice to the config
 	# the connection reads. Hides itself when /servers is empty/unreachable.
@@ -128,6 +125,13 @@ func _ready() -> void:
 			if buy_fame.is_valid():
 				buy_fame.call())
 	column.add_child(_account)
+	# A link under the form rather than beside the logo, where it read as part of the title.
+	var wiki_link := Button.new()
+	wiki_link.text = "Game Wiki"
+	wiki_link.flat = true
+	wiki_link.tooltip_text = "Open the game wiki (guide, items, classes and more)"
+	wiki_link.pressed.connect(_open_wiki)
+	column.add_child(wiki_link)
 
 	if PhoneLayout.on:
 		_phone_header(header, spacer)
@@ -148,6 +152,7 @@ func _ready() -> void:
 	# Every field and button a thumb's height: a phone signs in here too.
 	for part in [_form, _account, _terms]:
 		TouchSize.grow_all(part)
+	TouchSize.grow(wiki_link)
 	if PhoneLayout.on:
 		TouchSize.grow_all(_server_select)
 	TouchFrame.adopt(self)
