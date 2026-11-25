@@ -10,9 +10,10 @@ extends CanvasLayer
 
 signal character_chosen(email: String, password: String, character_uuid: String)
 
-## Width reserved on the header's left so the logo stays centred opposite the
-## Wiki button on the right.
+## Width of the spacer that sits between the server and account in the phone header.
 const HEADER_EDGE := int(TouchSize.ROW)
+## Height of the header row holding the one-line wordmark beside the Wiki button.
+const BANNER_HEIGHT := 64.0
 ## The public game wiki, served only on the production domain. Opened in a new
 ## browser tab on web, the OS browser on desktop.
 const WIKI_URL := "https://grave-bound.com/wiki/"
@@ -90,15 +91,15 @@ func _ready() -> void:
 	for gap in ["separation", "h_separation", "v_separation"]:
 		header.add_theme_constant_override(gap, 12)
 	column.add_child(header)
+	# The phone's header row is shared with the server and account, so it keeps
+	# the stacked logo; elsewhere the one-line wordmark spans up to the Wiki button.
 	var spacer := Control.new()
 	spacer.custom_minimum_size = Vector2(HEADER_EDGE, 0)
-	if not PhoneLayout.on:
-		header.add_child(spacer)
 	var title := TextureRect.new()
-	var logo := HudWidgets.logo_texture()
+	var logo := HudWidgets.logo_texture() if PhoneLayout.on else HudWidgets.banner_texture()
 	if logo != null:
 		title.texture = logo
-	title.custom_minimum_size = Vector2(0, 104)
+	title.custom_minimum_size = Vector2(0, BANNER_HEIGHT)
 	title.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	title.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	title.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR

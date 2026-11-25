@@ -25,21 +25,33 @@ static var _star_icons := {}
 ## logo showed nowhere. Reading the raw bytes into an ImageTexture sidesteps the
 ## importer, so the same file works on web and desktop.
 static var _logo: ImageTexture
+## The one-line wordmark (res://logo_banner.bin), cropped to its lettering.
+static var _banner: ImageTexture
 
 
-## The game logo as a texture, or null if the raw asset is missing. Callers must
-## null-check (a missing logo is cosmetic and must never hard-fail).
+## The stacked game logo as a texture, or null if the raw asset is missing.
+## Callers must null-check (a missing logo is cosmetic and must never hard-fail).
 static func logo_texture() -> ImageTexture:
-	if _logo != null:
-		return _logo
-	var bytes := FileAccess.get_file_as_bytes("res://logo.bin")
+	if _logo == null:
+		_logo = _raw_png("res://logo.bin")
+	return _logo
+
+
+## The one-line wordmark, for wide headers; null-checked like logo_texture.
+static func banner_texture() -> ImageTexture:
+	if _banner == null:
+		_banner = _raw_png("res://logo_banner.bin")
+	return _banner
+
+
+static func _raw_png(path: String) -> ImageTexture:
+	var bytes := FileAccess.get_file_as_bytes(path)
 	if bytes.is_empty():
 		return null
 	var image := Image.new()
 	if image.load_png_from_buffer(bytes) != OK:
 		return null
-	_logo = ImageTexture.create_from_image(image)
-	return _logo
+	return ImageTexture.create_from_image(image)
 
 
 ## A gold five-pointed star drawn into a texture, used instead of the U+2605
