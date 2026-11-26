@@ -63,6 +63,8 @@ const SCAN_EVERY := 20
 const RESCAN_MOVE_SQ := 36.0
 
 var _state: RealmState
+## Set by Main: a tile's light comes up with its tile as it dissolves in.
+var reveal: TerrainReveal
 var _content: GameData
 var _ambient := CanvasModulate.new()
 ## A viewport glow that blooms only what the HDR 2D buffer lets exceed 1.0 -- the
@@ -218,11 +220,18 @@ func _process(delta: float) -> void:
 		_rescan()
 		_last_scan_centre = scan_centre
 	_frames += 1
+	var fading := reveal != null and reveal.is_fading()
 	for i in _pool.size():
 		var light := _pool[i]
-		if light.visible and light.get_meta("flickers", false):
-			light.energy = float(light.get_meta("energy_base", _tile_energy)) \
-				* (1.0 + 0.12 * sin(_time * 9.0 + i * 1.7) + 0.06 * sin(_time * 23.0 + i))
+		if not light.visible:
+			continue
+		var energy := float(light.get_meta("energy_base", _tile_energy))
+		if light.get_meta("flickers", false):
+			energy *= 1.0 + 0.12 * sin(_time * 9.0 + i * 1.7) + 0.06 * sin(_time * 23.0 + i)
+		if fading:
+			energy *= reveal.shown(light.get_meta("cell", Vector2i.ZERO))
+		if light.energy != energy:
+			light.energy = energy
 	# Bullets move every frame, so this is not on the tile scan's cadence.
 	_place_bullet_lights()
 	_place_enemy_lights()
@@ -365,7 +374,7 @@ func _rescan() -> void:
 				var kind: Variant = _emitters.get(tile_id)
 				if kind != null:
 					var at := Vector2(x + 0.5, y + 0.5) * tile
-					found.append([at.distance_squared_to(centre), at, kind, tile_id])
+					found.append([at.distance_squared_to(centre), at, kind, tile_id, cell])
 			if not _web and _occludes(solid.get(cell, -1)):
 				walls.append(cell)
 	found.sort_custom(_nearer)
@@ -380,6 +389,7 @@ func _rescan() -> void:
 			var radius: float = float(kind["radius"]) * (LIQUID_GLOW_RANGE_MUL if liquid else 1.0)
 			light.texture_scale = _scale_for(radius)
 			light.set_meta("flickers", kind["flickers"])
+			light.set_meta("cell", found[i][4])
 			# Base energy (incl. the liquid dimming) is stashed so the per-frame flicker
 			# loop modulates THIS value, not the raw _tile_energy.
 			var energy := _tile_energy * (LIQUID_GLOW_ENERGY_MUL if liquid else 1.0)

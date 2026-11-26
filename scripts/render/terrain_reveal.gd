@@ -1,13 +1,20 @@
 class_name TerrainReveal
 extends Node2D
 
-## Fades freshly streamed terrain in instead of letting it pop.
+## Dissolves terrain in as walking uncovers it, instead of letting it pop.
 ##
-## Each cell a LoadMap reveals in view starts covered in the void's black and
-## uncovers over DURATION_S. Within one packet the cells uncover outward from
-## the player, so a whole realm entry ripples in and a walked strip sweeps in
-## from its nearest edge. Drawn over the ground, walls and bodies (an enemy
-## standing on new ground arrives with it), under bullets and effects.
+## Each cell a LoadMap reveals in view starts covered in the void's black,
+## which breaks up on the art's pixel grid over DURATION_S. Within one packet
+## the cells uncover outward from the player, so a walked strip sweeps in from
+## its near edge. Drawn over both map layers, the liquids and the bodies (an
+## enemy standing on new ground arrives with it), under bullets and effects.
+## A wall's cover runs its full art height, over the face it hangs south.
+## SceneLighting dims a revealed tile's light by shown().
+##
+## Arriving somewhere is never faded. A new map shows at once; so does ground
+## landing off screen (it scrolls in drawn); and when the player jumps more than
+## TELEPORT_PX in a frame, every cover is lifted and the next ARRIVAL_GRACE_S of
+## ground shows at once, since the tiles can land a frame before the position.
 
 const SHADER := preload("res://scripts/render/shaders/terrain_reveal.gdshader")
 const TILE_SIZE := GameConstants.TILE_SIZE
@@ -15,16 +22,22 @@ const DURATION_S := 0.35
 ## Extra wait per tile of distance past the packet's nearest cell.
 const STAGGER_S := 0.03
 const MAX_STAGGER_S := 0.45
+## Further than walking covers in one frame at any speed.
+const TELEPORT_PX := 3.0 * TILE_SIZE
+const ARRIVAL_GRACE_S := 0.3
 
 var state: RealmState
-## Dissolve on the art's pixel grid instead of fading the black.
-var dither := false
+var content: GameData
+## Dissolve on the art's pixel grid (true) or fade the black smoothly.
+var dither := true
 ## Seconds; a capture pins it to freeze the fade.
 var clock := func() -> float: return Time.get_ticks_msec() / 1000.0
-## Cell -> [start_s, cover]; cover is only cached for the draw.
+## Cell -> [start_s, cover_height_px].
 var _active := {}
 var _material := ShaderMaterial.new()
 var _was_drawing := false
+var _last_position := Vector2.INF
+var _arrived_at := -INF
 
 
 func _ready() -> void:
@@ -32,18 +45,22 @@ func _ready() -> void:
 	material = _material
 
 
-## Each frame, from WorldRenderer: takes the cells the last packets revealed.
+## Each frame, from WorldRenderer before the ground (which resets tiles.cleared).
 func refresh() -> void:
 	if state == null:
 		return
 	var tiles := state.tiles
-	if tiles.cleared:
-		_active.clear()
 	var revealed := tiles.revealed_cells
-	if not revealed.is_empty():
-		if state.settings.is_on("terrain_fade_in"):
-			_admit(revealed)
-		revealed.clear()
+	var now: float = clock.call()
+	# Every frame, not short-circuited by a clear, or the next frame sees a jump.
+	var jumped := _jumped()
+	if tiles.cleared or jumped:
+		_active.clear()
+		_arrived_at = now
+	if not revealed.is_empty() and now - _arrived_at >= ARRIVAL_GRACE_S \
+			and state.settings.is_on("terrain_fade_in"):
+		_admit(revealed, now)
+	revealed.clear()
 	_material.set_shader_parameter("dither", dither)
 	var drawing := not _active.is_empty()
 	if drawing or _was_drawing:
@@ -51,13 +68,38 @@ func refresh() -> void:
 	_was_drawing = drawing
 
 
-func _admit(revealed: Dictionary) -> void:
+func is_fading() -> bool:
+	return not _active.is_empty()
+
+
+## How much of `cell` shows, 0 (covered) to 1.
+func shown(cell: Vector2i) -> float:
+	var entry: Variant = _active.get(cell)
+	if entry == null:
+		return 1.0
+	return 1.0 - _cover(entry[0], clock.call())
+
+
+func active_count() -> int:
+	return _active.size()
+
+
+func _jumped() -> bool:
+	if not state.local.is_present():
+		_last_position = Vector2.INF
+		return false
+	var here := state.local.position
+	var jumped := _last_position != Vector2.INF and here.distance_to(_last_position) > TELEPORT_PX
+	_last_position = here
+	return jumped
+
+
+func _admit(revealed: Dictionary, now: float) -> void:
 	var view := ViewRect.of(self)
 	var first := Vector2i(floori(view.position.x / TILE_SIZE), floori(view.position.y / TILE_SIZE))
 	var last := Vector2i(floori(view.end.x / TILE_SIZE), floori(view.end.y / TILE_SIZE))
-	var origin := state.local.position / TILE_SIZE if state.local.is_present() else Vector2(view.get_center() / TILE_SIZE)
-	var now: float = clock.call()
-	# Cells outside the view scroll in already drawn, so they need no fade.
+	var origin := state.local.position / TILE_SIZE if state.local.is_present() \
+		else view.get_center() / TILE_SIZE
 	var cells: Array[Vector2i] = []
 	var nearest := INF
 	for cell: Vector2i in revealed:
@@ -67,24 +109,35 @@ func _admit(revealed: Dictionary) -> void:
 		nearest = minf(nearest, origin.distance_to(Vector2(cell) + Vector2(0.5, 0.5)))
 	for cell in cells:
 		var distance := origin.distance_to(Vector2(cell) + Vector2(0.5, 0.5)) - nearest
-		_active[cell] = [now + minf(distance * STAGGER_S, MAX_STAGGER_S), 1.0]
+		_active[cell] = [now + minf(distance * STAGGER_S, MAX_STAGGER_S), _cover_height(cell)]
+
+
+## The tallest art drawn from `cell` on any layer: a wall's face hangs south of it.
+func _cover_height(cell: Vector2i) -> float:
+	var height := float(TILE_SIZE)
+	if content == null:
+		return height
+	for layer in state.tiles.layers:
+		var tile_id := int(state.tiles.layers[layer].get(cell, 0))
+		if tile_id != 0:
+			height = maxf(height, content.tile_render_height(tile_id))
+	return height
+
+
+static func _cover(start: float, now: float) -> float:
+	var progress := (now - start) / DURATION_S
+	return 1.0 - smoothstep(0.0, 1.0, clampf(progress, 0.0, 1.0))
 
 
 func _draw() -> void:
 	var now: float = clock.call()
 	var done: Array[Vector2i] = []
-	var size := Vector2(TILE_SIZE, TILE_SIZE)
 	for cell: Vector2i in _active:
-		var progress := (now - float(_active[cell][0])) / DURATION_S
-		if progress >= 1.0:
+		var entry: Array = _active[cell]
+		var cover := _cover(entry[0], now)
+		if cover <= 0.0:
 			done.append(cell)
 			continue
-		var cover := 1.0 - smoothstep(0.0, 1.0, maxf(progress, 0.0))
-		draw_rect(Rect2(Vector2(cell) * TILE_SIZE, size), Color(0, 0, 0, cover))
+		draw_rect(Rect2(Vector2(cell) * TILE_SIZE, Vector2(TILE_SIZE, entry[1])), Color(0, 0, 0, cover))
 	for cell in done:
 		_active.erase(cell)
-
-
-func active_count() -> int:
-	return _active.size()
-

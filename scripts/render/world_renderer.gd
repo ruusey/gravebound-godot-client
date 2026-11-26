@@ -27,7 +27,7 @@ var entities := EntityRenderer.new()
 var particles := ParticleRenderer.new()
 ## Hit chips, drawn over the bodies and centred on whatever was hit. RealmState.hit_burst.
 var hit_chips := HitBurstRenderer.new()
-## Newly streamed terrain fading in from black, over the ground and bodies.
+## Newly walked-into terrain dissolving in from black, over both layers and the bodies.
 var reveal := TerrainReveal.new()
 var bullets := BulletRenderer.new()
 var effects := EffectRenderer.new()
@@ -128,6 +128,7 @@ func _wire() -> void:
 	particles.state = state
 	hit_chips.field = state.hit_burst.chips if state != null else null
 	reveal.state = state
+	reveal.content = game_data
 	bullets.state = state
 	bullets.content = game_data
 	effects.state = state

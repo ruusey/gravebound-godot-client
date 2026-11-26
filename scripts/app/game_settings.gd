@@ -39,7 +39,7 @@ const GRAPHICS := {
 	"bloom": ["Light bloom", true],
 	"projectile_lighting": ["Projectile lighting", true],
 	"animated_liquids": ["Animated water & lava", true],
-	"terrain_fade_in": ["Fade in new terrain", true],
+	"terrain_fade_in": ["Dissolve in new terrain", true],
 	"show_transition_screen": ["Show the realm transition screen", true],
 }
 ## The sound switches, each flipping one gate in Sfx. Volume is a float, kept

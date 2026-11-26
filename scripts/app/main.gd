@@ -93,6 +93,7 @@ func _ready() -> void:
 	# and relight the tiles, not the UI (which is on CanvasLayers of its own).
 	_lighting = SceneLighting.new()
 	_lighting.setup(state, game_data)
+	_lighting.reveal = _world.reveal
 	add_child(_lighting)
 
 	_camera = Camera2D.new()
