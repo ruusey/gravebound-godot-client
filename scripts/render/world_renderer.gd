@@ -27,6 +27,8 @@ var entities := EntityRenderer.new()
 var particles := ParticleRenderer.new()
 ## Hit chips, drawn over the bodies and centred on whatever was hit. RealmState.hit_burst.
 var hit_chips := HitBurstRenderer.new()
+## Newly streamed terrain fading in from black, over the ground and bodies.
+var reveal := TerrainReveal.new()
 var bullets := BulletRenderer.new()
 var effects := EffectRenderer.new()
 var debug := CollisionOverlay.new()
@@ -53,7 +55,7 @@ func _ready() -> void:
 	# Liquid sits under the ground: the ground leaves its cells transparent, so the
 	# animated water/lava shows through and props/walls on it still draw over it.
 	# hit_chips sits just over the bodies, so a burst reads on top of the sprite.
-	for layer in [liquid, tiles, entities, hit_chips, particles, bullets, effects, debug]:
+	for layer in [liquid, tiles, entities, hit_chips, reveal, particles, bullets, effects, debug]:
 		layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		add_child(layer)
 	# Projectiles are bright overlays, not part of the lit scene. Unshaded, each bullet
@@ -109,6 +111,8 @@ func _process(_delta: float) -> void:
 	tiles.skip_liquids = animate_liquids
 	if animate_liquids:
 		liquid.refresh()
+	# Before the ground, which resets tiles.cleared.
+	reveal.refresh()
 	tiles.refresh()
 	for layer in _redraw_layers:
 		layer.queue_redraw()
@@ -123,6 +127,7 @@ func _wire() -> void:
 	entities.content = game_data
 	particles.state = state
 	hit_chips.field = state.hit_burst.chips if state != null else null
+	reveal.state = state
 	bullets.state = state
 	bullets.content = game_data
 	effects.state = state

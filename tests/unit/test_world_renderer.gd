@@ -54,7 +54,7 @@ func test_there_is_a_node_per_layer_not_per_entity():
 	})
 	await _render()
 	var layers := renderer.get_child_count()
-	assert_eq(layers, 8, "liquid, ground, entities, hit chips, particles, bullets, effects, the debug view")
+	assert_eq(layers, 9, "liquid, ground, entities, hit chips, terrain reveal, particles, bullets, effects, the debug view")
 
 	for i in 20:
 		state.apply_packet("LoadPacket", {"enemies": [
@@ -69,7 +69,7 @@ func test_the_layers_stack_in_draw_order():
 	# parent on a CanvasItem, and a stray value is what once put a map layer
 	# over the players.
 	assert_eq(renderer.get_children(), [renderer.liquid, renderer.tiles, renderer.entities,
-		renderer.hit_chips, renderer.particles, renderer.bullets, renderer.effects, renderer.debug])
+		renderer.hit_chips, renderer.reveal, renderer.particles, renderer.bullets, renderer.effects, renderer.debug])
 	for layer in renderer.get_children():
 		assert_eq(layer.z_index, 0, "%s leans on child order, not z_index" % layer)
 

@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/tools/terrain_reveal_sheet.gd" id="1"]
+
+[node name="TerrainRevealSheet" type="Node"]
+script = ExtResource("1")

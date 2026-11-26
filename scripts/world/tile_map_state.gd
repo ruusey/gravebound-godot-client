@@ -24,6 +24,8 @@ var height := 0
 var layers := {}
 ## What changed since the ground last redrew (TileRenderer takes both).
 var changed_cells := {}   # Vector2i -> true; a re-sent, unchanged id is none
+## Cells seen for the first time on this map, for TerrainReveal to fade in.
+var revealed_cells := {}   # Vector2i -> true
 ## Breakable walls' crack overlay stage (1-3), collision layer only.
 var cracks := {}   # Vector2i -> stage; intact cells are absent
 var cleared := false
@@ -39,6 +41,7 @@ func clear() -> void:
 	layers.clear()
 	cracks.clear()
 	changed_cells.clear()
+	revealed_cells.clear()
 	cleared = true
 
 
@@ -90,6 +93,8 @@ func apply_load_map(data: Dictionary) -> bool:
 		var cell := Vector2i(int(tile.get("yIndex", 0)), int(tile.get("xIndex", 0)))
 		var tile_id := int(tile.get("tileId", -1))
 		if cells.get(cell) != tile_id:
+			if tile_id != 0 and not cells.has(cell):
+				revealed_cells[cell] = true
 			cells[cell] = tile_id
 			changed_cells[cell] = true
 		if layer == COLLISION_LAYER:
