@@ -12,8 +12,8 @@ config_version=5
 
 config/name="GraveBound Godot Client"
 config/description="Godot client for the GraveBound server (binary TCP protocol, 64Hz server tick)."
-# Stamped from the git tag by CI before export; the auto-updater compares this to
-# the latest GitHub release. Left as "dev" locally so dev runs skip the check.
+; Stamped from the git tag by CI before export; the auto-updater compares this to
+; the latest GitHub release. Left as "dev" locally so dev runs skip the check.
 config/version="dev"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
@@ -193,15 +193,15 @@ environment/defaults/default_clear_color=Color(0, 0, 0, 1)
 # over-bright candles/torches/glowing shots halo, the pixel art under them stays
 # clamped and crisp. Visually neutral on its own (SDR content still clips at 1.0).
 viewport/hdr_2d=true
-# The 3D view's sun is the only shadow caster; 2048 is ample for this look and
-# halves the shadow-atlas cost vs the 4096 default.
+; The 3D view's sun is the only shadow caster; 2048 is ample for this look and
+; halves the shadow-atlas cost vs the 4096 default.
 lights_and_shadows/directional_shadow/size=2048
 lights_and_shadows/directional_shadow/size.mobile=2048
-# The GL-compat renderer lights each mesh with at most this many lights (default
-# 8). The 3D floor/walls are big single meshes, so 8 meant most torches/candles
-# never reached them however bright -- raised so the nearby emitters all land.
-# Native lights the whole viewport, so the big floor/wall meshes must accept many
-# lights; web keeps a tight cap (a .web feature override) for GL-compat perf.
+; The GL-compat renderer lights each mesh with at most this many lights (default
+; 8). The 3D floor/walls are big single meshes, so 8 meant most torches/candles
+; never reached them however bright -- raised so the nearby emitters all land.
+; Native lights the whole viewport, so the big floor/wall meshes must accept many
+; lights; web keeps a tight cap (a .web feature override) for GL-compat perf.
 limits/opengl/max_lights_per_object=64
 limits/opengl/max_lights_per_object.web=24
 limits/opengl/max_renderable_lights=256
