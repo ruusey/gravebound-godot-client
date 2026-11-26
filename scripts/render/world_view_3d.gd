@@ -128,7 +128,7 @@ const LIGHT_REACH_MUL := 1.6
 ## torches/lava are warm accents over it, not the only light. A dark base with bright
 ## pools reads as a cave, wrong for a town; the drama lives in dungeons (DUNGEON_DIM).
 const AMBIENT_LIT := Color(0.6, 0.61, 0.67)
-const AMBIENT_LIT_ENERGY := 0.9
+const AMBIENT_LIT_ENERGY := 1.01
 ## Inside a (non-vault) dungeon, ambient and sun drop to this fraction -- markedly
 ## darker than the daylit overworld, so a dungeon's torch pools carry real contrast.
 const DUNGEON_DIM := 0.2
@@ -138,7 +138,7 @@ const DUNGEON_DIM := 0.2
 ## than a dungeon.
 const OVERWORLD_DIM := 0.4
 ## A daytime sun: strong enough to shade the billboards and throw crisp wall shadows.
-const SUN_LIT_ENERGY := 0.6
+const SUN_LIT_ENERGY := 0.675
 ## Wand/staff/tome bullets carry a travelling arcane glow. Kept small so a volley
 ## doesn't evict the candle/torch lights from the per-object light budget.
 const MAX_BULLET_LIGHTS_3D := 6
