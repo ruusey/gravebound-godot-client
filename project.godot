@@ -201,8 +201,9 @@ lights_and_shadows/directional_shadow/size.mobile=2048
 ; 8). The 3D floor/walls are big single meshes, so 8 meant most torches/candles
 ; never reached them however bright -- raised so the nearby emitters all land.
 ; Native lights the whole viewport, so the big floor/wall meshes must accept many
-; lights; web keeps a tight cap (a .web feature override) for GL-compat perf.
+; lights; web keeps a tighter cap (a .web feature override) for GL-compat perf:
+; its 12 tile + 16 bullet + 6 enemy lights.
 limits/opengl/max_lights_per_object=64
-limits/opengl/max_lights_per_object.web=24
+limits/opengl/max_lights_per_object.web=34
 limits/opengl/max_renderable_lights=256
 limits/opengl/max_renderable_lights.web=64

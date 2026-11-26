@@ -139,9 +139,10 @@ const DUNGEON_DIM := 0.2
 const OVERWORLD_DIM := 0.4
 ## A daytime sun: strong enough to shade the billboards and throw crisp wall shadows.
 const SUN_LIT_ENERGY := 0.675
-## Wand/staff/tome bullets carry a travelling arcane glow. Kept small so a volley
-## doesn't evict the candle/torch lights from the per-object light budget.
-const MAX_BULLET_LIGHTS_3D := 6
+## Glowing bullets carry a travelling light, the nearest this many: enough for a
+## whole wide volley (Worldquake fires 13). The per-object light limit in
+## project.godot leaves room for them beside the tile and enemy lights.
+const MAX_BULLET_LIGHTS_3D := 16
 const BULLET_LIGHT_COLOR := Color(0.72, 0.62, 1.0)
 const BULLET_LIGHT_ENERGY := 25.0
 const BULLET_LIGHT_RANGE := float(TILE) * 2.0
