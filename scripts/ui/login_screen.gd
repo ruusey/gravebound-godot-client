@@ -6,7 +6,7 @@ extends CanvasLayer
 ## sign-in side, CharacterStage the account's -- the whole panel, sized for
 ## a thumb; the leaderboard is on the in-game Menu. Signed in, the form
 ## gives way to a SignedInRow and the email is kept (LastEmail). TermsGate covers an account yet to accept the
-## Terms of Use; the wiki link under the form opens the player guide and the rest of the wiki.
+## Terms of Use; the links under the form open the wiki and the community Discord.
 
 signal character_chosen(email: String, password: String, character_uuid: String)
 
@@ -17,6 +17,7 @@ const BANNER_HEIGHT := 64.0
 ## The public game wiki, served only on the production domain. Opened in a new
 ## browser tab on web, the OS browser on desktop.
 const WIKI_URL := "https://grave-bound.com/wiki/"
+const DISCORD_URL := "https://discord.gg/Hcfx5MdQr"
 ## The phone's card: as wide as a landscape phone, the logo, the server and
 ## the account in one header row so the form or the characters get the rest.
 const PHONE_WIDTH := 800.0
@@ -125,13 +126,11 @@ func _ready() -> void:
 			if buy_fame.is_valid():
 				buy_fame.call())
 	column.add_child(_account)
-	# A link under the form rather than beside the logo, where it read as part of the title.
-	var wiki_link := Button.new()
-	wiki_link.text = "Game Wiki"
-	wiki_link.flat = true
-	wiki_link.tooltip_text = "Open the game wiki (guide, items, classes and more)"
-	wiki_link.pressed.connect(_open_wiki)
+	# Links under the form rather than beside the logo, where they read as part of the title.
+	var wiki_link := _link("Game Wiki", "Open the game wiki (guide, items, classes and more)", WIKI_URL)
 	column.add_child(wiki_link)
+	var discord_link := _link("Join our Discord", "Open the GraveBound community Discord", DISCORD_URL)
+	column.add_child(discord_link)
 
 	if PhoneLayout.on:
 		_phone_header(header, spacer)
@@ -153,6 +152,7 @@ func _ready() -> void:
 	for part in [_form, _account, _terms]:
 		TouchSize.grow_all(part)
 	TouchSize.grow(wiki_link)
+	TouchSize.grow(discord_link)
 	if PhoneLayout.on:
 		TouchSize.grow_all(_server_select)
 	TouchFrame.adopt(self)
@@ -250,13 +250,22 @@ func _apply_server(server: Dictionary) -> void:
 		client_config.socket_path = ""
 
 
-## Open the wiki in a new browser tab on web (so the game is not navigated away
-## from), the OS browser on desktop. Mirrors GuildActions.open_editor.
-func _open_wiki() -> void:
+func _link(text: String, tooltip: String, url: String) -> Button:
+	var link := Button.new()
+	link.text = text
+	link.flat = true
+	link.tooltip_text = tooltip
+	link.pressed.connect(_open_url.bind(url))
+	return link
+
+
+## Open in a new browser tab on web (so the game is not navigated away from),
+## the OS browser on desktop. Mirrors GuildActions.open_editor.
+func _open_url(url: String) -> void:
 	if OS.has_feature("web"):
-		JavaScriptBridge.eval("window.open(%s, '_blank')" % JSON.stringify(WIKI_URL))
+		JavaScriptBridge.eval("window.open(%s, '_blank')" % JSON.stringify(url))
 	else:
-		OS.shell_open(WIKI_URL)
+		OS.shell_open(url)
 
 
 func set_status(text: String, is_error := false) -> void:
