@@ -60,8 +60,8 @@ var lag_ms := 0.0
 var lag_jitter_ms := 0.0
 ## Show the phone's sticks and buttons here, where there is no touchscreen.
 var touch := false
-## Render the realm in 3D (walls as boxes, entities billboarded). Prototype,
-## behind --3d or the web's ?3d=1; off is the normal 2D client.
+## Start in the 2.5D view (walls as boxes, entities billboarded): --3d or the
+## web's ?3d=1 tick the Graphics option, which can be unticked like any other.
 var enable_3d := false
 ## Where the options are kept. Empty -- a test's config -- keeps nothing.
 var settings_path := ""

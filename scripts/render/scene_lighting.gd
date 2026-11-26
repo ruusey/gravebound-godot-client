@@ -439,6 +439,14 @@ func _ambient_color(dark: bool) -> Color:
 	return Color(c.r * _ambient_mul, c.g * _ambient_mul, c.b * _ambient_mul, 1.0)
 
 
+## Off while another view draws the world (the 2.5D view): no ambient, lights or glow.
+func set_active(on: bool) -> void:
+	visible = on
+	set_process(on)
+	if not on:
+		_set_bloom(false)
+
+
 ## In an assembled dungeon that isn't the personal vault -- where the ambient dims.
 func _in_dungeon() -> bool:
 	return _state.tiles.dungeon_id >= 0 and not _content.maps.is_vault(_state.tiles.map_id)

@@ -193,8 +193,11 @@ func _ready() -> void:
 
 	if OS.has_feature("web") and _url_wants_3d():
 		config.enable_3d = true
+	# --3d and ?3d=1 just tick the option; it can be unticked like any other.
 	if config.enable_3d:
-		_enable_3d_view()
+		state.settings.set_on("view_25d", true)
+	state.settings.changed.connect(_apply_view)
+	_apply_view()
 
 	# The moment before the frame is drawn, for the motion trace: the
 	# transform the world is about to be drawn with, against the player.
@@ -230,6 +233,17 @@ func _url_wants_3d() -> bool:
 	return search is String and "3d=1" in search
 
 
+## Shows the 2.5D or the flat view, whichever the options ask for.
+func _apply_view() -> void:
+	var wanted := state.settings.is_on("view_25d")
+	if wanted == (_view_3d != null):
+		return
+	if wanted:
+		_enable_3d_view()
+	else:
+		_disable_3d_view()
+
+
 ## Swaps the 2D world for the 3D one: hide and stop the flat renderer so it is
 ## not the sole consumer of the tile-change flags, and stand the 3D view up in
 ## the same viewport, under the HUD.
@@ -237,8 +251,7 @@ func _enable_3d_view() -> void:
 	_world.hide()
 	_world.set_process(false)
 	# The 2D lights have nothing to light once the flat world is hidden.
-	_lighting.hide()
-	_lighting.set_process(false)
+	_lighting.set_active(false)
 	_view_3d = WorldView3D.new()
 	_view_3d.setup(state, game_data)
 	# The overlay (names, bars, damage numbers, bubbles, loot) keeps drawing, but
@@ -253,6 +266,25 @@ func _enable_3d_view() -> void:
 	# the same unprojection shooting already uses -- not the flat 2D mouse.
 	caster.world_mouse = _view_3d.get_ground_point
 	add_child(_view_3d)
+
+
+## Undoes _enable_3d_view: the 3D view goes, and the flat world, its lights, the
+## overlay and the 2D aim come back.
+func _disable_3d_view() -> void:
+	remove_child(_view_3d)
+	_view_3d.queue_free()
+	_view_3d = null
+	input.view_yaw = 0.0
+	input.world_mouse = func() -> Variant: return null
+	caster.world_mouse = func() -> Variant: return null
+	screens.overlay.project_3d = false
+	screens.overlay.set_process(true)
+	# The flat ground missed every tile change while hidden, so it is drawn again
+	# whole -- the same path as entering a map, which also skips the terrain dissolve.
+	state.tiles.cleared = true
+	_world.show()
+	_world.set_process(true)
+	_lighting.set_active(true)
 
 
 func _on_pre_draw() -> void:

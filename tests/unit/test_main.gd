@@ -425,3 +425,36 @@ func test_a_refused_command_lands_in_the_chat_as_the_web_client_shows_it():
 	var last: Dictionary = lines[-1]
 	assert_true(ChatLog.is_system(last))
 	assert_eq(last["message"], "Error: Admin mode is OFF - type /admin to re-enable")
+
+
+# --- 2.5D view ---------------------------------------------------------------
+
+func test_the_25d_option_swaps_the_views_both_ways():
+	assert_null(main._view_3d, "flat by default")
+	main.state.settings.set_on("view_25d", true)
+	assert_not_null(main._view_3d)
+	assert_false(main._world.visible)
+	assert_false(main._lighting.visible)
+	main.state.settings.set_on("view_25d", false)
+	assert_null(main._view_3d)
+	assert_true(main._world.visible)
+	assert_true(main._world.is_processing())
+	assert_true(main._lighting.is_processing())
+	assert_true(main.screens.overlay.is_processing())
+	assert_false(main.screens.overlay.project_3d, "names pinned through the 2D camera again")
+
+
+func test_leaving_the_25d_view_hands_aim_back_to_the_flat_world():
+	main.state.settings.set_on("view_25d", true)
+	main.input.view_yaw = 1.2
+	main.state.settings.set_on("view_25d", false)
+	assert_eq(main.input.view_yaw, 0.0, "WASD is screen-aligned again")
+	assert_null(main.input.world_mouse.call())
+	assert_null(main.caster.world_mouse.call())
+	assert_true(main.state.tiles.cleared, "the flat ground is drawn again whole")
+
+
+func test_the_3d_flag_ticks_the_option():
+	var flagged := _build(_config({"enable_3d": true}))
+	assert_true(flagged.state.settings.is_on("view_25d"))
+	assert_not_null(flagged._view_3d)

@@ -1,7 +1,7 @@
 class_name WorldView3D
 extends Node3D
 
-## A real-3D view of the realm, behind the ?3d=1 flag: the ground textured
+## A real-3D view of the realm, the Graphics "2.5D view" option: the ground textured
 ## quads (MultiMesh), the walls extruded boxes (MultiMesh), and every prop,
 ## player, enemy, loot, portal and projectile a sprite in 3D -- the same art the
 ## 2D renderer draws. Standing things (props, characters) are upright Y-billboards

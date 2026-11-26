@@ -41,6 +41,7 @@ const GRAPHICS := {
 	"animated_liquids": ["Animated water & lava", true],
 	"terrain_fade_in": ["Dissolve in new terrain", true],
 	"show_transition_screen": ["Show the realm transition screen", true],
+	"view_25d": ["2.5D view", false],
 }
 ## The sound switches, each flipping one gate in Sfx. Volume is a float, kept
 ## beside them (sound_volume), not a switch.

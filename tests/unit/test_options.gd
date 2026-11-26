@@ -23,10 +23,10 @@ func after_each():
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
 
 
-func test_every_switch_starts_on_and_a_choice_is_kept():
+func test_every_switch_starts_at_its_default_and_a_choice_is_kept():
 	for table in [GameSettings.DISPLAY, GameSettings.GRAPHICS]:
 		for key in table:
-			assert_true(state.settings.is_on(key), key)
+			assert_eq(state.settings.is_on(key), table[key][1], key)
 	state.settings.load_from(PATH)
 	state.settings.set_on("show_names", false)
 	state.settings.set_on("vsync", false)
