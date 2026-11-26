@@ -498,6 +498,25 @@ func test_a_low_camera_still_shows_damage_numbers():
 	assert_eq(main.screens.overlay.texts, 1, "the hit ahead shows; the one behind the camera doesn't")
 
 
+func test_portal_captions_show_in_25d_high_or_low():
+	_login()
+	main.state.settings.set_on("view_25d", true)
+	var view: WorldView3D = main._view_3d
+	var ahead: Vector2 = main.state.local.render_centre() + Vector2(-16.0, -216.0)
+	var behind: Vector2 = main.state.local.render_centre() + Vector2(-16.0, 184.0)
+	main.state.apply_packet("LoadPacket", {"portals": [
+		{"id": 6, "portalId": 1, "toRealmId": 2, "pos": {"x": ahead.x, "y": ahead.y},
+			"targetLabel": "Grasslands", "targetTier": 2},
+		{"id": 7, "portalId": 1, "toRealmId": 3, "pos": {"x": behind.x, "y": behind.y},
+			"targetLabel": "Grotto", "targetTier": 1}]})
+	view._process(0.016)
+	assert_eq(main.screens.overlay._labels.captions, 2, "both portals named from above")
+	view._descent_goal = 1.0
+	view._descent = 1.0
+	view._process(0.016)
+	assert_eq(main.screens.overlay._labels.captions, 1, "low, the portal ahead is named; the one behind the camera isn't")
+
+
 func test_looking_into_the_sun_fills_the_sprites():
 	_login()
 	main.state.settings.set_on("lighting", true)

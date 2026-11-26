@@ -118,8 +118,8 @@ func refresh() -> void:
 	_enemy_tags.sweep()
 	_bars.finish()
 	_melee.place(grounded, content, to_screen, world_aim.call())
-	_labels.show_all(state, content, to_screen, view, project_3d,
-		_place_number if exact else Callable())
+	_labels.show_all(state, content, to_screen, view,
+		_place_number if exact else Callable(), _place_ground if project_3d else Callable())
 	_loot.show_all(grounded, content, to_screen, _root.size)
 	_vignette.follow(state, to_screen, _root.size)
 
@@ -149,6 +149,10 @@ func _anchor(to_screen: Transform2D, world_topleft: Vector2, world_size: float,
 
 func _place_number(world: Vector2) -> Variant:
 	return world_point.call(world, NUMBER_LIFT)
+
+
+func _place_ground(world: Vector2) -> Variant:
+	return world_point.call(world, 0.0)
 
 
 ## The square on screen a body of world_size at world_topleft takes, which its tag
