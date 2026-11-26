@@ -30,6 +30,8 @@ var content: GameData
 var queue := EntityQueue.new()
 ## Tall walls and canopies, drawn in among the bodies by depth.
 var covers := WallCovers.new()
+## Ability and enemy effects, drawn under the bodies they touch.
+var effects := SortedEffects.new()
 var counts := EMPTY_COUNTS.duplicate()
 var _static_outlined := 0
 
@@ -37,10 +39,12 @@ var _static_outlined := 0
 func _draw() -> void:
 	if state == null or content == null:
 		covers.drawn = 0
+		effects.drawn = 0
 		return
 	var view := ViewRect.of(self)
 	covers.collect(state, content, view)
-	counts = draw_ground(self, queue.build(state, content, view), covers)
+	effects.collect(state, view)
+	counts = draw_ground(self, queue.build(state, content, view), covers, effects)
 
 
 ## Shadows go down in a pass of their own, ahead of the bodies, so the
@@ -50,7 +54,8 @@ func _draw() -> void:
 ## is sorted on feet -- a later entity is always lower, so its shadow can
 ## never reach the body of one already drawn. Measured: interleaving the two
 ## loops renders byte-identical output.
-func draw_ground(canvas: CanvasItem, items: Array, walls: WallCovers = null) -> Dictionary:
+func draw_ground(canvas: CanvasItem, items: Array, walls: WallCovers = null,
+		sorted_effects: SortedEffects = null) -> Dictionary:
 	var counts := EMPTY_COUNTS.duplicate()
 	_static_outlined = 0
 	# Every body on the pixel grid -- the same snap the overlay applies to
@@ -61,18 +66,21 @@ func draw_ground(canvas: CanvasItem, items: Array, walls: WallCovers = null) -> 
 	# per entity inside PixelSnap.world (an affine_inverse per sprite per frame).
 	var to_screen := canvas.get_global_transform_with_canvas()
 	var inverse := to_screen.affine_inverse()
+	var sorted := walls != null or sorted_effects != null
 	var depths := PackedInt64Array()
-	if walls != null:
+	if sorted:
 		depths.resize(items.size())
 	for i in items.size():
 		var item: Dictionary = items[i]
-		if walls != null:
+		if sorted:
 			depths[i] = EntityQueue.depth(item)
 		# Smooth items (remote players) keep their interpolated sub-pixel position so
 		# slow walkers glide instead of stair-stepping between whole pixels.
 		if item.get("smooth", false):
 			continue
 		item["pos"] = inverse * (to_screen * item["pos"]).round()
+	if sorted_effects != null:
+		sorted_effects.place(items, depths)
 	# GroundShadow.under_entity, inlined: one ellipse per body.
 	var shadow := Color(0.0, 0.0, 0.0, GroundShadow.ENTITY_ALPHA)
 	var flatten := Vector2(1.0, GroundShadow.FLATTEN)
@@ -93,10 +101,14 @@ func draw_ground(canvas: CanvasItem, items: Array, walls: WallCovers = null) -> 
 		var item: Dictionary = items[i]
 		if walls != null:
 			walls.draw_through(canvas, depths[i])
+		if sorted_effects != null:
+			sorted_effects.draw_through(canvas, i)
 		_draw_entity(canvas, item, outlines)
 		counts[item["kind"]] += 1
 	if walls != null:
 		walls.draw_rest(canvas)
+	if sorted_effects != null:
+		sorted_effects.draw_rest(canvas)
 	return counts
 
 

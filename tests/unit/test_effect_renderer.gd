@@ -72,3 +72,47 @@ func test_the_tier_palette_is_the_web_clients():
 	assert_eq(EffectRenderer.TIER_COLOURS.size(), 7)
 	assert_eq(EffectRenderer.TIER_COLOURS[0], Color("c0c0c0"))
 	assert_eq(EffectRenderer.TIER_COLOURS[6], Color("c060ff"))
+
+
+func test_effects_are_drawn_in_among_the_bodies_not_over_them():
+	_effect(Vector2(20, 20))
+	state.abilities.show_ring(Vector2.ZERO, 96.0)
+	await wait_process_frames(2)
+	assert_eq(renderer.entities.effects.drawn, 1, "the effect is drawn in the entities' depth pass")
+	assert_eq(renderer.effects.drawn, 1, "the overlay keeps only the cast ring")
+	assert_eq(_drawn(), 2)
+
+
+func _placed(effects: Array, bodies: Array) -> PackedInt64Array:
+	var realm := RealmState.new(content, func() -> int: return now)
+	for at in effects:
+		realm.abilities.effects.append({"type": 0, "pos": at, "radius": 20.0, "duration_ms": 1000,
+			"target": Vector2.ZERO, "tier": 0, "owner": 0, "started": now})
+	var depths := PackedInt64Array()
+	for body in bodies:
+		depths.append(EntityQueue.depth(body))
+	var sorted := SortedEffects.new()
+	sorted.collect(realm, Rect2(-1000, -1000, 2000, 2000))
+	sorted.place(bodies, depths)
+	return sorted.slots()
+
+
+func test_an_effect_draws_before_the_first_body_it_touches():
+	var far := {"pos": Vector2(400, 0), "size": 32.0}
+	var target := {"pos": Vector2(0, 0), "size": 32.0}
+	var in_front := {"pos": Vector2(0, 30), "size": 32.0}
+	var slots := _placed([Vector2(16, 16)], [far, target, in_front])
+	assert_eq(slots[0], 1, "under the body it plays on; the far body does not move it")
+
+
+func test_an_effect_touching_no_body_draws_after_them_all():
+	var body := {"pos": Vector2(0, 100), "size": 32.0}
+	var slots := _placed([Vector2(300, 0)], [body])
+	assert_eq(slots[0], 1, "after every body, so over every wall")
+
+
+func test_a_raised_body_is_found_after_the_ground_ones():
+	var ground := {"pos": Vector2(500, 500), "size": 32.0}
+	var flying := {"pos": Vector2(0, 0), "size": 64.0, "layer": 1}
+	var slots := _placed([Vector2(32, 32)], [ground, flying])
+	assert_eq(slots[0], 1)

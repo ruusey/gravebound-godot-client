@@ -3,8 +3,10 @@ extends Node2D
 
 ## What a cast leaves on the ground, and who is still casting.
 ##
-## Drawn between the bullets and the labels: over the entities, under the
-## names. Each effect type is drawn by its own file under render/effects,
+## In the 2D world the effects themselves are drawn by EntityRenderer, sorted in
+## among the bodies (SortedEffects), so each sits behind the entity it plays on;
+## this layer keeps the cast ring and cast bars over everything. The 3D view
+## paints the effects here too, flat in its own viewport. Each effect type is drawn by its own file under render/effects,
 ## found through Fx.for_type by the wire's `effectType`; anything without
 ## one gets FxGeneric, the native client's generic form in the hue its
 ## table gives the type.
@@ -25,6 +27,9 @@ const FOLLOWS_OWNER := [EffectType.QUEST_COMPLETE]
 
 var state: RealmState
 var drawn := 0
+## Off when another layer draws the effects in depth order (EntityRenderer).
+var include_effects := true
+var _own := SortedEffects.new()
 
 
 func _draw() -> void:
@@ -72,18 +77,10 @@ func paint(canvas: CanvasItem, realm: RealmState, view: Rect2) -> int:
 	var abilities := realm.abilities
 	var now := abilities.now()
 	var count := 0
-	for fx in abilities.effects:
-		if fx["type"] in FOLLOWS_OWNER:
-			follow_owner(realm, fx)
-		if not view.intersects(bounds(fx)) or not shown(realm, fx):
-			continue
-		var progress := clampf(float(now - fx["started"]) / maxf(float(fx["duration_ms"]), 1.0), 0.0, 1.0)
-		var colour: Color = TIER_COLOURS[clampi(fx["tier"], 0, TIER_COLOURS.size() - 1)]
-		var drawer := Fx.for_type(fx["type"])
-		if not drawer.is_valid():
-			drawer = FxGeneric.draw
-		drawer.call(canvas, fx, progress, colour, now - fx["started"])
-		count += 1
+	if include_effects:
+		_own.collect(realm, view)
+		_own.draw_rest(canvas)
+		count += _own.drawn
 	for ring in abilities.rings:
 		var alpha := 1.0 - clampf(float(now - ring["started"]) / float(AbilityState.RING_MS), 0.0, 1.0)
 		CircleStamp.ring(canvas, ring["pos"], ring["radius"], 2.0, Color(RING_COLOUR, alpha * 0.75), 64)
@@ -98,3 +95,13 @@ func paint(canvas: CanvasItem, realm: RealmState, view: Rect2) -> int:
 		canvas.draw_rect(Rect2(origin, Vector2(CAST_BAR.x * abilities.cast_progress(id), CAST_BAR.y)), CAST_FILL)
 		count += 1
 	return count
+
+
+## Draws one effect at its age `now`, by its type's drawer.
+static func draw_effect(canvas: CanvasItem, fx: Dictionary, now: int) -> void:
+	var progress := clampf(float(now - fx["started"]) / maxf(float(fx["duration_ms"]), 1.0), 0.0, 1.0)
+	var colour: Color = TIER_COLOURS[clampi(fx["tier"], 0, TIER_COLOURS.size() - 1)]
+	var drawer := Fx.for_type(fx["type"])
+	if not drawer.is_valid():
+		drawer = FxGeneric.draw
+	drawer.call(canvas, fx, progress, colour, now - fx["started"])

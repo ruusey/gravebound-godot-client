@@ -93,7 +93,7 @@ var draw_stats: Dictionary:
 		stats["feathers"] = tiles.feathers_drawn
 		stats["bullets"] = bullets.drawn
 		stats["particles"] = particles.drawn
-		stats["effects"] = effects.drawn
+		stats["effects"] = effects.drawn + entities.effects.drawn
 		stats["wall_tops"] = entities.covers.drawn
 		stats["object_shadows"] = int(tiles.stats.get("shadows", 0))
 		stats["wall_bands"] = int(tiles.stats.get("bands", 0))
@@ -132,5 +132,6 @@ func _wire() -> void:
 	bullets.state = state
 	bullets.content = game_data
 	effects.state = state
+	effects.include_effects = false   # EntityRenderer sorts them in with the bodies
 	debug.state = state
 	debug.content = game_data
