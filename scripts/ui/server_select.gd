@@ -7,11 +7,8 @@ extends VBoxContainer
 ## next connect dials it. Hidden (a no-op) when /servers is empty or unreachable,
 ## so the client falls back to its compiled-in default route.
 ##
-## Latency is the WebSocket handshake round-trip to each server's own connect
-## URL (wss via the nginx route on web, raw ws on native) — the real path the
-## game traffic will take, not an ICMP ping the browser could not do anyway.
-
-const PING_TIMEOUT_MS := 4000
+## Latency is each server's HTTP ping round trip (ServerPing): one request on
+## a warm connection, never the connect, TLS or socket upgrade.
 
 ## A direct-to-localhost entry pinned to the bottom of the list, so a locally
 ## run server is reachable without a /servers registry. `local` tells the login
@@ -27,7 +24,7 @@ var apply_server: Callable
 var _dropdown: OptionButton
 var _heading: Label
 var _servers: Array = []
-# Parallel to _servers: {state: "pending"|"done"|"fail", socket, start_ms, ms}.
+# Parallel to _servers: a ServerPing each, null once it has been shown.
 var _pings: Array = []
 
 
@@ -66,7 +63,7 @@ func _load() -> void:
 	_pings.clear()
 	for server in _servers:
 		_dropdown.add_item(_label(server, "..."))
-		_pings.append({"state": "pending", "socket": null, "start_ms": 0, "ms": 0})
+		_pings.append(null)
 	visible = true
 	_dropdown.select(0)
 	# Only auto-apply when a registered server leads the list; if the fetch failed
@@ -84,52 +81,26 @@ func _on_selected(index: int) -> void:
 
 func _start_pings() -> void:
 	for i in _servers.size():
-		var url := _connect_url(_servers[i])
-		var socket := WebSocketPeer.new()
-		if socket.connect_to_url(url) != OK:
-			_pings[i]["state"] = "fail"
-			_dropdown.set_item_text(i, _label(_servers[i], "offline"))
-			continue
-		_pings[i]["socket"] = socket
-		_pings[i]["start_ms"] = Time.get_ticks_msec()
+		var ping := ServerPing.new()
+		ping.start(ServerPing.url(_servers[i], data_service.base_url))
+		_pings[i] = ping
 	set_process(true)
 
 
 func _process(_delta: float) -> void:
 	var pending := 0
 	for i in _pings.size():
-		var ping: Dictionary = _pings[i]
-		if ping["state"] != "pending":
+		var ping: ServerPing = _pings[i]
+		if ping == null:
 			continue
-		pending += 1
-		var socket: WebSocketPeer = ping["socket"]
-		socket.poll()
-		var now := Time.get_ticks_msec()
-		var state := socket.get_ready_state()
-		if state == WebSocketPeer.STATE_OPEN:
-			ping["ms"] = now - ping["start_ms"]
-			ping["state"] = "done"
-			socket.close()
-			_dropdown.set_item_text(i, _label(_servers[i], "%d ms" % ping["ms"]))
-		elif state == WebSocketPeer.STATE_CLOSED or now - ping["start_ms"] > PING_TIMEOUT_MS:
-			ping["state"] = "fail"
-			socket.close()
-			_dropdown.set_item_text(i, _label(_servers[i], "offline"))
+		var ms := ping.result()
+		if ms == ServerPing.PENDING:
+			pending += 1
+			continue
+		_pings[i] = null
+		_dropdown.set_item_text(i, _label(_servers[i], "%d ms" % ms if ms >= 0 else "offline"))
 	if pending == 0:
 		set_process(false)
-
-
-## wss via the page's nginx route on TLS web; raw ws to the node otherwise.
-func _connect_url(server: Dictionary) -> String:
-	# Local liveness is probed over ws regardless of how it'll actually be dialed
-	# (desktop uses raw TCP) -- WebSocketPeer can't open a raw socket, and 2222/2223
-	# are the same server, so a ws hit still means "a local server is up".
-	if server.get("local", false):
-		return "ws://127.0.0.1:%d" % int(server.get("webSocketPort", 2223))
-	if data_service.base_url.begins_with("https"):
-		var authority := data_service.base_url.substr(data_service.base_url.find("://") + 3)
-		return "wss://%s%s" % [authority, str(server.get("route", ""))]
-	return "ws://%s:%d" % [str(server.get("host", "")), int(server.get("webSocketPort", 2223))]
 
 
 func _label(server: Dictionary, latency: String) -> String:
