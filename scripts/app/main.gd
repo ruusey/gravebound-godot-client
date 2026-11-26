@@ -120,6 +120,8 @@ func _ready() -> void:
 	var text_popup := TextPopup.new()
 	add_child(text_popup)
 	shop.text_popup = text_popup
+	shop.vault_chest_shop = screens.vault_chest
+	screens.vault_chest.text_popup = text_popup
 	screens.login.client_config = config   # lets the server picker retarget the connection
 	screens.death.dismissed.connect(screens.login.return_after_death)
 	screens.death.quit.connect(screens.login.forget_characters.bind("Signed out."))

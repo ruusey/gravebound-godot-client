@@ -67,6 +67,7 @@ func test_the_prompts_words_are_the_web_clients():
 	assert_eq(TileInteract.verb({"type": "fame_store"}), "Open Fame Store")
 	assert_eq(TileInteract.verb({"type": "potion_storage"}), "Open Potion Storage")
 	assert_eq(TileInteract.verb({"type": "exchange_market"}), "Open Exchange Market")
+	assert_eq(TileInteract.verb({"type": "vault_chest"}), "Buy Vault Chest")
 	assert_eq(TileInteract.verb({"type": "shrine", "name": "Shrine of Might"}), "Use Shrine of Might")
 
 

@@ -15,6 +15,8 @@ var client: GraveBoundClient
 var content: GameData
 ## Set by Main: the read-only box shown for a "display_text" tile (client-side).
 var text_popup: TextPopup
+## Set by Main: the purchase prompt a "vault_chest" tile opens (client-side).
+var vault_chest_shop: VaultChestShop
 
 
 func _init(realm_state: RealmState, net_client: GraveBoundClient, game_data: GameData) -> void:
@@ -38,6 +40,11 @@ func interact_nearby() -> bool:
 	if str(found.get("type", "")) == "display_text":
 		if text_popup != null:
 			text_popup.show_text(str(found.get("name", "")), str(found.get("description", "")))
+		return true
+	# "vault_chest" buys through the data service, not the game server.
+	if str(found.get("type", "")) == "vault_chest":
+		if vault_chest_shop != null:
+			vault_chest_shop.offer()
 		return true
 	return _send("InteractTilePacket", {"tileX": found["tile_x"], "tileY": found["tile_y"]})
 

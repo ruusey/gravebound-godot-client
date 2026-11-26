@@ -22,7 +22,7 @@ var prompt: InteractPrompt
 var minimap: MinimapPanel
 var minimap_expanded: MinimapExpanded
 var player: PlayerHud
-var vault: VaultPanel
+var vault_chest: VaultChestShop
 var banner: RealmBanner
 var dialogue: DialoguePrompt
 var tutorial_exit: TutorialExitConfirm
@@ -99,9 +99,9 @@ func build(state: RealmState, game_data: GameData, client: GraveBoundClient,
 	player.setup(state, game_data)
 	player.below = minimap.bottom
 	add_child(player)
-	vault = VaultPanel.new()
-	vault.setup(state, game_data, data_service)
-	add_child(vault)
+	vault_chest = VaultChestShop.new()
+	vault_chest.setup(data_service)
+	add_child(vault_chest)
 	banner = RealmBanner.new()
 	banner.setup(state, game_data)
 	add_child(banner)
@@ -200,7 +200,7 @@ func build(state: RealmState, game_data: GameData, client: GraveBoundClient,
 func captures_mouse() -> bool:
 	return [inventory, abilities, skills, masteries, quests, store, fame, forge, minimap, minimap_expanded, market, trade,
 		party, guild_dialog, guild_roster, guild_invite,
-		nearby, options, chat, player, prompt, loot, leaderboard, touch, tutorial_exit, vault, companions,
+		nearby, options, chat, player, prompt, loot, leaderboard, touch, tutorial_exit, vault_chest, companions,
 		buy_fame].any(func(panel) -> bool: return panel.captures_mouse()) \
 		or requests.any(func(popup: InteractionRequestPopup) -> bool: return popup.captures_mouse())
 
