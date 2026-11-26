@@ -18,6 +18,11 @@ const BANNER_HEIGHT := 64.0
 ## browser tab on web, the OS browser on desktop.
 const WIKI_URL := "https://grave-bound.com/wiki/"
 const DISCORD_URL := "https://discord.gg/Hcfx5MdQr"
+## The external links sit below the sign-in controls, smaller and set apart, so
+## they don't read as part of signing in. Rows stay tappable on a phone.
+const LINK_FONT := 13
+const LINK_ROW := 30.0
+const LINK_GAP := 18.0
 ## The phone's card: as wide as a landscape phone, the logo, the server and
 ## the account in one header row so the form or the characters get the rest.
 const PHONE_WIDTH := 800.0
@@ -126,11 +131,6 @@ func _ready() -> void:
 			if buy_fame.is_valid():
 				buy_fame.call())
 	column.add_child(_account)
-	# Links under the form rather than beside the logo, where they read as part of the title.
-	var wiki_link := _link("Game Wiki", "Open the game wiki (guide, items, classes and more)", WIKI_URL)
-	column.add_child(wiki_link)
-	var discord_link := _link("Join our Discord", "Open the GraveBound community Discord", DISCORD_URL)
-	column.add_child(discord_link)
 
 	if PhoneLayout.on:
 		_phone_header(header, spacer)
@@ -145,14 +145,13 @@ func _ready() -> void:
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.custom_minimum_size = Vector2(0, 24.0 if PhoneLayout.on else 40.0)
 	column.add_child(_status)
+	_add_links(column)
 
 	_terms = TermsGate.new()
 	add_child(_terms)
 	# Every field and button a thumb's height: a phone signs in here too.
 	for part in [_form, _account, _terms]:
 		TouchSize.grow_all(part)
-	TouchSize.grow(wiki_link)
-	TouchSize.grow(discord_link)
 	if PhoneLayout.on:
 		TouchSize.grow_all(_server_select)
 	TouchFrame.adopt(self)
@@ -250,11 +249,26 @@ func _apply_server(server: Dictionary) -> void:
 		client_config.socket_path = ""
 
 
+## The wiki and Discord links, at the foot of the panel under a divider.
+func _add_links(column: Container) -> void:
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, LINK_GAP)
+	column.add_child(gap)
+	column.add_child(HSeparator.new())
+	var links := VBoxContainer.new()
+	links.add_theme_constant_override("separation", 0)
+	column.add_child(links)
+	links.add_child(_link("Game Wiki", "Open the game wiki (guide, items, classes and more)", WIKI_URL))
+	links.add_child(_link("Join our Discord", "Open the GraveBound community Discord", DISCORD_URL))
+
+
 func _link(text: String, tooltip: String, url: String) -> Button:
 	var link := Button.new()
 	link.text = text
 	link.flat = true
 	link.tooltip_text = tooltip
+	link.custom_minimum_size.y = TouchSize.PHONE_ROW if PhoneLayout.on else LINK_ROW
+	link.add_theme_font_size_override("font_size", LINK_FONT)
 	link.pressed.connect(_open_url.bind(url))
 	return link
 
