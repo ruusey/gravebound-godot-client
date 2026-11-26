@@ -20,6 +20,8 @@ const GRAVEYARD := 1
 const DRAG_SCROLL_START := 8.0
 ## A tap this soon after a drag is not the second half of a double-tap.
 const ACTIVATE_AFTER_DRAG_MS := 500
+## Room left around the picker on screen when deciding whether both tabs fit.
+const TAB_FIT_MARGIN := 64.0
 
 var game_data: GameData
 var tabs: TabBar
@@ -39,7 +41,9 @@ func _ready() -> void:
 	for page in PAGES:
 		tabs.add_tab(page)
 	tabs.tab_changed.connect(func(_index: int) -> void: _fill())
+	TabArrows.select_on_scroll(tabs)
 	add_child(TouchSize.grow(tabs))
+	get_viewport().size_changed.connect(_fit_tabs)
 	# Five rows a thumb's height (three on a phone's short screen): the font
 	# plus the gap between rows.
 	list = ItemList.new()
@@ -63,12 +67,21 @@ func show_characters(characters: Array) -> void:
 		_pages[GRAVEYARD if is_dead(character) else ALIVE].append(character)
 	for page in PAGES.size():
 		tabs.set_tab_title(page, "%s (%d)" % [PAGES[page], _pages[page].size()])
+	_fit_tabs()
 	# Opens on the living, unless there are none left to open on.
 	var wanted := ALIVE if not _pages[ALIVE].is_empty() or _pages[GRAVEYARD].is_empty() else GRAVEYARD
 	if tabs.current_tab == wanted:
 		_fill()
 	else:
 		tabs.current_tab = wanted
+
+
+## Both tabs always show, widening the column to fit, unless the screen is too
+## narrow: then the bar clips and its arrows switch tabs (TabArrows).
+func _fit_tabs() -> void:
+	tabs.clip_tabs = false
+	var needed := tabs.get_combined_minimum_size().x
+	tabs.clip_tabs = needed > TouchScale.panel_view(self).x - TAB_FIT_MARGIN
 
 
 func clear() -> void:

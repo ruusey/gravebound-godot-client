@@ -414,3 +414,14 @@ func test_living_characters_show_the_fame_they_would_bank():
 	assert_string_contains(CharacterPicker.describe(fresh, content), "fame 0", "below max level: none yet")
 	var fallen := alive.merged({"deleted": "2026-09-20T18:00:00Z"})
 	assert_false(CharacterPicker.describe(fallen, content).contains("fame"), "the fallen show the day they fell")
+
+
+func test_both_picker_tabs_show_when_the_screen_has_room():
+	await _sign_in([
+		{"characterUuid": "a", "characterClass": 0, "stats": {"hp": 100, "spd": 10}},
+		{"characterUuid": "b", "characterClass": 1, "deleted": "2026-09-22T10:00:00Z", "stats": {"hp": 90, "spd": 9}},
+	])
+	var picker := screen._stage.picker
+	assert_false(picker.tabs.clip_tabs, "no arrows hiding the graveyard")
+	assert_true(picker.tabs.get_combined_minimum_size().x >= picker.tabs.get_tab_rect(1).end.x,
+		"the bar is as wide as both tabs")
