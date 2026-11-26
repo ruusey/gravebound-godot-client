@@ -128,7 +128,7 @@ const LIGHT_REACH_MUL := 1.6
 ## torches/lava are warm accents over it, not the only light. A dark base with bright
 ## pools reads as a cave, wrong for a town; the drama lives in dungeons (DUNGEON_DIM).
 const AMBIENT_LIT := Color(0.6, 0.61, 0.67)
-const AMBIENT_LIT_ENERGY := 1.01
+const AMBIENT_LIT_ENERGY := 1.22
 ## Inside a (non-vault) dungeon, ambient and sun drop to this fraction -- markedly
 ## darker than the daylit overworld, so a dungeon's torch pools carry real contrast.
 const DUNGEON_DIM := 0.2
@@ -138,7 +138,7 @@ const DUNGEON_DIM := 0.2
 ## than a dungeon.
 const OVERWORLD_DIM := 0.4
 ## A daytime sun: strong enough to shade the billboards and throw crisp wall shadows.
-const SUN_LIT_ENERGY := 0.675
+const SUN_LIT_ENERGY := 0.82
 ## Glowing bullets carry a travelling light, the nearest this many: enough for a
 ## whole wide volley (Worldquake fires 13). The per-object light limit in
 ## project.godot leaves room for them beside the tile and enemy lights.
