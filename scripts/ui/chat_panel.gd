@@ -54,6 +54,9 @@ var _hovering := false
 var _touch_open := false
 ## Stick to the newest line unless the user has scrolled up.
 var _follow := true
+## The user scrolled the log since the last frame: only that, never the log
+## growing, decides whether it still follows the newest line.
+var _user_scrolled := false
 var _collapsed_at_ms := -1
 ## The chip that folds the log to its name; the input line stays.
 var fold: PanelFold
@@ -103,6 +106,7 @@ func _ready() -> void:
 	_scroll.mouse_exited.connect(func() -> void: _hovering = false)
 	_scroll.gui_input.connect(_on_scroll_input)
 	_scroll.get_v_scroll_bar().custom_minimum_size.x = SCROLLBAR_WIDTH
+	_scroll.get_v_scroll_bar().scrolling.connect(func() -> void: _user_scrolled = true)
 	_box.add_child(_scroll)
 
 	_list = VBoxContainer.new()
@@ -159,6 +163,9 @@ func _is_expanded() -> bool:
 func _on_scroll_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch or event is InputEventScreenDrag:
 		_touch_open = true
+	if event is InputEventScreenDrag or event is InputEventPanGesture 			or (event is InputEventMouseButton and event.pressed and event.button_index in [
+				MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]):
+		_user_scrolled = true
 
 
 ## Enter opens the line; a click anywhere it is not closes it, and a touch
@@ -265,13 +272,16 @@ func _process(_delta: float) -> void:
 		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if expanded \
 			else ScrollContainer.SCROLL_MODE_SHOW_NEVER
 
-	# Follow the newest line unless the user has scrolled up. A log collapsed while
-	# scrolled up keeps its place for FOLLOW_RESUME_MS, then shows the newest again.
+	# Follow the newest line unless the user has scrolled up. Judged only after the
+	# user scrolls: a new line grows the log a frame before the scroll catches up,
+	# which would otherwise read as scrolled up. A log collapsed while scrolled up
+	# keeps its place for FOLLOW_RESUME_MS, then shows the newest again.
 	var bar := _scroll.get_v_scroll_bar()
 	if expanded:
 		_collapsed_at_ms = -1
-		if bar != null:
-			_follow = bar.value >= bar.max_value - bar.page - 1.0
+		if _user_scrolled:
+			_user_scrolled = false
+			_follow = at_bottom(bar.value, bar.max_value, bar.page)
 	elif not _follow:
 		var now := Time.get_ticks_msec()
 		if _collapsed_at_ms < 0:
@@ -290,6 +300,11 @@ func _process(_delta: float) -> void:
 		_stick_bottom()
 	if PhoneLayout.on:
 		_scroll.modulate.a = 1.0 if expanded else fade(Time.get_ticks_msec() - _said_at_ms)
+
+
+## Whether a scroll at `value` shows the log's last line.
+static func at_bottom(value: float, max_value: float, page: float) -> bool:
+	return value >= max_value - page - 1.0
 
 
 ## The phone log's opacity `idle_ms` after its last new line: whole for
