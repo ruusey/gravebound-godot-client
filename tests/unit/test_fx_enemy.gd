@@ -1,6 +1,6 @@
 extends GutTest
 
-## The seven effects built for enemies: each draws through the real
+## The effects built for enemies: each draws through the real
 ## renderer across its life, as an area and as a line, and the numbers of
 ## its shape.
 
@@ -28,7 +28,7 @@ func _cast_at(kind: int, progress: float, radius := 48.0, target := Vector2(120,
 
 
 const KINDS := [EffectType.CONE_WARNING, EffectType.GROUND_CRACK, EffectType.ENRAGE_BURST,
-	EffectType.SUMMON_PORTAL, EffectType.FIRE_PILLAR, EffectType.DUST_BURST, EffectType.EMERGE]
+	EffectType.SUMMON_PORTAL, EffectType.FIRE_PILLAR, EffectType.DUST_BURST, EffectType.EMERGE, EffectType.CIRCLE_WARNING]
 
 
 func test_each_enemy_type_has_a_drawer():
@@ -132,3 +132,10 @@ func test_emerge_pit_opens_and_clods_land():
 	assert_eq(FxEmerge.lift(0.0, 50.0), 0.0)
 	assert_almost_eq(FxEmerge.lift(0.5, 50.0), 50.0, 0.001)
 	assert_eq(FxEmerge.lift(1.0, 50.0), 0.0)
+
+
+func test_circle_fills_from_the_centre_and_holds():
+	assert_eq(FxCircleWarning.filled(0.0), 0.0)
+	assert_almost_eq(FxCircleWarning.filled(0.5), 0.5, 0.001)
+	assert_eq(FxCircleWarning.filled(1.0), 1.0)
+	assert_eq(FxCircleWarning.filled(1.5), 1.0)

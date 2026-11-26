@@ -110,6 +110,7 @@ static func _resolve_type(kind: int) -> Callable:
 		EffectType.FIRE_PILLAR: return FxFirePillar.draw
 		EffectType.DUST_BURST: return FxDustBurst.draw
 		EffectType.EMERGE: return FxEmerge.draw
+		EffectType.CIRCLE_WARNING: return FxCircleWarning.draw
 	return Callable()
 
 

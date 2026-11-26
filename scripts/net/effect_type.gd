@@ -79,6 +79,7 @@ enum {
 	FIRE_PILLAR = 71,
 	DUST_BURST = 72,
 	EMERGE = 73,
+	CIRCLE_WARNING = 74,
 }
 
 const NAMES := {
@@ -152,4 +153,5 @@ const NAMES := {
 	71: "FIRE_PILLAR",
 	72: "DUST_BURST",
 	73: "EMERGE",
+	74: "CIRCLE_WARNING",
 }

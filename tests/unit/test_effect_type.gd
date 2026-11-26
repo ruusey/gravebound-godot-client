@@ -13,13 +13,14 @@ func test_the_names_are_the_servers_ids():
 	assert_eq(EffectType.NAMES[62], "MELEE_SWING")
 	assert_eq(EffectType.CONE_WARNING, 67)
 	assert_eq(EffectType.EMERGE, 73)
+	assert_eq(EffectType.CIRCLE_WARNING, 74)
 
 
 func test_retired_ids_have_no_name():
 	# 21 was never used; 48-50 were the old Sorcerer/Rogue/Mystic effects.
 	for retired in [21, 48, 49, 50]:
 		assert_false(EffectType.NAMES.has(retired), "id %d" % retired)
-	assert_eq(EffectType.NAMES.size(), 70)
+	assert_eq(EffectType.NAMES.size(), 71)
 
 
 func test_every_drawer_is_registered_under_a_live_type():
