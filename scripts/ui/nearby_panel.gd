@@ -33,7 +33,10 @@ var menu: PlayerMenu
 var _root: PanelContainer
 var _rows_box: VBoxContainer
 var _empty: Label
-var _listed := ""
+## What the rows show, as a key. UNDRAWN matches no list, empty included, so
+## coming back to a place with no one in it still clears the last one's rows.
+const UNDRAWN := "<undrawn>"
+var _listed := UNDRAWN
 var fold: PanelFold
 var _inspect: PlayerInspectCard
 
@@ -89,7 +92,7 @@ func _process(_delta: float) -> void:
 		menu.close()
 		if _inspect != null:
 			_inspect.hide_card()
-		_listed = ""
+		_listed = UNDRAWN
 		return
 	var top := above.top() if above != null else float(PartyPanel.TOP)
 	_root.offset_top = top + (above.height() + GAP if above != null and above.visible else 0.0)

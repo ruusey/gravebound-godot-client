@@ -96,6 +96,34 @@ func test_rebuilds_only_when_who_is_listed_changes():
 	assert_true(_rows()[0] != row, "rebuilt")
 
 
+func test_a_new_session_with_nobody_about_drops_the_old_sessions_rows():
+	_in_game()
+	_others(["Mingau", "Bort"])
+	assert_eq(_rows().size(), 2)
+	# Died (a Crown save) or disconnected: the world goes, the panel hides.
+	state.reset_world()
+	state.local.reset()
+	panel._process(0.0)
+	assert_false(panel.visible)
+	# Back in on the same character, alone.
+	_in_game()
+	_others([])
+	assert_true(panel.visible)
+	assert_eq(_rows().size(), 0, "no one from the last session")
+	assert_true(panel._empty.visible)
+
+
+func test_a_realm_change_into_an_empty_place_drops_the_rows():
+	_in_game()
+	_others(["Mingau"])
+	state.entities.clear_but(state.local.id)
+	state.local.reset()
+	panel._process(0.0)
+	_in_game()
+	panel._process(0.0)
+	assert_eq(_rows().size(), 0)
+
+
 func test_a_party_member_leaves_the_list_and_the_panel_moves_under_the_party():
 	_in_game()
 	_others(["Mingau", "Bort"])
