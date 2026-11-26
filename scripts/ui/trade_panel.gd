@@ -6,8 +6,11 @@ extends CanvasLayer
 ##
 ## Your slots toggle on a click; theirs are read-only. Both grids are the
 ## bag's first page -- twenty slots from the fifth -- which is all the
-## server puts on the table. The grids are refilled when the trade or the
-## bag changes, so a swap the server has just made shows at once.
+## server puts on the table. Under each grid is that player's equipment,
+## read-only, so a trader can size up who they are dealing with. Every slot,
+## gear included, shows the full item card on hover. The grids are refilled
+## when the trade or the bag changes, so a swap the server has just made
+## shows at once.
 
 const TITLE := "TRADE"
 const SELECTED := Color(1.6, 1.45, 0.6)
@@ -22,6 +25,8 @@ var _my_name: Label
 var _their_name: Label
 var _mine: Array = []
 var _theirs: Array = []
+var _my_gear: Array = []
+var _their_gear: Array = []
 var _confirm: Button
 var _drawn := Vector2i(-1, -1)
 var _tooltip: ItemTooltip
@@ -78,10 +83,17 @@ func _side(into: Container, ours: bool) -> Label:
 			# Read-only, but PASS (not IGNORE) so it still emits hover for the tooltip.
 			slot.mouse_filter = Control.MOUSE_FILTER_PASS
 		slot.hovered.connect(func(_idx: int, over: bool) -> void: _on_hover(slot, over))
+	# Their equipment (and ours) under the grid: not on the table, only to inspect.
+	var gear := InventoryLayout.gear_row(box)
+	for slot in gear:
+		slot.mouse_filter = Control.MOUSE_FILTER_PASS
+		slot.hovered.connect(func(_idx: int, over: bool) -> void: _on_hover(slot, over))
 	if ours:
 		_mine = slots
+		_my_gear = gear
 	else:
 		_theirs = slots
+		_their_gear = gear
 	return name
 
 
@@ -129,6 +141,9 @@ func refresh() -> void:
 		var theirs: ItemSlot = _theirs[page]
 		theirs.show_from(trade.partner_item(index), content)
 		theirs.self_modulate = SELECTED if trade.partner_selected(page) else Color.WHITE
+	for i in Inventory.EQUIPMENT_SLOTS:
+		(_my_gear[i] as ItemSlot).show_from(state.local.inventory.item_at(i), content)
+		(_their_gear[i] as ItemSlot).show_from(trade.partner_item(i), content)
 	_confirm.text = "Confirmed" if trade.my_confirmed() else "Confirm"
 	_confirm.disabled = trade.my_confirmed()
 

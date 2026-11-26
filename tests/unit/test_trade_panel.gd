@@ -96,6 +96,45 @@ func test_the_panel_shows_both_pages_and_lights_what_is_on_the_table():
 	assert_false(panel._confirm.disabled)
 
 
+func test_both_players_equipment_shows_under_the_grids():
+	_in_game()
+	state.local.inventory.put(0, {"itemId": 100})
+	var theirs: Array = []
+	theirs.resize(Inventory.SIZE)
+	theirs.fill({"itemId": -1})
+	theirs[0] = {"itemId": 102}
+	theirs[2] = {"itemId": 300}
+	state.apply_packet("AcceptTradeRequestPacket", {"accepted": true,
+		"player0": WireHelper.player(9, "Ruu", Vector2.ZERO), "player1": WireHelper.player(4, "Mingau", Vector2.ZERO),
+		"player0Inv": [], "player1Inv": theirs})
+	panel._process(0.0)
+	assert_eq(panel._my_gear.size(), Inventory.EQUIPMENT_SLOTS)
+	assert_eq(panel._their_gear.size(), Inventory.EQUIPMENT_SLOTS)
+	assert_eq(int(panel._my_gear[0].item.get("itemId", -1)), 100, "our weapon")
+	assert_eq(int(panel._their_gear[0].item.get("itemId", -1)), 102, "their weapon")
+	assert_eq(int(panel._their_gear[2].item.get("itemId", -1)), 300, "their armour")
+	assert_false(Inventory.holds(panel._their_gear[1].item), "an empty slot stays empty")
+	for slot in panel._my_gear + panel._their_gear:
+		assert_eq(slot.mouse_filter, Control.MOUSE_FILTER_PASS, "read-only, but hovers")
+	var gear_box: Node = panel._their_gear[0].get_parent().get_parent()
+	var grid_box: Node = panel._theirs[0].get_parent()
+	assert_gt(gear_box.get_index(), grid_box.get_index(), "below the trade grid")
+
+
+func test_hovering_any_slot_with_an_item_shows_its_card():
+	_in_game()
+	state.local.inventory.put(0, {"itemId": 100})
+	_open()
+	panel._process(0.0)
+	for slot in [panel._theirs[0], panel._my_gear[0]]:
+		panel._on_hover(slot, true)
+		assert_true(panel._tooltip.visible, "slot %d" % slot.index)
+		panel._on_hover(slot, false)
+		assert_false(panel._tooltip.visible)
+	panel._on_hover(panel._their_gear[1], true)
+	assert_false(panel._tooltip.visible, "nothing to show for an empty slot")
+
+
 func test_a_click_on_our_slot_puts_it_on_the_table_and_sends_the_selection():
 	_in_game()
 	state.local.inventory.put(5, {"itemId": 310, "stackCount": 2, "stackable": true})
