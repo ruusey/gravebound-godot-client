@@ -482,6 +482,18 @@ func test_the_lowest_camera_sits_at_eye_height_and_still_aims():
 	assert_not_null(view.get_ground_point())
 
 
+func test_looking_into_the_sun_fills_the_sprites():
+	_login()
+	main.state.settings.set_on("lighting", true)
+	main.state.settings.set_on("view_25d", true)
+	var view: WorldView3D = main._view_3d
+	view._process(0.016)
+	assert_eq(view._fill.light_energy, 0.0, "the sun behind the camera needs no fill")
+	view._yaw += PI
+	view._process(0.016)
+	assert_gt(view._fill.light_energy, 0.0, "facing into it, the sprites are filled")
+
+
 func test_leaving_the_25d_view_low_brings_the_tags_back():
 	main.state.settings.set_on("view_25d", true)
 	main._view_3d._descent_goal = 1.0

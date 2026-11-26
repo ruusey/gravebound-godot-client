@@ -56,6 +56,13 @@ const PITCH_EYE := 8.0
 const UPRIGHT_BELOW_PITCH := 30.0
 ## The overlay's tags are pinned by an affine fit, which drifts in perspective.
 const OVERLAY_HIDE_DESCENT := 0.35
+## Standing sprites face the camera, so looking into the sun shows their unlit
+## backs. A shadowless fill light on their own light layer shines from the camera,
+## as strong as the sun when the camera faces straight into it and off when the
+## sun is behind the camera, so they read lit from any orbit. Ground and walls are
+## not on the layer, so their light and shadows don't change.
+const SPRITE_LIGHT_LAYER := 2
+const FILL_MATCH := 1.0
 ## Nearer than this, the camera is inside the player's own sprite.
 const HIDE_SELF_DISTANCE := 40.0
 ## Distance fog past the player, so a low camera doesn't see the floor end.
@@ -175,6 +182,7 @@ var _descent := 0.0
 var _descent_goal := 0.0
 var _camera_distance := CAM_DIST
 var _bullets_upright := false
+var _fill: DirectionalLight3D
 
 var _sun: DirectionalLight3D
 ## The sun's travel direction projected onto the ground, so shadows cast the way
@@ -234,6 +242,11 @@ func _ready() -> void:
 	# the GL-compatibility (web) renderer supports, unlike positional/omni shadows.
 	_sun.shadow_enabled = true
 	add_child(_sun)
+	_fill = DirectionalLight3D.new()
+	_fill.shadow_enabled = false
+	_fill.light_cull_mask = SPRITE_LIGHT_LAYER
+	_fill.light_energy = 0.0
+	add_child(_fill)
 	# Where the sun's rays travel across the ground -- the direction a shadow falls,
 	# so the ground-shadow discs cast the same way the sun's real wall shadows do.
 	var sun_forward := -_sun.transform.basis.z
@@ -325,6 +338,7 @@ func _process(delta: float) -> void:
 	_update_projected_ground(centre)
 	_update_overlay(centre)
 	_update_lighting(delta, centre)
+	_update_fill()
 
 
 ## The mouse's world point on the ground (y=0) through the 3D camera, as a 2D
@@ -868,6 +882,15 @@ func _update_lighting(delta: float, centre: Vector2) -> void:
 				* (1.0 + 0.12 * sin(_light_time * 9.0 + i * 1.7) + 0.06 * sin(_light_time * 23.0 + i))
 
 
+## The sprite fill: from the camera, scaled by how far the view faces into the sun.
+func _update_fill() -> void:
+	var view := -_camera.global_transform.basis.z
+	var sun := -_sun.global_transform.basis.z
+	var into_sun := -Vector2(view.x, view.z).normalized().dot(Vector2(sun.x, sun.z).normalized())
+	_fill.global_transform.basis = _camera.global_transform.basis
+	_fill.light_energy = _sun.light_energy * FILL_MATCH * clampf(into_sun, 0.0, 1.0)
+
+
 ## Dark ambient and a low sun when lit; the old full-bright albedo when off. Both
 ## drop to OVERWORLD_DIM in the hub/overworld and further to DUNGEON_DIM inside a
 ## dungeon, so torch and candle pools carry contrast in either.
@@ -991,6 +1014,8 @@ func _sprite_node(billboard: int) -> Sprite3D:
 	# Standing bodies (billboards) take the light so they darken away from it and
 	# warm up by a torch; flat projectiles stay self-bright.
 	sprite.shaded = billboard == BaseMaterial3D.BILLBOARD_ENABLED
+	if sprite.shaded:
+		sprite.layers = 1 | SPRITE_LIGHT_LAYER
 	return sprite
 
 
