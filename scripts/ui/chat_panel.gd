@@ -272,10 +272,10 @@ func _process(_delta: float) -> void:
 		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if expanded \
 			else ScrollContainer.SCROLL_MODE_SHOW_NEVER
 
-	# Follow the newest line unless the user has scrolled up. Judged only after the
-	# user scrolls: a new line grows the log a frame before the scroll catches up,
-	# which would otherwise read as scrolled up. A log collapsed while scrolled up
-	# keeps its place for FOLLOW_RESUME_MS, then shows the newest again.
+	# Between new lines, a log the user scrolled up stays where they put it. Judged
+	# only after the user scrolls: a new line grows the log a frame before the
+	# scroll catches up, which would otherwise read as scrolled up. A log collapsed
+	# while scrolled up keeps its place for FOLLOW_RESUME_MS, then shows the newest.
 	var bar := _scroll.get_v_scroll_bar()
 	if expanded:
 		_collapsed_at_ms = -1
@@ -292,8 +292,12 @@ func _process(_delta: float) -> void:
 
 	# Rebuild only when something was said -- watches the ring's revision, not its
 	# size (size saturates at 50 once full, so newer lines would stop redrawing).
+	# Every new line brings the log to it, scrolled up or not: a busy chat is
+	# otherwise lost below the box.
 	if state.chat.revision != _shown:
 		_shown = state.chat.revision
+		_follow = true
+		_collapsed_at_ms = -1
 		_said_at_ms = Time.get_ticks_msec()
 		refresh()
 	elif _follow:
