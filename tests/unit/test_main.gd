@@ -454,6 +454,51 @@ func test_leaving_the_25d_view_hands_aim_back_to_the_flat_world():
 	assert_true(main.state.tiles.cleared, "the flat ground is drawn again whole")
 
 
+func test_shift_wheel_lowers_the_camera_and_the_plain_wheel_still_tilts():
+	main.state.settings.set_on("view_25d", true)
+	var view: WorldView3D = main._view_3d
+	var pitch := view._pitch
+	view._unhandled_input(_wheel(MOUSE_BUTTON_WHEEL_DOWN, true))
+	assert_almost_eq(view._descent_goal, WorldView3D.DESCENT_STEP, 0.0001)
+	assert_eq(view._pitch, pitch, "shift+wheel leaves the tilt alone")
+	view._unhandled_input(_wheel(MOUSE_BUTTON_WHEEL_UP, true))
+	view._unhandled_input(_wheel(MOUSE_BUTTON_WHEEL_UP, true))
+	assert_eq(view._descent_goal, 0.0, "never above the sky view")
+	view._unhandled_input(_wheel(MOUSE_BUTTON_WHEEL_DOWN, false))
+	assert_lt(view._pitch, pitch)
+
+
+func test_the_lowest_camera_sits_at_eye_height_and_still_aims():
+	main.state.settings.set_on("view_25d", true)
+	var view: WorldView3D = main._view_3d
+	view._descent_goal = 1.0
+	view._descent = 1.0
+	view._follow_camera(Vector2(320.0, 320.0), 0.016)
+	assert_eq(view._camera.projection, Camera3D.PROJECTION_PERSPECTIVE)
+	assert_almost_eq(view._camera.position.y, WorldView3D.EYE_HEIGHT, 0.01)
+	assert_true(view._bullets_upright)
+	assert_false(main.screens.overlay.visible, "affine-pinned tags hidden in perspective")
+	# The cursor's corner is above the horizon there: it aims along its direction.
+	assert_not_null(view.get_ground_point())
+
+
+func test_leaving_the_25d_view_low_brings_the_tags_back():
+	main.state.settings.set_on("view_25d", true)
+	main._view_3d._descent_goal = 1.0
+	main._view_3d._descent = 1.0
+	main._view_3d._follow_camera(Vector2(320.0, 320.0), 0.016)
+	main.state.settings.set_on("view_25d", false)
+	assert_true(main.screens.overlay.visible)
+
+
+static func _wheel(button: MouseButton, shift: bool) -> InputEventMouseButton:
+	var event := InputEventMouseButton.new()
+	event.button_index = button
+	event.pressed = true
+	event.shift_pressed = shift
+	return event
+
+
 func test_the_3d_flag_ticks_the_option():
 	var flagged := _build(_config({"enable_3d": true}))
 	assert_true(flagged.state.settings.is_on("view_25d"))

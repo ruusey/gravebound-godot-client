@@ -30,7 +30,7 @@ const SHADOW_SIZE := 32
 ## behind the sprite) instead of a disc hidden under the body.
 const SHADOW_CAST_FACTOR := 0.4
 ## Camera distance from the player. Pitch (degrees above the ground) rides the
-## mouse wheel; yaw rides Q/E. Sprites are full billboards, so they always face
+## mouse wheel, height shift+wheel (see DESCENT_STEP); yaw rides Q/E. Sprites are full billboards, so they always face
 ## the camera and tilt to match whatever pitch is chosen -- no foreshortening,
 ## the art stays fully preserved instead of squished.
 const CAM_DIST := 755.0
@@ -41,6 +41,26 @@ const PITCH_STEP := 6.0
 ## Orthographic vertical extent in world units (the zoom); ~720 base rows.
 const CAM_ORTHO_SIZE := 720.0
 const ORBIT_SPEED := 1.8
+## Shift+wheel lowers the camera from the sky to the player's eye: descent 0 is the
+## orthographic view above; past 0 the camera turns perspective, closing in while
+## its field of view widens (so the player keeps its framing) and levelling out,
+## until at 1 it sits at EYE_HEIGHT inside the head, looking along the orbit.
+const DESCENT_STEP := 0.1
+const DESCENT_RATE := 10.0
+const EYE_HEIGHT := float(TILE)
+const FOV_HIGH := 12.0
+const FOV_LOW := 70.0
+const PITCH_EYE := 8.0
+## Bullets lie flat on the ground, edge-on to a low camera; below this pitch they
+## stand up facing it instead.
+const UPRIGHT_BELOW_PITCH := 30.0
+## The overlay's tags are pinned by an affine fit, which drifts in perspective.
+const OVERLAY_HIDE_DESCENT := 0.35
+## Nearer than this, the camera is inside the player's own sprite.
+const HIDE_SELF_DISTANCE := 40.0
+## Distance fog past the player, so a low camera doesn't see the floor end.
+const FOG_BEGIN := 450.0
+const FOG_END := 850.0
 ## The whole 2.5D picture's exposure; tuned apart from the flat view's lighting.
 const BRIGHTNESS := 1.17
 # The effect layer renders the 2D EffectRenderer into a SubViewport and projects
@@ -151,6 +171,10 @@ var _map_built := false
 var _emitter_cells := {}
 var _yaw := 0.0
 var _pitch := PITCH_DEFAULT
+var _descent := 0.0
+var _descent_goal := 0.0
+var _camera_distance := CAM_DIST
+var _bullets_upright := false
 
 var _sun: DirectionalLight3D
 ## The sun's travel direction projected onto the ground, so shadows cast the way
@@ -224,6 +248,9 @@ func _ready() -> void:
 	env.ambient_light_color = Color(0.7, 0.7, 0.75)
 	env.ambient_light_energy = 1.0
 	env.tonemap_exposure = BRIGHTNESS
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_light_color = env.background_color
+	env.fog_sun_scatter = 0.0
 	# No glow/bloom: it blurred the bright ability effects (and pixel art in
 	# general) into a fuzzy haze. Effects must read crisp like the rest of the scene.
 	_env = env
@@ -234,7 +261,8 @@ func _ready() -> void:
 	# Orthographic, not perspective: it keeps the angled 2.5D look, but world ->
 	# screen is then an exact affine, so the overlay's affine projector pins
 	# names, bars, portal captions and loot precisely at any position and any
-	# orbit -- perspective made a single affine drift for far entities.
+	# orbit -- perspective made a single affine drift for far entities. Shift+wheel's
+	# descent turns it perspective, and hides the overlay below OVERLAY_HIDE_DESCENT.
 	_camera = Camera3D.new()
 	_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_camera.size = CAM_ORTHO_SIZE
@@ -265,6 +293,12 @@ func _ready() -> void:
 	_build_effect_ground()
 	_build_projected_ground()
 	_build_lights()
+
+
+## Leaving the 2.5D view with the camera down must not leave the flat view's tags hidden.
+func _exit_tree() -> void:
+	if overlay != null:
+		overlay.visible = true
 
 
 func _process(delta: float) -> void:
@@ -302,12 +336,13 @@ func get_ground_point() -> Variant:
 	var mouse := get_viewport().get_mouse_position()
 	var origin := _camera.project_ray_origin(mouse)
 	var direction := _camera.project_ray_normal(mouse)
-	if absf(direction.y) < 0.0001:
-		return null
-	var distance := -origin.y / direction.y
-	if distance < 0.0:
-		return null
-	var hit := origin + direction * distance
+	if direction.y > -0.0001:
+		# At or above a low camera's horizon: aim along the cursor's direction.
+		var across := Vector2(direction.x, direction.z)
+		if across.length() < 0.0001:
+			return null
+		return Vector2(origin.x, origin.z) + across.normalized() * ENTITY_RANGE
+	var hit := origin + direction * (-origin.y / direction.y)
 	return Vector2(hit.x, hit.z)
 
 
@@ -316,9 +351,16 @@ func get_ground_point() -> Variant:
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed):
 		return
-	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+	var button: int = event.button_index
+	if event.shift_pressed:
+		# Some platforms turn shift+wheel into a sideways scroll.
+		if button == MOUSE_BUTTON_WHEEL_UP or button == MOUSE_BUTTON_WHEEL_LEFT:
+			_descent_goal = clampf(_descent_goal - DESCENT_STEP, 0.0, 1.0)
+		elif button == MOUSE_BUTTON_WHEEL_DOWN or button == MOUSE_BUTTON_WHEEL_RIGHT:
+			_descent_goal = clampf(_descent_goal + DESCENT_STEP, 0.0, 1.0)
+	elif button == MOUSE_BUTTON_WHEEL_UP:
 		_pitch = clampf(_pitch + PITCH_STEP, PITCH_MIN, PITCH_MAX)
-	elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+	elif button == MOUSE_BUTTON_WHEEL_DOWN:
 		_pitch = clampf(_pitch - PITCH_STEP, PITCH_MIN, PITCH_MAX)
 
 
@@ -331,12 +373,32 @@ func _follow_camera(centre: Vector2, delta: float) -> void:
 		_cam_follow = centre
 	else:
 		_cam_follow = _cam_follow.lerp(centre, 1.0 - exp(-CAM_FOLLOW_RATE * delta))
-	var target := Vector3(_cam_follow.x, 0.0, _cam_follow.y)
-	var pitch := deg_to_rad(_pitch)
-	var horizontal := CAM_DIST * cos(pitch)
-	var offset := Vector3(sin(_yaw) * horizontal, CAM_DIST * sin(pitch), cos(_yaw) * horizontal)
-	_camera.position = target + offset
-	_camera.look_at(target, Vector3.UP)
+	_descent = lerpf(_descent, _descent_goal, 1.0 - exp(-DESCENT_RATE * maxf(delta, 0.0)))
+	if absf(_descent - _descent_goal) < 0.001:
+		_descent = _descent_goal
+	var pitch := deg_to_rad(lerpf(_pitch, PITCH_EYE, _descent))
+	if _descent <= 0.0:
+		_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+		_camera_distance = CAM_DIST
+	else:
+		var fov := lerpf(FOV_HIGH, FOV_LOW, _descent)
+		_camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+		_camera.fov = fov
+		# The distance at which this field of view frames what the orthographic view
+		# shows, closing to zero at the eye.
+		_camera_distance = CAM_ORTHO_SIZE / (2.0 * tan(deg_to_rad(fov) * 0.5)) * (1.0 - _descent)
+	_camera.far = _camera_distance + 5000.0
+	var target := Vector3(_cam_follow.x, EYE_HEIGHT * _descent, _cam_follow.y)
+	var basis := Basis.from_euler(Vector3(-pitch, _yaw, 0.0))
+	_camera.transform = Transform3D(basis, target + basis.z * _camera_distance)
+	_bullets_upright = rad_to_deg(pitch) < UPRIGHT_BELOW_PITCH
+	_env.fog_enabled = _descent > 0.0
+	if _env.fog_enabled:
+		_env.fog_density = clampf(_descent * 3.0, 0.0, 1.0)
+		_env.fog_depth_begin = _camera_distance + FOG_BEGIN
+		_env.fog_depth_end = _camera_distance + FOG_END
+	if overlay != null:
+		overlay.visible = _descent < OVERLAY_HIDE_DESCENT
 
 
 ## Fits the overlay an affine world->screen transform to the 3D camera at the
@@ -505,7 +567,10 @@ func _place_entities(centre: Vector2) -> int:
 	var view := Rect2(centre - Vector2(ENTITY_RANGE, ENTITY_RANGE),
 		Vector2(ENTITY_RANGE, ENTITY_RANGE) * 2.0)
 	var used := 0
+	var hide_self := _camera_distance < HIDE_SELF_DISTANCE
 	for item in _entity_queue.build(state, content, view):
+		if hide_self and item.get("local", false):
+			continue
 		var texture: Texture2D = item.get("texture")
 		if texture == null or texture.get_height() <= 0:
 			continue
@@ -596,15 +661,16 @@ func _place_projectiles(centre: Vector2) -> void:
 			var steps := maxi(1, int(round(length / size)))
 			for s in steps + 1:
 				var point := mid + axis * (-half + float(s) / float(steps) * length)
-				used = _emit_projectile(used, texture, point, size, tile_heading)
+				used = _emit_projectile(used, texture, point, size, tile_heading, angle)
 		elif mid.distance_to(centre) <= ENTITY_RANGE:
-			used = _emit_projectile(used, texture, mid, size, heading)
+			used = _emit_projectile(used, texture, mid, size, heading, angle)
 	for i in range(used, _projectiles.size()):
 		_projectiles[i].visible = false
 		_projectile_shadows[i].visible = false
 
 
-func _emit_projectile(index: int, texture: Texture2D, xz: Vector2, size: float, heading: float) -> int:
+func _emit_projectile(index: int, texture: Texture2D, xz: Vector2, size: float, heading: float,
+		travel: float) -> int:
 	while _projectiles.size() <= index:
 		var made := _sprite_node(BaseMaterial3D.BILLBOARD_DISABLED)
 		_sprite_root.add_child(made)
@@ -617,11 +683,19 @@ func _emit_projectile(index: int, texture: Texture2D, xz: Vector2, size: float, 
 	sprite.texture = texture
 	sprite.pixel_size = size / tex_h if tex_h > 0.0 else 1.0
 	sprite.modulate = Color.WHITE
-	# Lay flat, then turn about the vertical to the heading. The 2D rotation is a
-	# screen angle, so its sign flips for the 3D Z axis.
-	sprite.transform = Transform3D(
-		Basis(Vector3.UP, -heading) * Basis(Vector3.RIGHT, -PI * 0.5),
-		Vector3(xz.x, BULLET_HEIGHT, xz.y))
+	var basis: Basis
+	if _bullets_upright:
+		# Face the camera, turned so the art keeps the angle it has to its travel
+		# in the flat view (where the travel's screen angle is -travel).
+		var view := _camera.global_transform.basis
+		var along := view.transposed() * Vector3(cos(travel), 0.0, -sin(travel))
+		var screen_travel := atan2(-along.y, along.x)
+		basis = view * Basis(Vector3.BACK, -(heading + travel + screen_travel))
+	else:
+		# Lay flat, then turn about the vertical to the heading. The 2D rotation is a
+		# screen angle, so its sign flips for the 3D Z axis.
+		basis = Basis(Vector3.UP, -heading) * Basis(Vector3.RIGHT, -PI * 0.5)
+	sprite.transform = Transform3D(basis, Vector3(xz.x, BULLET_HEIGHT, xz.y))
 	sprite.visible = true
 	var shadow := _projectile_shadows[index]
 	shadow.pixel_size = size / float(SHADOW_SIZE)

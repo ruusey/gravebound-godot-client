@@ -113,6 +113,7 @@ func _queue_players(queue: Array, state: RealmState, content: GameData,
 		var effects: Array = state.local.effects if is_local else player.get("effects", NO_EFFECTS)
 		queue.append({
 			"kind": "players",
+			"local": is_local,
 			"pos": position,
 			"size": render_size,
 			"draw": frame_size(texture, content.classes_art.cell_size(class_id),
