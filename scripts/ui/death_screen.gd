@@ -19,6 +19,10 @@ const TITLE := "GAME OVER"
 var _panel: ColorRect
 var _title: Label
 var _detail: Label
+## The grave's record: class, stats, what killed them.
+var _record: Label
+## For the class's name; set by Screens.
+var content: GameData
 var _button: Button
 var _quit: Button
 
@@ -41,6 +45,7 @@ func _ready() -> void:
 
 	_title = _line(column, TITLE, 34, Color(0.9, 0.2, 0.2))
 	_detail = _line(column, "", 16, Color(0.85, 0.8, 0.8))
+	_record = _line(column, "", 13, GraveCard.COLOUR)
 	_line(column, "Your character has been lost to the realm.", 13,
 		Color(0.6, 0.55, 0.55))
 
@@ -62,9 +67,16 @@ func _ready() -> void:
 	column.add_child(_quit)
 
 
-## Shows the screen for a named character.
-func fell(player_name: String) -> void:
+## Shows the screen for a named character, with what its grave says when the
+## server sent it.
+func fell(player_name: String, grave: Dictionary = {}) -> void:
 	_detail.text = "%s has fallen." % (player_name if player_name != "" else "Your character")
+	if not grave.is_empty():
+		_detail.text = "%s, level %d, has fallen." % [
+			player_name if player_name != "" else "Your character", int(grave.get("level", 0))]
+	_record.text = "
+".join(GraveCard.facts(grave, content)) if not grave.is_empty() else ""
+	_record.visible = _record.text != ""
 	visible = true
 
 

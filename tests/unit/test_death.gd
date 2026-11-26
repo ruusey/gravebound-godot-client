@@ -26,7 +26,7 @@ func before_each():
 	add_child_autofree(screen)
 
 	session = SessionController.new(client, state, login, ClientConfig.new())
-	session.died.connect(func(who: String) -> void: fell_as = who)
+	session.died.connect(func(who: String, _grave: Dictionary) -> void: fell_as = who)
 	session.died.connect(screen.fell)
 
 	_sign_in()
@@ -118,6 +118,22 @@ func test_the_screen_names_the_character_that_fell():
 	assert_eq(fell_as, "Ruu")
 	assert_true(screen.visible)
 	assert_string_contains(screen._detail.text, "Ruu")
+
+
+func test_the_screen_reads_out_the_grave():
+	client.packet_received.emit("PlayerDeathPacket", {"playerId": state.local.id, "grave": [
+		{"name": "Ruu", "classId": 0, "level": 17, "maxedStats": 6, "killedBy": "Dragon King",
+			"killingBlow": 412, "diedAt": 0}]})
+	assert_string_contains(screen._detail.text, "level 17")
+	assert_true(screen._record.visible)
+	assert_string_contains(screen._record.text, "6/8 maxed")
+	assert_string_contains(screen._record.text, "Killed by Dragon King")
+	assert_string_contains(screen._record.text, "Final blow: 412 damage")
+
+
+func test_no_grave_no_record():
+	_dies(state.local.id)
+	assert_false(screen._record.visible)
 
 
 func test_a_nameless_character_still_gets_a_line():

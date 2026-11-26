@@ -22,12 +22,14 @@ var texts := 0
 var tile_captions := 0
 
 var _captions: ControlPool
+var _graves: ControlPool
 var _tile_captions: ControlPool
 var _numbers: ControlPool
 
 
 func _init(root: Control) -> void:
 	_captions = ControlPool.new(root, func() -> Control: return _label(TagStyles.caption_label()))
+	_graves = ControlPool.new(root, func() -> Control: return _label(TagStyles.caption_label()))
 	_tile_captions = ControlPool.new(root, func() -> Control: return _label(TagStyles.caption_label()))
 	_numbers = ControlPool.new(root, func() -> Control: return _label(TagStyles.damage_label()), true)
 
@@ -39,9 +41,11 @@ func show_all(state: RealmState, content: GameData, to_screen: Transform2D, view
 	tile_captions = 0
 	if state != null:
 		_show_captions(state, to_screen, view, project_3d)
+		_show_graves(state, content, to_screen, view, project_3d)
 		_show_tile_labels(state, content, to_screen, view, project_3d)
 		_show_numbers(state, to_screen, view)
 	_captions.sweep()
+	_graves.sweep()
 	_tile_captions.sweep()
 	_numbers.sweep()
 
@@ -80,6 +84,44 @@ func _show_captions(state: RealmState, to_screen: Transform2D, view: Rect2, proj
 		label.reset_size()
 		# In 3D the projector rotates, so anchor on the portal's world CENTRE (its
 		# billboard) rather than the top-left, which would swing on orbit.
+		if project_3d:
+			var centre := EntityOverlay.screen(to_screen, position + Vector2(world_tile, world_tile) * 0.5)
+			label.position = Vector2(centre.x - label.size.x * 0.5, centre.y + tile * 0.5 + 4.0).round()
+		else:
+			var at := EntityOverlay.screen(to_screen, position)
+			label.position = Vector2(at.x + tile * 0.5 - label.size.x * 0.5, at.y + tile + 4.0).round()
+		captions += 1
+
+
+## Under a grave, who fell there; standing on it, the whole card, boxed as a
+## portal's is.
+func _show_graves(state: RealmState, content: GameData, to_screen: Transform2D, view: Rect2,
+		project_3d: bool) -> void:
+	var world_tile := float(GameConstants.TILE_SIZE)
+	var tile := world_tile * to_screen.get_scale().x
+	var now := GraveCard.now_ms()
+	for id in state.entities.containers:
+		var bag: Dictionary = state.entities.containers[id]
+		var grave: Dictionary = bag.get("grave", {})
+		if grave.is_empty():
+			continue
+		var position := state.entities.render_position(bag)
+		if not view.has_point(position):
+			continue
+		var focused := state.local.is_present() and PortalCard.focused(position, state.local.render_centre())
+		var text := GraveCard.card(grave, content, now) if focused else GraveCard.caption(grave)
+		var label: Label = _graves.acquire(id)
+		if label.text != text:
+			label.text = text
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if label.label_settings.font_color != GraveCard.COLOUR:
+			label.label_settings.font_color = GraveCard.COLOUR
+		if focused != label.has_theme_stylebox_override("normal"):
+			if focused:
+				label.add_theme_stylebox_override("normal", PortalCard.box())
+			else:
+				label.remove_theme_stylebox_override("normal")
+		label.reset_size()
 		if project_3d:
 			var centre := EntityOverlay.screen(to_screen, position + Vector2(world_tile, world_tile) * 0.5)
 			label.position = Vector2(centre.x - label.size.x * 0.5, centre.y + tile * 0.5 + 4.0).round()

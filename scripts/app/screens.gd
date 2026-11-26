@@ -183,6 +183,7 @@ func build(state: RealmState, game_data: GameData, client: GraveBoundClient,
 	transition.setup(state, game_data)
 	add_child(transition)
 	death = DeathScreen.new()
+	death.content = game_data
 	add_child(death)
 	arena_results = ArenaResults.new()
 	add_child(arena_results)

@@ -3,10 +3,10 @@
 # Regenerate with:
 #   python3 tools/gen_schema.py <java-src-root>
 #
-# Source tree : C:\Users\ruuse\Documents\GitHub\openrealm\src
-# Generated   : 2026-11-25 06:12:32Z
+# Source tree : C:\Users\ruuse\Documents\GitHub\gravebound\src
+# Generated   : 2026-11-26 05:29:41Z
 # Packets     : 59
-# Entities    : 22
+# Entities    : 23
 #
 # Field tuples are [name, wire_type, is_collection]; list order is wire order.
 # Primitive wire types are byte, bool, short, int, long, float and string;
@@ -17,7 +17,7 @@
 # sections is [[bit, [field tuples]], ...].
 class_name NetSchema
 
-const SOURCE_TREE := "C:\\Users\\ruuse\\Documents\\GitHub\\openrealm\\src"
+const SOURCE_TREE := "C:\\Users\\ruuse\\Documents\\GitHub\\gravebound\\src"
 
 # packet id -> class name
 const PACKET_NAMES := {
@@ -354,6 +354,7 @@ const PACKETS := {
 	],
 	"PlayerDeathPacket": [
 		["playerId", "long", false],
+		["grave", "NetGrave", true],
 	],
 	"PlayerMovePacket": [
 		["seq", "int", false],
@@ -594,6 +595,15 @@ const ENTITIES := {
 		["slotIdx", "int", false],
 		["itemUuid", "string", false],
 	],
+	"NetGrave": [
+		["name", "string", false],
+		["classId", "int", false],
+		["level", "int", false],
+		["maxedStats", "byte", false],
+		["killedBy", "string", false],
+		["killingBlow", "int", false],
+		["diedAt", "long", false],
+	],
 	"NetGuildMember": [
 		["name", "string", false],
 		["rank", "byte", false],
@@ -614,6 +624,7 @@ const ENTITIES := {
 		["spawnedTime", "long", false],
 		["contentsChanged", "bool", false],
 		["soulboundPlayerId", "long", false],
+		["grave", "NetGrave", true],
 	],
 	"NetObjectMovement": [
 		["entityId", "long", false],

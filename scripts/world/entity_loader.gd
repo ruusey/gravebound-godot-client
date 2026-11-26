@@ -42,6 +42,8 @@ static func apply(registry: EntityRegistry, data: Dictionary, now: float) -> int
 		container["item_count"] = (wire.get("items", []) as Array).size()
 		# Kept whole: the loot strip reads the bag at our feet straight off this.
 		container["items"] = wire.get("items", [])
+		# Who fell here, on a grave; empty on any other bag.
+		container["grave"] = GraveCard.record(wire.get("grave", []))
 		registry.snapshot_from_wire(container, wire, now)
 		if not registry.rare_loot_seen.has(container["id"]) and is_rare_drop(wire):
 			registry.rare_loot_seen[container["id"]] = true

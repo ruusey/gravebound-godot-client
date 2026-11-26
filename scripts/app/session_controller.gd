@@ -7,7 +7,7 @@ extends RefCounted
 ## and the frame loop, and so the login screen has a single thing to talk to.
 
 signal entered_realm(response: Dictionary)
-signal died(player_name: String)
+signal died(player_name: String, grave: Dictionary)
 signal arena_ended(results: Dictionary)
 
 var client: GraveBoundClient
@@ -129,7 +129,7 @@ func _note_death(data: Dictionary) -> void:
 	# realm, which is precisely what stops the server timing the session out
 	# if the ack or the close is lost.
 	client.stop_playing()
-	died.emit(state.local.name)
+	died.emit(state.local.name, GraveCard.record(data.get("grave", [])))
 
 
 ## A refused command reads in the chat log as the web client shows it --
