@@ -596,17 +596,18 @@ func _place_entities(centre: Vector2) -> int:
 		var size := float(item["size"])
 		var draw: Vector2 = item["draw"]
 		used = _place(used, texture, Vector2(pos.x + size * 0.5, pos.y + size * 0.5),
-			draw.y, draw.x, size, bool(item["flip"]), item.get("modulate", Color.WHITE))
+			draw.y, draw.x, size, bool(item["flip"]), item.get("modulate", Color.WHITE),
+			item.get("rotation", NAN))
 	return used
 
 
 func _place(index: int, texture: Texture2D, xz: Vector2, height: float, width: float,
-		cell: float, flip: bool, modulate: Color) -> int:
+		cell: float, flip: bool, modulate: Color, heading: float) -> int:
 	while _entities.size() <= index:
 		var made := _new_billboard()
 		_sprite_root.add_child(made)
 		_entities.append(made)
-	_configure(_entities[index], texture, xz, height, width, cell, flip, modulate)
+	_configure(_entities[index], texture, xz, height, width, cell, flip, modulate, heading)
 	return index + 1
 
 
@@ -623,28 +624,47 @@ func _new_billboard() -> Sprite3D:
 ## jitter). The art is placed WITHIN the sprite by `offset`, not by moving the
 ## node: bottom-anchored so the feet sit on the ground, and side-anchored so a
 ## wide attack frame's overhang falls on the facing side.
+## A `heading` (the flat view's rotation; NAN for none) instead turns a body to face
+## its travel (data.rotateToMotion -- chain bosses, wyrms).
 func _configure(sprite: Sprite3D, texture: Texture2D, xz: Vector2, height: float,
-		width: float, cell: float, flip: bool, modulate: Color) -> void:
+		width: float, cell: float, flip: bool, modulate: Color, heading := NAN) -> void:
 	var tex_h := float(texture.get_height())
 	var tex_w := float(texture.get_width())
 	sprite.texture = texture
 	sprite.pixel_size = height / tex_h if tex_h > 0.0 else 1.0
 	sprite.flip_h = flip
 	sprite.modulate = modulate
-	sprite.position = Vector3(xz.x, 0.0, xz.y)
 	sprite.visible = true
-	# Body pixels within the frame; the overhang is the rest, on the facing side.
-	var body_px := tex_w * cell / width if width > 0.0 else tex_w
-	var side := (tex_w - body_px) * 0.5
-	sprite.offset = Vector2(-side if flip else side, tex_h * 0.5)
 	var shadow: Sprite3D = sprite.get_child(0)
 	shadow.pixel_size = width / float(SHADOW_SIZE)
 	shadow.scale = Vector3.ONE
-	# Cast along the sun's ground direction (the billboard node isn't rotated -- its
-	# billboarding is render-only -- so the child's local axes are world axes), so
-	# the shadow falls to the lit-away side and shows even from behind the sprite.
+	# Cast along the sun's ground direction, so the shadow falls to the lit-away side
+	# and shows even from behind the sprite.
 	var cast := _shadow_ground_dir * height * SHADOW_CAST_FACTOR
-	shadow.position = Vector3(cast.x, 0.15, cast.y)
+	var flat_shadow := Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(cast.x, 0.15, cast.y))
+	if is_nan(heading):
+		if sprite.billboard != BaseMaterial3D.BILLBOARD_ENABLED:
+			sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		sprite.transform = Transform3D(Basis(), Vector3(xz.x, 0.0, xz.y))
+		# Body pixels within the frame; the overhang is the rest, on the facing side.
+		var body_px := tex_w * cell / width if width > 0.0 else tex_w
+		var side := (tex_w - body_px) * 0.5
+		sprite.offset = Vector2(-side if flip else side, tex_h * 0.5)
+		# Billboarding is render-only, so the node's local axes are world axes.
+		shadow.transform = flat_shadow
+		return
+	# Face the camera, turned about the frame's centre so the art's right edge points
+	# where the heading's world direction lands on screen -- the flat view's turn.
+	if sprite.billboard != BaseMaterial3D.BILLBOARD_DISABLED:
+		sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	var view := _camera.global_transform.basis
+	var along := view.transposed() * Vector3(cos(heading), 0.0, sin(heading))
+	var basis := view * Basis(Vector3.BACK, -atan2(-along.y, along.x))
+	sprite.offset = Vector2.ZERO
+	sprite.transform = Transform3D(basis, Vector3(xz.x, height * 0.5, xz.y))
+	# The node turns now, so the shadow undoes that to lie flat where it would.
+	flat_shadow.origin.y -= height * 0.5
+	shadow.transform = Transform3D(basis.inverse(), Vector3.ZERO) * flat_shadow
 
 
 # ── Projectiles: flat on the ground, turned to their heading ──────────────────

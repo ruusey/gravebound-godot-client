@@ -510,6 +510,27 @@ func test_looking_into_the_sun_fills_the_sprites():
 	assert_gt(view._fill.light_energy, 0.0, "facing into it, the sprites are filled")
 
 
+func test_a_body_that_turns_to_its_travel_points_along_it_in_25d():
+	main.state.settings.set_on("view_25d", true)
+	var view: WorldView3D = main._view_3d
+	view._yaw = 0.7
+	view._follow_camera(Vector2(320.0, 320.0), 0.016)
+	var sprite := view._new_billboard()
+	view.add_child(sprite)
+	var texture := PlaceholderTexture2D.new()
+	texture.size = Vector2(32, 32)
+	# Heading south-east in the flat world (y down).
+	view._configure(sprite, texture, Vector2(320.0, 320.0), 32.0, 32.0, 32.0, false, Color.WHITE, PI * 0.25)
+	assert_eq(sprite.billboard, BaseMaterial3D.BILLBOARD_DISABLED, "turned by hand, not billboarded")
+	var camera := view._camera
+	var at := sprite.global_position
+	var art_right := camera.unproject_position(at + sprite.global_transform.basis.x) - camera.unproject_position(at)
+	var travel := camera.unproject_position(at + Vector3(1.0, 0.0, 1.0)) - camera.unproject_position(at)
+	assert_almost_eq(art_right.angle_to(travel), 0.0, 0.01, "the art's right edge leads, as in the flat view")
+	view._configure(sprite, texture, Vector2(320.0, 320.0), 32.0, 32.0, 32.0, false, Color.WHITE)
+	assert_eq(sprite.billboard, BaseMaterial3D.BILLBOARD_ENABLED, "a pooled sprite reused for a plain body billboards again")
+
+
 func test_leaving_the_25d_view_low_brings_the_tags_back():
 	main.state.settings.set_on("view_25d", true)
 	main._view_3d._descent_goal = 1.0
