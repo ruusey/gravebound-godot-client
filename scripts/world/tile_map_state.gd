@@ -85,7 +85,7 @@ func apply_load_map(data: Dictionary) -> bool:
 			if not layers.has(layer):
 				layers[layer] = {}
 			cells = layers[layer]
-		# NetTile's field names lie: TileManager reads blocks()[y][x] and then
+		# NetTile's field names lie: TileManager reads getTiles()[y][x] and then
 		# builds `new NetTile(id, layer, y, x)`, so xIndex carries the ROW and
 		# yIndex the COLUMN. Reading them at face value transposes the map --
 		# invisible at a spawn on the diagonal, and progressively wrong the
