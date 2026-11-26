@@ -33,6 +33,10 @@ const FOLLOW_RESUME_MS := 8000
 ## A phone's log narrows beside the touch buttons down to this, then rises
 ## over them instead.
 const PHONE_MIN_WIDTH := 200.0
+## A phone's log, left alone, fades out this long after its last new line
+## and comes back with the next, or when opened.
+const FADE_AFTER_MS := 3000
+const FADE_MS := 600
 
 var state: RealmState
 var actions: ChatActions
@@ -59,6 +63,8 @@ var avoid: Callable = func() -> Rect2: return Rect2()
 ## The log's left edge and width when nothing covers it.
 var _home_left := float(MARGIN)
 var _width := float(WIDTH - MARGIN)
+## When the log last changed, for the phone's fade.
+var _said_at_ms := 0
 
 
 func setup(realm_state: RealmState, chat_actions: ChatActions = null) -> void:
@@ -91,7 +97,7 @@ func _ready() -> void:
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	_scroll.custom_minimum_size = Vector2(_width, _lines() * ROW_HEIGHT)
+	_scroll.custom_minimum_size = Vector2(_width, _lines() * _row_height())
 	_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
 	_scroll.mouse_entered.connect(func() -> void: _hovering = true)
 	_scroll.mouse_exited.connect(func() -> void: _hovering = false)
@@ -102,6 +108,8 @@ func _ready() -> void:
 	_list = VBoxContainer.new()
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if PhoneLayout.on:
+		_list.add_theme_constant_override("separation", PhoneLayout.CHAT_GAP)
 	_scroll.add_child(_list)
 
 	_input = ChatInput.new()
@@ -239,14 +247,14 @@ func _process(_delta: float) -> void:
 
 	var expanded := _is_expanded()
 	# Height: compact tail, or expanded viewport capped to a slice of the screen.
-	var want_h := float(_lines() * ROW_HEIGHT)
+	var want_h := _lines() * _row_height()
 	if expanded:
 		var cap := TouchScale.view_size(_box).y * EXPANDED_SCREEN_FRACTION
 		# Never up over a phone's vitals, however high the log has risen.
 		if PhoneLayout.on:
 			var under := TouchScale.view_size(_box).y + _box.offset_bottom - PhoneLayout.vitals_bottom
 			cap = minf(cap, under - INPUT_ROW - PhoneLayout.GAP * 2.0)
-		want_h = minf(EXPANDED_LINES * ROW_HEIGHT, cap)
+		want_h = minf(EXPANDED_LINES * _row_height(), cap)
 	if not is_equal_approx(_scroll.custom_minimum_size.y, want_h):
 		_scroll.custom_minimum_size.y = want_h
 	# Capture scroll only when expanded; otherwise let clicks fall through to the
@@ -276,9 +284,18 @@ func _process(_delta: float) -> void:
 	# size (size saturates at 50 once full, so newer lines would stop redrawing).
 	if state.chat.revision != _shown:
 		_shown = state.chat.revision
+		_said_at_ms = Time.get_ticks_msec()
 		refresh()
 	elif _follow:
 		_stick_bottom()
+	if PhoneLayout.on:
+		_scroll.modulate.a = 1.0 if expanded else fade(Time.get_ticks_msec() - _said_at_ms)
+
+
+## The phone log's opacity `idle_ms` after its last new line: whole for
+## FADE_AFTER_MS, then gone over FADE_MS.
+static func fade(idle_ms: int) -> float:
+	return clampf(1.0 - float(idle_ms - FADE_AFTER_MS) / FADE_MS, 0.0, 1.0)
 
 
 ## The phone's log has no chip, so it is never folded.
@@ -288,6 +305,10 @@ func _folded() -> bool:
 
 func _lines() -> int:
 	return PhoneLayout.CHAT_LINES if PhoneLayout.on else COMPACT_LINES
+
+
+func _row_height() -> float:
+	return PhoneLayout.CHAT_ROW if PhoneLayout.on else float(ROW_HEIGHT)
 
 
 ## Nothing to show without a log. Blanking rather than returning keeps the guard
@@ -306,7 +327,7 @@ func refresh() -> void:
 	var lines: Array = state.chat.lines
 	while _rows.size() < lines.size():
 		# Wrapped rather than run off the edge: a long line is the normal case.
-		var row := ChatRow.new(_width)
+		var row := ChatRow.new(_width, PhoneLayout.CHAT_FONT if PhoneLayout.on else ChatRow.FONT_SIZE)
 		_list.add_child(row)
 		_rows.append(row)
 		_row_lines.append(null)

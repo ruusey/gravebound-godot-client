@@ -10,6 +10,10 @@ extends CanvasLayer
 ## the tile first, as F tries the tile before a pickup.
 
 const MARGIN_BOTTOM := 100.0
+## On a phone the bottom is the sticks' and buttons', so the prompt sits
+## just over the player's head, near the middle, instead: under the player
+## are their name and bars and the portal's card.
+const PHONE_ABOVE_CENTRE := 24.0
 const FONT_SIZE := 14
 const GOLD := Color(1.0, 0.92, 0.6)
 
@@ -41,6 +45,10 @@ func _ready() -> void:
 	_button.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_button.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_button.offset_bottom = -MARGIN_BOTTOM
+	if PhoneLayout.on:
+		_button.set_anchors_preset(Control.PRESET_CENTER)
+		_button.offset_top = -PHONE_ABOVE_CENTRE
+		_button.offset_bottom = -PHONE_ABOVE_CENTRE
 	_button.add_theme_font_size_override("font_size", FONT_SIZE)
 	for look in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		_button.add_theme_color_override(look, GOLD)

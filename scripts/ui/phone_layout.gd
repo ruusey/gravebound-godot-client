@@ -16,11 +16,19 @@ const BUTTON_SIZE := Vector2(60.0, 30.0)
 const BUTTON_FONT := 13
 const VITALS_WIDTH := 200.0
 const CHAT_WIDTH := 300.0
-const CHAT_LINES := 3
+## The phone's chat: small lines, five of them in the box three used to
+## fill. A 7pt row is 10 tall, and the lines sit CHAT_GAP apart.
+const CHAT_LINES := 5
+const CHAT_FONT := 7
+const CHAT_GAP := 1
+const CHAT_ROW := 10.0 + CHAT_GAP
 ## A row under the map: the quest stars' chip.
 const CHIP_ROW := 30.0
+const GAME_FONT := "res://assets/fonts/game_font.tres"
 
 static var on := false
+## The game font per small size, its spaces kept (small_font).
+static var _small_fonts := {}
 ## Where the vitals end; PlayerHud keeps it up to date as it draws.
 static var vitals_bottom := MARGIN
 ## The open bag fills the left column; the party and nearby lists give way.
@@ -67,3 +75,16 @@ static func map_rect(screen: Vector2) -> Rect2:
 ## The top-left corner of the Menu, Bag and Chat column, left of the map.
 static func buttons_at(screen: Vector2) -> Vector2:
 	return Vector2(map_rect(screen).position.x - GAP - BUTTON_SIZE.x, MARGIN)
+
+
+## The game font for text under its usual sizes. Its flat -5 on every space
+## suits 12pt and more, but swallows the space whole at 7 and under, and the
+## words run together; this one trims each size to a third of its height.
+static func small_font(size: int) -> Font:
+	if _small_fonts.has(size):
+		return _small_fonts[size]
+	var font: FontVariation = (load(GAME_FONT) as FontVariation).duplicate()
+	var raw := font.base_font.get_string_size(" ", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	font.spacing_space = maxi(2, roundi(size / 3.0)) - roundi(raw)
+	_small_fonts[size] = font
+	return font

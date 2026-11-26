@@ -20,16 +20,18 @@ const WHISPER_IN := "WHISPER_IN"
 const WHISPER_OUT := "WHISPER_OUT"
 
 
-func _init(width: float) -> void:
+func _init(width: float, font_size := FONT_SIZE) -> void:
 	bbcode_enabled = true
 	fit_content = true
 	scroll_active = false
 	autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	custom_minimum_size.x = width
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_theme_font_size_override("normal_font_size", FONT_SIZE)
+	add_theme_font_size_override("normal_font_size", font_size)
+	if font_size < FONT_SIZE:
+		add_theme_font_override("normal_font", PhoneLayout.small_font(font_size))
 	add_theme_color_override("font_outline_color", Color.BLACK)
-	add_theme_constant_override("outline_size", 4)
+	add_theme_constant_override("outline_size", 4 if font_size >= 10 else 2)
 
 
 func show_line(line: Dictionary) -> void:

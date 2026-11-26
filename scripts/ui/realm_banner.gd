@@ -14,6 +14,9 @@ extends CanvasLayer
 const MARGIN_TOP := 8.0
 const NAME_SIZE := 16
 const DETAIL_SIZE := 13
+## A phone draws the name and the purification line at about a third of
+## that: at full size they ran across half the screen.
+const PHONE_SCALE := 0.35
 
 var state: RealmState
 var content: GameData
@@ -49,8 +52,8 @@ func _ready() -> void:
 	_column.offset_top = MARGIN_TOP
 	_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_column)
-	_name = _line(NAME_SIZE)
-	_detail = _line(DETAIL_SIZE)
+	_name = _line(text_size(NAME_SIZE, PhoneLayout.on))
+	_detail = _line(text_size(DETAIL_SIZE, PhoneLayout.on))
 	_detail.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
 	TouchFrame.adopt(self)
 
@@ -59,8 +62,10 @@ func _line(size: int) -> Label:
 	var label := Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", size)
+	if PhoneLayout.on:
+		label.add_theme_font_override("font", PhoneLayout.small_font(size))
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
-	label.add_theme_constant_override("outline_size", 4)
+	label.add_theme_constant_override("outline_size", 2 if PhoneLayout.on else 4)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_column.add_child(label)
 	return label
@@ -95,6 +100,11 @@ func _process(_delta: float) -> void:
 	_name.add_theme_color_override("font_color", difficulty_colour(difficulty) if difficulty > 0.0 else Color.WHITE)
 	_detail.text = purification(realm)
 	_detail.visible = _detail.text != ""
+
+
+## A line's font size: as given, or scaled down for a phone.
+static func text_size(size: int, phone: bool) -> int:
+	return maxi(5, roundi(size * PHONE_SCALE)) if phone else size
 
 
 ## The server's own name for the realm if it sent one, the map's otherwise.
