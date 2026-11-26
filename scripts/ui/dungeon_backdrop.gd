@@ -29,6 +29,8 @@ const WANDER_RADIUS := 2.2 * GameConstants.TILE_SIZE
 const DRIFT_MIN := 0.4   # px/tick
 const DRIFT_MAX := 1.1
 const IDLE_CHANCE := 0.35
+## Tiles in from the view's edge over which the dungeon dissolves in and out.
+const EDGE_BAND_TILES := 4.0
 
 var game_data: GameData
 ## Seconds, advanced by step(); drives the entity clock and the scroll so a
@@ -102,8 +104,10 @@ func _ready() -> void:
 	_world = WorldRenderer.new()
 	_world.setup(_state, game_data)
 	_viewport.add_child(_world)
+	_world.reveal.edge_band = EDGE_BAND_TILES
 	_lighting = SceneLighting.new()
 	_lighting.setup(_state, game_data)
+	_lighting.reveal = _world.reveal
 	_viewport.add_child(_lighting)
 
 	_camera = Camera2D.new()

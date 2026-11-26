@@ -15,6 +15,10 @@ extends Node2D
 ## landing off screen (it scrolls in drawn); and when the player jumps more than
 ## TELEPORT_PX in a frame, every cover is lifted and the next ARRIVAL_GRACE_S of
 ## ground shows at once, since the tiles can land a frame before the position.
+##
+## With an edge_band, the same dissolve also runs around the view's border: each
+## cell within the band is covered by how near the edge it sits, so a panning view
+## materializes terrain as it scrolls in and breaks it up as it scrolls out.
 
 const SHADER := preload("res://scripts/render/shaders/terrain_reveal.gdshader")
 const TILE_SIZE := GameConstants.TILE_SIZE
@@ -30,6 +34,8 @@ var state: RealmState
 var content: GameData
 ## Dissolve on the art's pixel grid (true) or fade the black smoothly.
 var dither := true
+## Tiles in from the view's edge that the border dissolve spans; 0 for none.
+var edge_band := 0.0
 ## Seconds; a capture pins it to freeze the fade.
 var clock := func() -> float: return Time.get_ticks_msec() / 1000.0
 ## Cell -> [start_s, cover_height_px].
@@ -62,22 +68,23 @@ func refresh() -> void:
 		_admit(revealed, now)
 	revealed.clear()
 	_material.set_shader_parameter("dither", dither)
-	var drawing := not _active.is_empty()
+	var drawing := not _active.is_empty() or edge_band > 0.0
 	if drawing or _was_drawing:
 		queue_redraw()
 	_was_drawing = drawing
 
 
 func is_fading() -> bool:
-	return not _active.is_empty()
+	return not _active.is_empty() or edge_band > 0.0
 
 
 ## How much of `cell` shows, 0 (covered) to 1.
 func shown(cell: Vector2i) -> float:
+	var cover := _edge_cover(cell, ViewRect.of(self)) if edge_band > 0.0 else 0.0
 	var entry: Variant = _active.get(cell)
-	if entry == null:
-		return 1.0
-	return 1.0 - _cover(entry[0], clock.call())
+	if entry != null:
+		cover = maxf(cover, _cover(entry[0], clock.call()))
+	return 1.0 - cover
 
 
 func active_count() -> int:
@@ -124,6 +131,15 @@ func _cover_height(cell: Vector2i) -> float:
 	return height
 
 
+## How covered `cell` is by the border dissolve: fully at the view's edge, not at
+## all edge_band tiles in.
+func _edge_cover(cell: Vector2i, view: Rect2) -> float:
+	var centre := (Vector2(cell) + Vector2(0.5, 0.5)) * TILE_SIZE
+	var inset := minf(minf(centre.x - view.position.x, view.end.x - centre.x),
+		minf(centre.y - view.position.y, view.end.y - centre.y)) / TILE_SIZE
+	return 1.0 - smoothstep(0.0, 1.0, clampf(inset / edge_band, 0.0, 1.0))
+
+
 static func _cover(start: float, now: float) -> float:
 	var progress := (now - start) / DURATION_S
 	return 1.0 - smoothstep(0.0, 1.0, clampf(progress, 0.0, 1.0))
@@ -131,6 +147,7 @@ static func _cover(start: float, now: float) -> float:
 
 func _draw() -> void:
 	var now: float = clock.call()
+	var border := _border_covers()
 	var done: Array[Vector2i] = []
 	for cell: Vector2i in _active:
 		var entry: Array = _active[cell]
@@ -138,6 +155,34 @@ func _draw() -> void:
 		if cover <= 0.0:
 			done.append(cell)
 			continue
+		cover = maxf(cover, border.get(cell, 0.0))
+		border.erase(cell)
 		draw_rect(Rect2(Vector2(cell) * TILE_SIZE, Vector2(TILE_SIZE, entry[1])), Color(0, 0, 0, cover))
 	for cell in done:
 		_active.erase(cell)
+	for cell: Vector2i in border:
+		draw_rect(Rect2(Vector2(cell) * TILE_SIZE, Vector2(TILE_SIZE, _cover_height(cell))),
+			Color(0, 0, 0, border[cell]))
+
+
+## Cell -> cover for every drawn cell inside the border band (and just past the
+## edge, so a wall face hanging into view is covered too).
+func _border_covers() -> Dictionary:
+	var covers := {}
+	if edge_band <= 0.0 or state == null:
+		return covers
+	var view := ViewRect.of(self)
+	var first := Vector2i(floori(view.position.x / TILE_SIZE) - 1, floori(view.position.y / TILE_SIZE) - 3)
+	var last := Vector2i(floori(view.end.x / TILE_SIZE) + 1, floori(view.end.y / TILE_SIZE) + 1)
+	var layers: Dictionary = state.tiles.layers
+	for x in range(first.x, last.x + 1):
+		for y in range(first.y, last.y + 1):
+			var cell := Vector2i(x, y)
+			var cover := _edge_cover(cell, view)
+			if cover <= 0.0:
+				continue
+			for layer in layers.values():
+				if layer.has(cell):
+					covers[cell] = cover
+					break
+	return covers

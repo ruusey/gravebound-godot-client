@@ -133,6 +133,11 @@ func test_the_enemies_never_stand_in_a_wall():
 	pass_test("600 frames of drift stayed on open floor")
 
 
+func test_the_view_edge_dissolves():
+	var backdrop := _backdrop()
+	assert_eq(backdrop._world.reveal.edge_band, DungeonBackdrop.EDGE_BAND_TILES)
+	assert_eq(backdrop._lighting.reveal, backdrop._world.reveal, "edge lights dim with their tiles")
+
 
 func test_the_same_seed_builds_the_same_dungeon():
 	var a := _backdrop()

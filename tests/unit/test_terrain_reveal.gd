@@ -104,6 +104,19 @@ func test_a_teleport_lifts_every_cover_and_shows_what_follows():
 	assert_eq(reveal.active_count(), 0, "ground landing just after the jump shows at once")
 
 
+func test_an_edge_band_covers_the_view_border_but_not_its_middle():
+	_start()
+	reveal.edge_band = 3.0
+	var view := ViewRect.of(reveal)
+	var middle := Vector2i((view.get_center() / TerrainReveal.TILE_SIZE).floor())
+	var edge := Vector2i((view.position / TerrainReveal.TILE_SIZE).floor())
+	assert_eq(reveal.shown(middle), 1.0)
+	assert_lt(reveal.shown(edge), 0.1, "the outermost cell is nearly covered")
+	assert_true(reveal.is_fading(), "the lighting dims lights by it")
+	reveal.edge_band = 0.0
+	assert_eq(reveal.shown(edge), 1.0, "off by default")
+
+
 func test_the_setting_turns_it_off():
 	_start()
 	state.settings.set_on("terrain_fade_in", false)
