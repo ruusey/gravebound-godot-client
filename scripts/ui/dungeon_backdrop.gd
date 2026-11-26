@@ -250,7 +250,7 @@ func _spawn_enemies(placements: Array, tile_size: int) -> void:
 			var count := mini(MINIONS_CAP, lo + _rng.randi_range(0, maxi(0, max_minions - lo)))
 			for i in count:
 				var enemy_id := int(pool[_rng.randi_range(0, pool.size() - 1)])
-				var centre := _random_floor(room, ox, oy, tile_size)
+				var centre := _random_floor(room, ox, oy, tile_size, _enemy_size(enemy_id))
 				if centre != Vector2.INF:
 					_add_enemy(enemy_id, centre)
 		for spawn in room.get("staticSpawns", []):
@@ -260,23 +260,28 @@ func _spawn_enemies(placements: Array, tile_size: int) -> void:
 			_add_enemy(int(spawn.get("enemyId", -1)), centre)
 
 
-## A random floor cell centre in the room: base tile present, no wall over it.
-func _random_floor(room: Dictionary, ox: int, oy: int, tile_size: int) -> Vector2:
+## A random cell centre in the room where an enemy of `size` may stand, by the
+## game's own collision (tall walls are solid down their face).
+func _random_floor(room: Dictionary, ox: int, oy: int, tile_size: int, size: int) -> Vector2:
 	var w := int(room.get("width", 1))
 	var h := int(room.get("height", 1))
 	for _attempt in 8:
 		var col := ox + _rng.randi_range(1, maxi(1, w - 2))
 		var row := oy + _rng.randi_range(1, maxi(1, h - 2))
-		var cell := Vector2i(col, row)
-		if _state.tiles.layers.get(0, {}).has(cell) and not _state.tiles.layers.get(1, {}).has(cell):
-			return Vector2(col * tile_size + tile_size * 0.5, row * tile_size + tile_size * 0.5)
+		var centre := Vector2(col * tile_size + tile_size * 0.5, row * tile_size + tile_size * 0.5)
+		if not _state.tiles.blocks(centre - Vector2(size, size) * 0.5, size):
+			return centre
 	return Vector2.INF
+
+
+func _enemy_size(enemy_id: int) -> int:
+	return int(game_data.enemies.get(enemy_id, {}).get("size", 16))
 
 
 func _add_enemy(enemy_id: int, centre: Vector2) -> void:
 	if enemy_id < 0 or not game_data.enemies.has(enemy_id):
 		return
-	var size := int(game_data.enemies[enemy_id].get("size", 16))
+	var size := _enemy_size(enemy_id)
 	var enemy := _state.entities.upsert(_state.entities.enemies, _next_enemy_id, GameConstants.ENTITY_ENEMY)
 	_next_enemy_id += 1
 	enemy["enemy_id"] = enemy_id
@@ -302,10 +307,32 @@ func _drift_enemies(delta: float) -> void:
 			else:
 				enemy["vel"] = Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(DRIFT_MIN, DRIFT_MAX)
 			enemy["retarget"] = _rng.randf_range(0.8, 2.6)
-		var pos: Vector2 = enemy["pos"] + enemy["vel"] * GameConstants.TICK_RATE * delta
+		var pos: Vector2 = enemy["pos"]
 		if pos.distance_to(enemy["home"]) > WANDER_RADIUS:
 			enemy["vel"] = (enemy["home"] - pos).normalized() * DRIFT_MAX
-			pos = enemy["home"] + (pos - enemy["home"]).normalized() * WANDER_RADIUS
+		pos = _slide(pos, enemy, int(enemy["size"]), delta)
 		enemy["pos"] = pos
 		EntitySnapshots.push(enemy, pos, enemy["vel"], _elapsed_ms, _state.entities.viewer.call())
 	RemoteAnimation.advance(enemies, delta)
+
+
+## One drift step against the game's collision, each axis from where it started
+## (as the player's movement does); an axis that hits a wall turns the drift back.
+func _slide(pos: Vector2, enemy: Dictionary, size: int, delta: float) -> Vector2:
+	var velocity: Vector2 = enemy["vel"]
+	var step := velocity * GameConstants.TICK_RATE * delta
+	var tiles := _state.tiles
+	var x_blocked := step.x != 0.0 and tiles.blocks(pos + Vector2(step.x, 0.0), size)
+	var y_blocked := step.y != 0.0 and tiles.blocks(pos + Vector2(0.0, step.y), size)
+	if not x_blocked and not y_blocked and step.x != 0.0 and step.y != 0.0 \
+			and tiles.blocks(pos + step, size):
+		x_blocked = true
+		y_blocked = true
+	if x_blocked:
+		step.x = 0.0
+		velocity.x = -velocity.x
+	if y_blocked:
+		step.y = 0.0
+		velocity.y = -velocity.y
+	enemy["vel"] = velocity
+	return pos + step

@@ -110,9 +110,28 @@ func test_the_enemies_drift_about_their_homes():
 	for id in before:
 		if enemies[id]["pos"] != before[id]:
 			moved = true
-		assert_lte(enemies[id]["pos"].distance_to(enemies[id]["home"]), DungeonBackdrop.WANDER_RADIUS + 0.01,
+		# It turns home once past the radius, so it can overshoot by one step.
+		assert_lte(enemies[id]["pos"].distance_to(enemies[id]["home"]),
+			DungeonBackdrop.WANDER_RADIUS + DungeonBackdrop.DRIFT_MAX * GameConstants.TICK_RATE / 60.0 + 0.01,
 			"none strays past its wander radius")
 	assert_true(moved, "at least one enemy drifted")
+
+
+func test_the_enemies_never_stand_in_a_wall():
+	var backdrop := _backdrop()
+	backdrop.build()
+	var enemies: Dictionary = backdrop._state.entities.enemies
+	var tiles := backdrop._state.tiles
+	for id in enemies:
+		assert_false(tiles.blocks(enemies[id]["pos"], int(enemies[id]["size"])), "spawned clear of walls")
+	for frame in 600:
+		backdrop._drift_enemies(1.0 / 60.0)
+		for id in enemies:
+			if tiles.blocks(enemies[id]["pos"], int(enemies[id]["size"])):
+				fail_test("enemy %d walked into a wall on frame %d" % [id, frame])
+				return
+	pass_test("600 frames of drift stayed on open floor")
+
 
 
 func test_the_same_seed_builds_the_same_dungeon():
