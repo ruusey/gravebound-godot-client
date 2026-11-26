@@ -55,7 +55,7 @@ func test_the_oldest_lines_go_first():
 		_said("Ruu", "line %d" % i)
 	assert_eq(state.chat.lines.size(), ChatLog.MAX_LINES)
 	assert_eq(state.chat.lines[0]["message"], "line 10", "the first ten are gone")
-	assert_eq(state.chat.lines[-1]["message"], "line 59", "and the newest is kept")
+	assert_eq(state.chat.lines[-1]["message"], "line %d" % (ChatLog.MAX_LINES + 9), "and the newest is kept")
 
 
 func test_a_line_missing_every_field_is_still_a_line():
@@ -231,43 +231,49 @@ func test_an_event_marker_is_not_chat():
 	assert_eq(state.chat.lines.size(), 1, "and ordinary chat still lands")
 
 
-func test_the_visible_line_count_is_what_the_panel_shows():
-	assert_eq(ChatPanel.VISIBLE_LINES, 6)
+func test_the_compact_line_count_is_what_the_panel_shows():
+	assert_eq(ChatPanel.COMPACT_LINES, 6)
 
 
-func test_a_blanked_panel_redraws_at_the_same_line_count():
+func test_a_blanked_panel_redraws_its_lines():
 	_said("Ruu", "hi")
 	panel._process(0.1)
 	panel.blank()
+	assert_false(panel._rows[0].visible, "blanked")
 	panel._process(0.1)
-	assert_eq(panel._labels[0].get_parsed_text(), "[Ruu]: hi")
+	assert_eq(panel._rows[0].get_parsed_text(), "[Ruu]: hi")
 
 
 # --- the panel -------------------------------------------------------------
 
-func test_the_panel_shows_the_last_lines_oldest_at_the_top():
-	for i in ChatPanel.VISIBLE_LINES + 3:
+func test_the_panel_keeps_the_whole_log_oldest_at_the_top():
+	# Every line goes into the scrollback; the viewport's height decides how
+	# many show at once.
+	for i in ChatPanel.COMPACT_LINES + 3:
 		_said("Ruu", "line %d" % i)
 	panel.refresh()
-	assert_eq(panel._labels[0].get_parsed_text(), "[Ruu]: line 3")
-	assert_eq(panel._labels[-1].get_parsed_text(), "[Ruu]: line %d" % (ChatPanel.VISIBLE_LINES + 2))
+	assert_eq(panel._rows.size(), ChatPanel.COMPACT_LINES + 3)
+	assert_eq(panel._rows[0].get_parsed_text(), "[Ruu]: line 0")
+	assert_eq(panel._rows[-1].get_parsed_text(), "[Ruu]: line %d" % (ChatPanel.COMPACT_LINES + 2))
 
 
-func test_unused_rows_are_blank():
+func test_a_row_is_made_per_line_and_a_blanked_one_hides():
 	_said("Ruu", "hi")
 	panel.refresh()
-	assert_eq(panel._labels[0].get_parsed_text(), "[Ruu]: hi")
-	assert_eq(panel._labels[1].get_parsed_text(), "")
-	assert_true(panel._labels[0].visible)
-	assert_false(panel._labels[1].visible, "hidden, or its empty height pushes the log up")
+	assert_eq(panel._rows.size(), 1, "no empty rows pushing the log up")
+	assert_eq(panel._rows[0].get_parsed_text(), "[Ruu]: hi")
+	assert_true(panel._rows[0].visible)
+	panel._rows[0].blank()
+	assert_eq(panel._rows[0].get_parsed_text(), "")
+	assert_false(panel._rows[0].visible, "hidden, or its empty height pushes the log up")
 
 
 func test_the_server_reads_differently_from_a_player():
 	_said("SYSTEM", "Welcome")
 	_said("Ruu", "hi")
 	panel.refresh()
-	assert_eq(panel._labels[0].get_theme_color("default_color"), ChatRow.SYSTEM_COLOUR)
-	assert_eq(panel._labels[1].get_theme_color("default_color"), ChatRow.PLAYER_COLOUR)
+	assert_eq(panel._rows[0].get_theme_color("default_color"), ChatRow.SYSTEM_COLOUR)
+	assert_eq(panel._rows[1].get_theme_color("default_color"), ChatRow.PLAYER_COLOUR)
 
 
 func test_a_senders_name_takes_the_role_the_server_put_in_to():
@@ -277,39 +283,37 @@ func test_a_senders_name_takes_the_role_the_server_put_in_to():
 	_said("Ruu", "hello")
 	_said("Overseer", "The realm is closing")
 	panel.refresh()
-	assert_eq(panel._labels[0].get_parsed_text(), "[Zed]: hi")
-	assert_eq(panel._labels[0].text, "[color=#ff4040][lb]Zed][/color]: hi", "red, the sysadmin's")
-	assert_eq(panel._labels[1].text, "[color=#4080e0][lb]Ruu][/color]: hello",
+	assert_eq(panel._rows[0].get_parsed_text(), "[Zed]: hi")
+	assert_eq(panel._rows[0].text, "[color=#ff4040][lb]Zed][/color]: hi", "red, the sysadmin's")
+	assert_eq(panel._rows[1].text, "[color=#4080e0][lb]Ruu][/color]: hello",
 		"no role is the chat log's blue, not the off-white over a head")
-	assert_eq(panel._labels[2].text, "[color=#e8c840][lb]Overseer][/color]: The realm is closing")
+	assert_eq(panel._rows[2].text, "[color=#e8c840][lb]Overseer][/color]: The realm is closing")
 
 
 func test_nothing_typed_into_chat_can_open_a_tag():
 	_said("[b]Zed", "[color=red]not red[/color] [url]x[/url]", "admin")
 	panel.refresh()
-	assert_eq(panel._labels[0].get_parsed_text(), "[[b]Zed]: [color=red]not red[/color] [url]x[/url]",
+	assert_eq(panel._rows[0].get_parsed_text(), "[[b]Zed]: [color=red]not red[/color] [url]x[/url]",
 		"every bracket drawn as itself")
 
 
 func test_the_panel_shows_nothing_without_a_state():
-	# Scribbled on first, so blank afterwards is the guard doing its job
-	# rather than the rows never having been touched.
 	var bare := ChatPanel.new()
 	add_child_autofree(bare)
-	bare._labels[0].text = "scribbled over"
 	bare._process(0.1)
-	assert_eq(bare._labels[0].get_parsed_text(), "")
+	assert_eq(bare._rows.size(), 0)
 
 
-func test_the_panel_only_rebuilds_when_something_was_said():
+func test_the_panel_only_repaints_what_changed():
 	_said("Ruu", "hi")
 	panel._process(0.1)
-	panel._labels[0].text = "scribbled over"
+	panel._rows[0].text = "scribbled over"
 	panel._process(0.1)
-	assert_eq(panel._labels[0].get_parsed_text(), "scribbled over", "no new line, no rebuild")
+	assert_eq(panel._rows[0].get_parsed_text(), "scribbled over", "no new line, no rebuild")
 	_said("Ruu", "again")
 	panel._process(0.1)
-	assert_eq(panel._labels[0].get_parsed_text(), "[Ruu]: hi", "and a new one redraws it")
+	assert_eq(panel._rows[0].get_parsed_text(), "scribbled over", "an unchanged line's row is left alone")
+	assert_eq(panel._rows[1].get_parsed_text(), "[Ruu]: again", "and the new line is drawn")
 
 
 func test_a_refusal_never_becomes_the_caption():

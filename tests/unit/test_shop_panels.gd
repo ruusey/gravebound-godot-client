@@ -200,7 +200,7 @@ func test_the_prompt_names_the_tile_in_reach():
 	state.apply_packet("LoadMapPacket", {"realmId": 1, "tiles": [WireHelper.tile(301, 1, 6, 5)]})
 	prompt._process(0.0)
 	assert_true(prompt.visible)
-	assert_eq(prompt._label.text, "Open Fame Store (F)")
+	assert_eq(prompt._button.text, "Open Fame Store (F)")
 	state.local.position = Vector2(20 * 32, 20 * 32)
 	prompt._process(0.0)
 	assert_false(prompt.visible)

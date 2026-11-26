@@ -85,20 +85,33 @@ func test_a_rider_rides_the_camera_so_the_lighting_has_a_viewer():
 	assert_almost_eq(backdrop._state.local.centre().x, backdrop._camera.position.x, 0.01)
 
 
-func test_stepping_pans_the_view_and_drifts_the_enemies():
+func test_stepping_pans_the_view():
 	var backdrop := _backdrop()
 	backdrop.build()
 	var start := backdrop._camera.position
-	var before: Dictionary = {}
-	for id in backdrop._state.entities.enemies:
-		before[id] = backdrop._state.entities.enemies[id]["pos"]
-	for frame in 90:
+	for frame in 30:
 		backdrop.step(1.0 / 60.0)
 	assert_ne(backdrop._camera.position, start, "the view has panned")
+
+
+func test_the_enemies_drift_about_their_homes():
+	# Driven directly: a long pan rerolls the dungeon, and its new enemies
+	# would leave nothing to compare.
+	var backdrop := _backdrop()
+	backdrop.build()
+	var enemies: Dictionary = backdrop._state.entities.enemies
+	assert_gt(enemies.size(), 0)
+	var before: Dictionary = {}
+	for id in enemies:
+		before[id] = enemies[id]["pos"]
+	for frame in 300:
+		backdrop._drift_enemies(1.0 / 60.0)
 	var moved := false
 	for id in before:
-		if backdrop._state.entities.enemies[id]["pos"] != before[id]:
+		if enemies[id]["pos"] != before[id]:
 			moved = true
+		assert_lte(enemies[id]["pos"].distance_to(enemies[id]["home"]), DungeonBackdrop.WANDER_RADIUS + 0.01,
+			"none strays past its wander radius")
 	assert_true(moved, "at least one enemy drifted")
 
 
@@ -114,8 +127,7 @@ func test_the_same_seed_builds_the_same_dungeon():
 func test_a_phone_keeps_the_cheaper_torch_hall():
 	var was := PhoneLayout.on
 	PhoneLayout.on = true
-	var screen := LoginScreen.new()
-	screen.game_data = data   # dungeon data is loaded, but a phone skips it
+	var screen := _login_screen()   # dungeon data is loaded, but a phone skips it
 	add_child_autofree(screen)
 	assert_null(screen._dungeon, "no scrolling dungeon on a phone")
 	assert_not_null(screen._backdrop, "the torchlit hall instead")
@@ -125,9 +137,21 @@ func test_a_phone_keeps_the_cheaper_torch_hall():
 func test_desktop_with_data_gets_the_scrolling_dungeon():
 	var was := PhoneLayout.on
 	PhoneLayout.on = false
-	var screen := LoginScreen.new()
-	screen.game_data = data
+	var screen := _login_screen()
 	add_child_autofree(screen)
 	assert_not_null(screen._dungeon, "the scrolling dungeon on desktop")
 	assert_null(screen._backdrop)
 	PhoneLayout.on = was
+
+
+## A login screen whose server list fetch answers from a fake backend, not
+## the network.
+func _login_screen() -> LoginScreen:
+	var service := DataService.new()
+	service.backend = FakeHttpBackend.new()
+	service.base_url = "http://data.test"
+	add_child_autofree(service)
+	var screen := LoginScreen.new()
+	screen.data_service = service
+	screen.game_data = data
+	return screen

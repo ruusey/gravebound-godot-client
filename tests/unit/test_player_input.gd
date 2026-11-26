@@ -100,7 +100,7 @@ func test_movement_is_predicted_and_sent():
 func test_bullets_advance_each_tick():
 	state.projectiles.bullets[1] = Projectile.from_wire(
 		{"id": 1, "angle": 0.0, "magnitude": 5.0, "range": 500.0, "pos": {"x": 0.0, "y": 0.0},
-		 "flags": []}, 0)
+		 "flags": []}, Time.get_ticks_msec())   # the projectiles age on the real clock
 	input.tick(RealmState.TICK_DELTA)
 	assert_gt(state.projectiles.bullets[1]["pos"].y, 0.0)
 

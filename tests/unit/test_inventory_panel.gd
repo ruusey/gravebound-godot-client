@@ -156,28 +156,45 @@ func test_the_potion_buttons_show_the_pools():
 	assert_string_contains(panel._mp.text, "1")
 
 
-func test_the_loot_strip_opens_beside_a_bag_and_closes_without_one():
+## The loot at your feet is the LootWindow's, beside the bag.
+func _loot_window() -> LootWindow:
+	var window := LootWindow.new()
+	window.setup(state, content, actions)
+	add_child_autofree(window)
+	return window
+
+
+func _scan(window: LootWindow) -> void:
+	window._scan_elapsed = LootWindow.SCAN_INTERVAL
+	window._process(0.0)
+
+
+func test_the_loot_window_opens_on_a_bag_and_closes_without_one():
 	_enter()
-	_frame()
-	assert_false(panel._loot_box.visible)
+	var window := _loot_window()
+	_scan(window)
+	assert_false(window.visible)
 	_bag_at_feet([{"itemId": 100}, {"itemId": -1}])
-	_frame()
-	assert_true(panel._loot_box.visible)
-	assert_eq(panel._loot[0].index, Inventory.GROUND_LOOT_START)
-	assert_not_null(panel._loot[0]._icon.texture)
-	assert_null(panel._loot[1]._icon.texture)
+	_scan(window)
+	assert_true(window.visible)
+	assert_eq(window.row_count(), 1, "a row for the item, none for the empty slot")
+	var row: LootRow = window._rows_box.get_child(0)
+	assert_eq(row.index, 0)
+	assert_not_null(row._icon.texture)
 	state.entities.apply_unload({"containers": [3]})
-	_frame()
-	assert_false(panel._loot_box.visible)
+	_scan(window)
+	assert_false(window.visible)
 
 
-func test_a_pickup_redraws_the_strip_without_a_version():
+func test_a_pickup_redraws_the_loot_window_without_a_version():
 	_enter()
+	var window := _loot_window()
 	_bag_at_feet([{"itemId": 100}, {"itemId": 102}])
-	_frame()
+	_scan(window)
+	assert_eq(window.row_count(), 2)
 	_bag_at_feet([{"itemId": 102}])
-	_frame()
-	assert_null(panel._loot[1]._icon.texture)
+	_scan(window)
+	assert_eq(window.row_count(), 1, "the taken item's row is gone")
 
 
 func test_captures_nothing_while_hidden():

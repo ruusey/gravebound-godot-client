@@ -143,12 +143,15 @@ func test_the_wall_shows_its_front_face():
 
 
 func test_the_login_screen_puts_the_hall_behind_everything():
-	var screen := LoginScreen.new()
-	screen.game_data = data
+	# The hall is the phone's backdrop; a desktop with data scrolls a dungeon.
+	var was := PhoneLayout.on
+	PhoneLayout.on = true
+	var screen := _login_screen()
 	add_child_autofree(screen)
 	assert_eq(screen._backdrop.get_index(), 0, "first under the layer's TouchFrame")
 	assert_eq(screen._backdrop.get_parent().get_index(), 0)
 	assert_same(screen._backdrop.game_data, data)
+	PhoneLayout.on = was
 
 
 func test_a_tile_the_content_lacks_leaves_its_cells_bare():
@@ -185,3 +188,16 @@ func test_the_fire_stops_and_empties_once_the_screen_is_hidden():
 	assert_true(hidden.is_processing(), "shown again, it burns again")
 	hidden._process(1.0 / 60.0)
 	assert_gt(hidden.field.count, 0)
+
+
+## A login screen whose server list fetch answers from a fake backend, not
+## the network.
+func _login_screen() -> LoginScreen:
+	var service := DataService.new()
+	service.backend = FakeHttpBackend.new()
+	service.base_url = "http://data.test"
+	add_child_autofree(service)
+	var screen := LoginScreen.new()
+	screen.data_service = service
+	screen.game_data = data
+	return screen

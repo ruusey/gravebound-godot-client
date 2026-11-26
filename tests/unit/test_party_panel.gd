@@ -98,8 +98,10 @@ func test_the_panel_lists_everyone_but_you_and_counts_the_whole_party():
 	assert_false(panel._rows[0]._kick.visible, "we are not the leader")
 	assert_almost_eq(panel._rows[0]._hp.value, 0.25, 0.001)
 	assert_almost_eq(panel._rows[0]._mp.value, 0.5, 0.001)
-	assert_eq(panel._rows[0].tooltip_text.split("\n")[1], "Lv 4 Wizard")
-	assert_eq(panel._rows[0].tooltip_text.split("\n")[4], "STR 12  DEF 3  SPD 0  DEX 0")
+	# Hovering the row shows the inspect card; these are its lines.
+	var card := PartyRow.inspect_text(_member(4, "Mingau", 2), content).split("\n")
+	assert_eq(card[1], "Lv 4 Wizard")
+	assert_eq(card[4], "STR 12  DEF 3  SPD 0  DEX 0")
 
 
 func test_rows_are_rebuilt_on_the_shape_and_only_patched_between():

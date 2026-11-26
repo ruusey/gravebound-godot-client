@@ -63,11 +63,14 @@ func test_the_frost_spikes_reach_from_over_half_the_radius_to_past_it():
 	assert_almost_eq(shard[2].x, 1.0, 0.001, "and the inner point just off the centre")
 
 
-func test_the_rapier_flicks_out_and_its_core_shrinks():
-	assert_almost_eq(FxRapierStab.arm_reach(40.0, 0.0), 16.0, 0.001)
-	assert_almost_eq(FxRapierStab.arm_reach(40.0, 1.0), 44.0, 0.001)
-	assert_eq(FxRapierStab.core_px(0.0), Vector2(9.0, 14.0))
-	assert_eq(FxRapierStab.core_px(1.0), Vector2(6.0, 10.0))
+func test_the_rapier_drives_out_then_eases_back():
+	assert_eq(FxRapierStab.blade_span(40.0, 0.0), Vector2(-18.0, 14.0), "starts drawn back")
+	assert_eq(FxRapierStab.blade_span(40.0, 0.4), Vector2(20.0, 52.0), "fully driven out at 40%")
+	assert_eq(FxRapierStab.blade_span(40.0, 1.0), Vector2(4.0, 22.0), "withdrawn toward the caster")
+	assert_eq(FxRapierStab.pierce(0.2), 0.0, "nothing before the blade arrives")
+	assert_eq(FxRapierStab.pierce(0.3), 1.0)
+	assert_almost_eq(FxRapierStab.pierce(0.65), 0.5, 0.001)
+	assert_eq(FxRapierStab.pierce(1.0), 0.0)
 
 
 func test_the_low_swing_sweeps_across_the_first_half():
@@ -77,25 +80,25 @@ func test_the_low_swing_sweeps_across_the_first_half():
 	assert_almost_eq(FxLowSwing.sweep_t(0.9), 1.0, 0.001, "clamped after the cut has passed")
 
 
-func test_the_disarm_rings_cascade_and_hide_in_their_gap():
-	assert_almost_eq(FxDisarmFlourish.ring_phase(0.1, 1), 0.28, 0.001)
-	assert_eq(FxDisarmFlourish.ring_phase(0.5, 2), -1.0, "0.86 is past 0.85: hidden")
-	assert_almost_eq(FxDisarmFlourish.ring_phase(0.9, 1), 0.08, 0.001, "wraps round")
-	assert_almost_eq(FxDisarmFlourish.ring_radius(40.0, 0.5), 28.0, 0.001)
-	assert_almost_eq(FxDisarmFlourish.star_radius(40.0, 1.0), 38.0, 0.001)
-	assert_almost_eq(FxDisarmFlourish.impact(0.2), 0.5, 0.001)
-	assert_eq(FxDisarmFlourish.impact(0.4), 0.0, "gone by 40%")
+func test_the_disarm_slashes_stagger_and_the_impact_peaks():
+	assert_almost_eq(FxDisarmFlourish.slash_t(0.1, 0), 0.4, 0.001)
+	assert_eq(FxDisarmFlourish.slash_t(0.05, 1), -1.0, "the second slash hasn't started")
+	assert_almost_eq(FxDisarmFlourish.slash_t(0.35, 1), 1.0, 0.001)
+	assert_eq(FxDisarmFlourish.slash_t(0.6, 1), -1.0, "and is gone")
+	assert_eq(FxDisarmFlourish.impact(0.2), 0.0, "no impact before 30%")
+	assert_almost_eq(FxDisarmFlourish.impact(0.39), 0.6, 0.001)
+	assert_almost_eq(FxDisarmFlourish.impact(0.45), 1.0, 0.001, "peaks near 45%")
+	assert_eq(FxDisarmFlourish.impact(0.6), 0.0, "gone by 55%")
 
 
-func test_the_ground_pound_ring_bursts_out_by_forty_percent():
-	assert_almost_eq(FxGroundPound.ring_radius(40.0, 0.2), 24.0, 0.001)
-	assert_almost_eq(FxGroundPound.ring_radius(40.0, 0.8), 40.0, 0.001, "then holds")
-	assert_almost_eq(FxGroundPound.crack_reach(40.0, 1.0), 42.0, 0.001)
-	assert_almost_eq(FxGroundPound.flash(0.125), 0.5, 0.001)
-	assert_eq(FxGroundPound.flash(0.25), 0.0)
-	# Puff 0: seed 0, angle 0, at 0.3 of the radius.
-	assert_almost_eq(FxGroundPound.puff_offset(40.0, 0).x, 12.0, 0.001)
-	assert_almost_eq(FxGroundPound.puff_offset(40.0, 0).y, 0.0, 0.001)
+func test_the_ground_pound_waits_slams_and_rings_out():
+	assert_eq(FxGroundPound.shock_radius(40.0, 0.1), 0.0, "no ring during the wind-up")
+	assert_almost_eq(FxGroundPound.shock_radius(40.0, 0.286), 20.0, 0.001)
+	assert_almost_eq(FxGroundPound.shock_radius(40.0, 1.0), 46.0, 0.001, "holds just past the radius")
+	assert_eq(FxGroundPound.flash(0.1), 0.0)
+	assert_almost_eq(FxGroundPound.flash(0.15), 1.0, 0.001, "flash on impact")
+	assert_almost_eq(FxGroundPound.flash(0.285), 0.5, 0.001)
+	assert_eq(FxGroundPound.flash(0.5), 0.0)
 
 
 func test_the_roots_grow_to_the_radius_by_forty_five_percent():
