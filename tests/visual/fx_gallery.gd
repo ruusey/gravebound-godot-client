@@ -40,7 +40,7 @@ const PLAYER_MARK := Color(1.0, 1.0, 1.0, 0.16)
 const LINE_RADIUS := {
 	EffectType.BEAM_WARNING: 8.0, EffectType.CHAIN_LIGHTNING: 0.0, EffectType.KNIGHT_SHOCKWAVE: 40.0,
 	EffectType.MELEE_SWING: 40.0, EffectType.NINJA_DASH: 20.0, EffectType.POISON_SPLASH: 0.0,
-	EffectType.TRAP_THROW: 0.0,
+	EffectType.TRAP_THROW: 0.0, EffectType.CONE_WARNING: 30.0, EffectType.GROUND_CRACK: 0.0,
 }
 
 var types: Array = []

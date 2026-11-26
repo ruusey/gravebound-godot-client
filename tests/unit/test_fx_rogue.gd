@@ -103,11 +103,26 @@ func test_the_katana_eases_through_the_cut_and_lingers():
 	assert_eq(FxNinjaKatana.REACH, 28.0, "the web's 56px sword")
 
 
-func test_the_claws_blossom_and_slash_reach_past_the_radius():
-	assert_almost_eq(FxBeastClaws.reach(40.0), 56.0, 0.001)
-	assert_almost_eq(FxBeastClaws.slash_angle(1, 1000), 3.0944, 0.001, "a third of a turn, plus a radian a second")
+func test_the_claws_rake_twice_and_the_blossom_bursts_open():
+	assert_almost_eq(FxBeastClaws.swipe(0.1, 0), 0.75, 0.001, "fast out of the gate")
+	assert_eq(FxBeastClaws.swipe(0.1, 1), 0.0, "the second rake not started")
+	assert_eq(FxBeastClaws.swipe(0.36, 1), 1.0, "and done by 36%")
+	assert_almost_eq(FxBeastClaws.rake_angle(0.0, 0), PI * 0.68, 0.001)
+	assert_almost_eq(FxBeastClaws.rake_angle(0.0, 1), PI * 0.32, 0.001, "slanting the other way")
+	assert_almost_eq(FxBeastClaws.gouge_length(40.0, 0), 60.8, 0.001, "an outer claw a fifth short of 1.9")
+	assert_almost_eq(FxBeastClaws.gouge_length(40.0, 1), 70.933, 0.001)
+	var gouge := FxBeastClaws.gouge(Vector2.ZERO, Vector2.RIGHT, 10.0, 2.0, 1.0)
+	assert_eq(gouge.size(), 16, "both edges, sharing the two points")
+	assert_almost_eq(gouge[0], Vector2(-5, 0), Vector2(0.001, 0.001))
+	assert_almost_eq(gouge[FxBeastClaws.STEPS], Vector2(5, 0), Vector2(0.001, 0.001), "pointed at the claw")
 	assert_almost_eq(FxDeathBlossom.reach(40.0), 44.0, 0.001)
 	assert_almost_eq(FxDeathBlossom.slash_angle(2, 1.0), 3.1416, 0.001, "a quarter turn, plus a quarter by the end")
+	assert_eq(FxDeathBlossom.bloom(0.0), 0.0)
+	assert_almost_eq(FxDeathBlossom.bloom(0.175), 0.875, 0.001, "most of the way open by half its burst")
+	assert_eq(FxDeathBlossom.bloom(0.5), 1.0)
+	var petal := FxDeathBlossom.petal(Vector2.ZERO, 0.0, 2.0, 20.0, 3.0, 0.0)
+	assert_eq(petal.size(), 10, "both edges, sharing root and tip")
+	assert_almost_eq(petal[FxDeathBlossom.PETAL_STEPS], Vector2(20, 0), Vector2(0.001, 0.001), "the tip")
 	assert_almost_eq(FxRecklessSlash.reach(40.0), 44.0, 0.001)
 	assert_almost_eq(FxRecklessSlash.sweep_t(0.25), 0.5, 0.001, "cleaves across the first half")
 
@@ -116,8 +131,9 @@ func test_the_star_grows_and_spins():
 	assert_almost_eq(FxStarShuriken.arm_radius(50.0, 0.0), 30.0, 0.001)
 	assert_almost_eq(FxStarShuriken.arm_radius(50.0, 1.0), 50.0, 0.001)
 	assert_almost_eq(FxStarShuriken.spin(100), 1.8, 0.001)
-	var corners := FxStarShuriken.points(Vector2.ZERO, 50.0, 0.0, 0)
-	assert_almost_eq(corners[1], Vector2(0, 30), Vector2(0.001, 0.001))
+	var corners := FxStarShuriken.points_at(Vector2.ZERO, FxStarShuriken.arm_radius(50.0, 0.0), 0.0)
+	assert_eq(corners.size(), 4)
+	assert_almost_eq(corners[1], Vector2(0, 30), Vector2(0.001, 0.001), "a quarter turn round at the arm")
 
 
 func test_the_blade_storm_whirls_inside_the_radius():

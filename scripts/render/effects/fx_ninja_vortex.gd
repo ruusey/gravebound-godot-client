@@ -57,9 +57,19 @@ static func draw(canvas: CanvasItem, from: Vector2, to: Vector2, count: int, pro
 			continue
 		var at := from + (to - from) * t + across * orbit(i, elapsed_ms) * size
 		var angle := spin(i, elapsed_ms)
-		Fx.polygon(canvas, FxBladeShapes.lens(at, angle, GLOW_LENGTH * size, GLOW_WIDTH * size),
+		_quad(canvas, FxBladeShapes.lens(at, angle, GLOW_LENGTH * size, GLOW_WIDTH * size),
 			Color(colour, alpha * 0.32 * size))
 		var core := FxBladeShapes.lens(at, angle, CORE_LENGTH * size, CORE_WIDTH * size)
 		FxBladeShapes.outline(canvas, core, 1.0, Color(Color.BLACK, alpha * 0.7 * size))
-		Fx.polygon(canvas, core, Color(Color.WHITE, alpha * 0.85 * size))
+		_quad(canvas, core, Color(Color.WHITE, alpha * 0.85 * size))
 		Fx.line(canvas, core[0], core[0] - along * TRAIL * size, 2.0, Color(colour, alpha * 0.45 * size))
+
+
+## A blade's diamond filled as a quad, not a polygon: the polygon path
+## triangulates it, and a blade popping in is a sliver too small for the
+## triangulator, which then fails ("Invalid polygon data") -- more often the
+## further from the origin it is drawn. A convex quad needs no triangulating.
+static func _quad(canvas: CanvasItem, points: Array, colour: Color) -> void:
+	if colour.a > 0.001:
+		canvas.draw_primitive(PackedVector2Array(points), PackedColorArray([colour, colour, colour, colour]),
+			PackedVector2Array())

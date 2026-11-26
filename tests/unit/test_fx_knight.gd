@@ -110,9 +110,13 @@ func test_the_dome_rims_sit_7_and_12_web_px_inside():
 	assert_eq(FxShieldDome.rim_radii(40.0), [40.0, 36.5, 34.0])
 
 
-func test_the_taunt_tightens_and_the_brace_spreads():
-	assert_eq(FxTauntRoar.taunt_radius(40.0, 0.0), 40.0)
-	assert_eq(FxTauntRoar.taunt_radius(40.0, 1.0), 30.0)
+func test_the_roar_waves_spread_and_the_brace_spreads():
+	assert_eq(FxTauntRoar.wave_radius(40.0, 0.0), 10.0, "from a quarter of the radius")
+	assert_almost_eq(FxTauntRoar.wave_radius(40.0, 0.5), 41.5, 0.001, "three quarters out by halfway")
+	assert_almost_eq(FxTauntRoar.wave_radius(40.0, 1.0), 52.0, 0.001, "to 1.3 of it")
+	var arcs := FxTauntRoar.wave_arcs(Vector2.ZERO, 10.0, 0.0)
+	assert_eq(arcs.size(), 64, "four arcs of eight segments, as pairs")
+	assert_almost_eq(arcs[0].angle(), -deg_to_rad(35.0), 0.001, "the first arc centred on the turn")
 	assert_almost_eq(FxBraceStance.brace_radius(40.0, 0.0), 14.0, 0.0001)
 	assert_almost_eq(FxBraceStance.brace_radius(40.0, 1.0), 52.0, 0.0001)
 	assert_almost_eq(FxBraceStance.turn(1.0), 1.5708, 0.0001, "a quarter turn")
@@ -131,5 +135,7 @@ func test_the_banner_unfurls_and_the_aura_flickers():
 	assert_almost_eq(FxBannerRaise.cloth_height(40.0, 0.25), 25.6, 0.0001)
 	assert_almost_eq(FxBannerRaise.cloth_height(40.0, 1.0), 64.0, 0.0001)
 	assert_almost_eq(FxBannerRaise.stomp_radius(40.0, 0.5), 28.0, 0.0001)
-	assert_almost_eq(FxRampageAura.tip_reach(40.0, 0, 0), 39.1, 0.0001)
-	assert_almost_eq(FxRampageAura.tip_reach(40.0, 0, 105), 46.0, 0.001, "sin(1.575): the full 1.15 radii")
+	assert_almost_eq(FxRampageAura.ignite(0.07), 0.5, 0.0001, "half way up the flash")
+	assert_almost_eq(FxRampageAura.ignite(0.14), 1.0, 0.0001, "peaking at 40% of its 35%")
+	assert_almost_eq(FxRampageAura.ignite(0.35), 0.0, 0.0001, "gone by 35%")
+	assert_eq(FxRampageAura.ignite(0.5), 0.0)

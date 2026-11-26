@@ -129,22 +129,45 @@ func test_the_trigger_closes_holds_then_sprays():
 	assert_eq(FxTrapTrigger.fleck_offset(0, 1.0), Vector2(20, 6), "40 web px out, 12 down, halved")
 
 
-func test_the_gear_tightens_and_the_blast_swells():
+func test_the_gear_snaps_shut_and_the_blast_swells():
 	assert_eq(FxSnareGear.gear_radius(100.0, 0.0), 100.0)
+	assert_almost_eq(FxSnareGear.gear_radius(100.0, 0.3), 92.5, 0.001, "a quarter of the clamp by half the snap")
+	assert_almost_eq(FxSnareGear.gear_radius(100.0, 0.6), 70.0, 0.001, "shut at 60%")
 	assert_almost_eq(FxSnareGear.gear_radius(100.0, 1.0), 70.0, 0.001)
+	assert_almost_eq(FxSnareGear.tooth(100.0), 14.0, 0.001)
+	assert_eq(FxSnareGear.tooth(20.0), 4.0, "never under 4 units")
+	assert_eq(FxSnareGear.cog_outline(Vector2.ZERO, 50.0, 10.0, 0.0).size(), 48, "four corners a tooth")
+	var pit := FxSnareGear.pit_outline(Vector2.ZERO, 40.0, 20.0, 0.0)
+	assert_eq(pit.size(), 36, "a jaw and three rim points each")
+	assert_almost_eq(pit[1], Vector2(20, 0), Vector2(0.001, 0.001), "the first jaw's tip")
 	assert_almost_eq(FxCombustionTrap.ring_radius(100.0, 0.0), 40.0, 0.001)
 	assert_almost_eq(FxCombustionTrap.ring_radius(100.0, 1.0), 110.0, 0.001)
 	assert_almost_eq(FxCombustionTrap.ember_reach(1), 0.383, 0.001)
 
 
-func test_the_caltrops_lie_where_the_web_puts_them():
-	assert_eq(FxCaltrops.offset(100.0, 0), Vector2.ZERO)
-	assert_almost_eq(FxCaltrops.offset(100.0, 1).length(), 38.1, 0.01)
-	assert_almost_eq(FxCaltrops.offset(100.0, 1).angle(), wrapf(0.421 * TAU, -PI, PI), 0.001)
+func test_the_caltrops_spread_over_the_field_and_land():
+	assert_eq(FxCaltrops.count(20.0), 8, "never fewer than eight")
+	assert_eq(FxCaltrops.count(48.0), 9)
+	assert_eq(FxCaltrops.count(200.0), 18, "never more than eighteen")
+	assert_almost_eq(FxCaltrops.size(48.0), 7.2, 0.001)
+	assert_eq(FxCaltrops.size(200.0), 12.0)
+	assert_almost_eq(FxCaltrops.offset(100.0, 0, 10).length(), 19.677, 0.001, "88% of the radius by sqrt(0.05)")
+	assert_almost_eq(FxCaltrops.offset(100.0, 0, 10).angle(), 0.5, 0.001)
+	assert_almost_eq(FxCaltrops.offset(100.0, 9, 10).length(), 85.772, 0.001, "the last near the rim")
+	assert_almost_eq(FxCaltrops.toss(0.1, 0, 10), 0.833, 0.001)
+	assert_eq(FxCaltrops.toss(0.2, 9, 10), 1.0, "all landed by a fifth")
+	var star := FxCaltrops.star(Vector2.ZERO, 0.0, 10.0)
+	assert_eq(star.size(), 6, "three spikes and three waists")
+	assert_almost_eq(star[0], Vector2(10, 0), Vector2(0.001, 0.001))
+	assert_almost_eq(star[1].length(), 2.6, 0.001)
 
 
-func test_the_wind_streamers_climb_and_wrap():
-	assert_almost_eq(FxHasteWind.phase(0, 0.5), 0.5, 0.001)
-	assert_almost_eq(FxHasteWind.phase(1, 0.6), 0.123, 0.001)
-	assert_eq(FxHasteWind.streamer_top(100.0, 0, 0.0), Vector2(-60, 40))
-	assert_almost_eq(FxHasteWind.streamer_top(100.0, 0, 0.5).y, -20.0, 0.001)
+func test_the_wind_streaks_wheel_and_widen():
+	assert_almost_eq(FxHasteWind.streak_orbit(100.0, 0, 0.0), 40.5, 0.001)
+	assert_almost_eq(FxHasteWind.streak_orbit(100.0, 3, 1.0), 115.5, 0.001, "1.05 of the radius, a fifth wider")
+	assert_almost_eq(FxHasteWind.streak_angle(0, 1000), 6.5, 0.001, "6.5 radians a second")
+	assert_almost_eq(FxHasteWind.streak_angle(1, 1000), PI * 0.5 + 7.28, 0.001, "a quarter turn on, 12% faster")
+	assert_almost_eq(FxHasteWind.strength(0.05), 0.5, 0.001)
+	assert_eq(FxHasteWind.strength(0.5), 1.0)
+	assert_almost_eq(FxHasteWind.strength(0.825), 0.5, 0.001)
+	assert_almost_eq(FxHasteWind.gust_phase(1, 0.5), 0.62, 0.001)

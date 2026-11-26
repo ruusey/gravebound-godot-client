@@ -87,6 +87,13 @@ func test_the_blink_glyph_opens_by_halfway_and_holds():
 	assert_almost_eq(FxBlinkGlyph.ring_radius(100.0, 0.25), 75.0, 0.001)
 	assert_almost_eq(FxBlinkGlyph.ring_radius(100.0, 0.5), 110.0, 0.001)
 	assert_almost_eq(FxBlinkGlyph.ring_radius(100.0, 0.9), 110.0, 0.001)
+	assert_eq(FxBlinkGlyph.column_height(100.0, 0.0), 0.0)
+	assert_almost_eq(FxBlinkGlyph.column_height(100.0, 0.15), 180.0, 0.001, "shot up by 15%")
+	assert_eq(FxBlinkGlyph.column_strength(0.1), 1.0)
+	assert_almost_eq(FxBlinkGlyph.column_strength(0.7), 0.0, 0.001, "gone by 70%")
+	var star := FxBlinkGlyph.hexagram(Vector2.ZERO, 10.0, 0.0)
+	assert_eq(star.size(), 2, "two triangles")
+	assert_eq(star[0].size(), 4, "each closed")
 
 
 func test_the_lightning_strike_falls_from_overhead_onto_the_mark():

@@ -11,17 +11,19 @@ func test_the_names_are_the_servers_ids():
 	assert_eq(EffectType.SANCTUARY_DOME, 51)
 	assert_eq(EffectType.BEAM_WARNING, 64)
 	assert_eq(EffectType.NAMES[62], "MELEE_SWING")
+	assert_eq(EffectType.CONE_WARNING, 67)
+	assert_eq(EffectType.EMERGE, 73)
 
 
 func test_retired_ids_have_no_name():
 	# 21 was never used; 48-50 were the old Sorcerer/Rogue/Mystic effects.
 	for retired in [21, 48, 49, 50]:
 		assert_false(EffectType.NAMES.has(retired), "id %d" % retired)
-	assert_eq(EffectType.NAMES.size(), 63)
+	assert_eq(EffectType.NAMES.size(), 70)
 
 
 func test_every_drawer_is_registered_under_a_live_type():
-	for kind in range(0, 70):
+	for kind in range(0, 80):
 		if Fx.for_type(kind).is_valid():
 			assert_true(EffectType.NAMES.has(kind), "a drawer for retired id %d" % kind)
 

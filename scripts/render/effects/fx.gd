@@ -103,6 +103,13 @@ static func _resolve_type(kind: int) -> Callable:
 		EffectType.BEAM_WARNING: return FxBeamWarning.draw
 		EffectType.QUEST_COMPLETE: return FxQuestComplete.draw
 		EffectType.COMPANION_SUMMON: return FxCompanionSummon.draw
+		EffectType.CONE_WARNING: return FxConeWarning.draw
+		EffectType.GROUND_CRACK: return FxGroundCrack.draw
+		EffectType.ENRAGE_BURST: return FxEnrageBurst.draw
+		EffectType.SUMMON_PORTAL: return FxSummonPortal.draw
+		EffectType.FIRE_PILLAR: return FxFirePillar.draw
+		EffectType.DUST_BURST: return FxDustBurst.draw
+		EffectType.EMERGE: return FxEmerge.draw
 	return Callable()
 
 
