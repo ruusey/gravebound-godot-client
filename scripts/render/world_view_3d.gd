@@ -41,6 +41,8 @@ const PITCH_STEP := 6.0
 ## Orthographic vertical extent in world units (the zoom); ~720 base rows.
 const CAM_ORTHO_SIZE := 720.0
 const ORBIT_SPEED := 1.8
+## The whole 2.5D picture's exposure; tuned apart from the flat view's lighting.
+const BRIGHTNESS := 1.17
 # The effect layer renders the 2D EffectRenderer into a SubViewport and projects
 # it onto the ground, so its texel density (PX / REGION) is what the effects read
 # at. The region is centred on the player each frame, so it only has to cover the
@@ -88,7 +90,7 @@ const LIGHT_HEIGHT := float(TILE) * 1.0
 ## High, because the pools are deliberately tight (below) -- a concentrated bright
 ## glow reads far better than a large dim wash, and it's what makes a lone candle
 ## pop against the ambient.
-const TORCH_ENERGY := 10.0
+const TORCH_ENERGY := 80.0
 ## Reach multiplier on a tile's data light strength (px = strength * tile * this).
 ## Kept tight: a big radius smears the energy into an invisible wash AND makes
 ## clustered emitters (lava) overlap and blow out, so tightening it both makes a
@@ -101,7 +103,7 @@ const AMBIENT_LIT := Color(0.6, 0.61, 0.67)
 const AMBIENT_LIT_ENERGY := 0.9
 ## Inside a (non-vault) dungeon, ambient and sun drop to this fraction -- markedly
 ## darker than the daylit overworld, so a dungeon's torch pools carry real contrast.
-const DUNGEON_DIM := 0.42
+const DUNGEON_DIM := 0.2
 ## The overworld/hub is lit too, but the full sun washed out candle/torch pools (you
 ## couldn't see them in the nexus), so it's pulled down ~60% -- an evening town rather
 ## than flat noon -- while staying a touch above DUNGEON_DIM so it still reads brighter
@@ -113,8 +115,13 @@ const SUN_LIT_ENERGY := 0.6
 ## doesn't evict the candle/torch lights from the per-object light budget.
 const MAX_BULLET_LIGHTS_3D := 6
 const BULLET_LIGHT_COLOR := Color(0.72, 0.62, 1.0)
-const BULLET_LIGHT_ENERGY := 4.0
+const BULLET_LIGHT_ENERGY := 25.0
 const BULLET_LIGHT_RANGE := float(TILE) * 2.0
+## Enemy types whose data.light carries a glow (cult effigies, the Heartwood) get a
+## travelling omni each, like the flat view's enemy lights.
+const MAX_ENEMY_LIGHTS_3D := 6
+const ENEMY_LIGHT_ENERGY := 50.0
+const ENEMY_LIGHT_HEIGHT := float(TILE) * 0.75
 
 var state: RealmState
 var content: GameData
@@ -152,6 +159,7 @@ var _shadow_ground_dir := Vector2.ZERO
 var _env: Environment
 var _lights: Array[OmniLight3D] = []
 var _bullet_lights: Array[OmniLight3D] = []
+var _enemy_lights: Array[OmniLight3D] = []
 var _light_frames := 0
 var _light_time := 0.0
 var _lit := false
@@ -167,6 +175,8 @@ var _fx_ground: MeshInstance3D
 var _ground_viewport: SubViewport
 var _ground_renderer: TileRenderer
 var _ground_camera: Camera2D
+## GroundChunks.queued when the floor last re-rendered.
+var _ground_queued := 0
 var _ground_plane: MeshInstance3D
 ## Where the projected ground was last re-rasterised; INF forces the first render.
 var _ground_centre := Vector2(INF, INF)
@@ -213,6 +223,7 @@ func _ready() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.7, 0.7, 0.75)
 	env.ambient_light_energy = 1.0
+	env.tonemap_exposure = BRIGHTNESS
 	# No glow/bloom: it blurred the bright ability effects (and pixel art in
 	# general) into a fuzzy haze. Effects must read crisp like the rest of the scene.
 	_env = env
@@ -718,7 +729,8 @@ func _build_projected_ground() -> void:
 ## refresh() runs every frame -- it updates the chunk cache and, crucially, owns
 ## clearing tiles.cleared/changed_cells (the wall rebuild reads them earlier in the
 ## frame). The viewport is only re-rasterised when the player crosses
-## GROUND_MOVE_STEP or the tiles changed, so most frames cost nothing.
+## GROUND_MOVE_STEP, the tiles changed, or the cache queued chunks -- it paints a
+## view a few chunks a frame, and a chunk only draws when the viewport renders.
 func _update_projected_ground(centre: Vector2) -> void:
 	var moved := _ground_centre.distance_to(centre) >= GROUND_MOVE_STEP
 	var dirty := state.tiles.cleared or not state.tiles.changed_cells.is_empty()
@@ -727,6 +739,10 @@ func _update_projected_ground(centre: Vector2) -> void:
 		_ground_camera.position = centre
 		_ground_plane.position = Vector3(centre.x, 0.0, centre.y)
 	_ground_renderer.refresh()
+	var queued := _ground_renderer.chunks.queued
+	if queued != _ground_queued:
+		_ground_queued = queued
+		dirty = true
 	if moved or dirty:
 		_ground_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
@@ -748,6 +764,11 @@ func _build_lights() -> void:
 		light.visible = false
 		_bullet_lights.append(light)
 		add_child(light)
+	for i in MAX_ENEMY_LIGHTS_3D:
+		var light := OmniLight3D.new()
+		light.visible = false
+		_enemy_lights.append(light)
+		add_child(light)
 
 
 func _update_lighting(delta: float, centre: Vector2) -> void:
@@ -765,6 +786,7 @@ func _update_lighting(delta: float, centre: Vector2) -> void:
 		_place_lights(centre)
 	_light_frames += 1
 	_place_bullet_lights(centre)
+	_place_enemy_lights(centre)
 	for i in _lights.size():
 		var light := _lights[i]
 		if light.visible and light.get_meta("flickers", false):
@@ -784,6 +806,8 @@ func _apply_lighting(on: bool, dark: bool) -> void:
 		for light in _lights:
 			light.visible = false
 		for light in _bullet_lights:
+			light.visible = false
+		for light in _enemy_lights:
 			light.visible = false
 
 
@@ -853,6 +877,34 @@ func _place_bullet_lights(centre: Vector2) -> void:
 			light.position = Vector3(mid.x, BULLET_HEIGHT, mid.y)
 			light.light_color = found[i][2]
 			light.omni_range = float(found[i][3]) * float(TILE) * LIGHT_REACH_MUL
+
+
+## The glowing enemies in range, one omni each (in roster order; few enemies glow).
+func _place_enemy_lights(centre: Vector2) -> void:
+	var shown := 0
+	for id in state.entities.enemies:
+		if shown >= _enemy_lights.size():
+			break
+		var enemy: Dictionary = state.entities.enemies[id]
+		var light_def := content.enemy_light_resolved(int(enemy.get("enemy_id", -1)))
+		if light_def.is_empty():
+			continue
+		var size := float(enemy.get("size", 16))
+		var at: Vector2 = state.entities.render_position(enemy) + Vector2(size, size) * 0.5
+		if at.distance_to(centre) > ENTITY_RANGE:
+			continue
+		var light := _enemy_lights[shown]
+		light.visible = true
+		light.position = Vector3(at.x, ENEMY_LIGHT_HEIGHT, at.y)
+		light.light_color = light_def["color"]
+		light.omni_range = float(light_def["radius"]) * float(TILE) * LIGHT_REACH_MUL
+		var energy := ENEMY_LIGHT_ENERGY * _glow_mul
+		if light_def.get("flickers", false):
+			energy *= 1.0 + 0.12 * sin(_light_time * 9.0 + shown * 1.7) + 0.06 * sin(_light_time * 23.0 + shown)
+		light.light_energy = energy
+		shown += 1
+	for i in range(shown, _enemy_lights.size()):
+		_enemy_lights[i].visible = false
 
 
 # ── Shared sprite + texture helpers ───────────────────────────────────────────

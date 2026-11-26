@@ -36,6 +36,8 @@ var dirty := {}
 ## Running totals for diagnostics (HitchRecorder): chunk paints, how many of them
 ## repainted a chunk already drawn, and the time spent painting.
 var paints := 0
+## Chunks queued to draw, ever; a cache drawn off screen (the 2.5D floor) re-renders when it moves.
+var queued := 0
 var repaints := 0
 var paint_us := 0
 
@@ -177,3 +179,4 @@ func _draw(ground: TileRenderer, at: Vector2i) -> void:
 	dirty.erase(at)
 	chunks[at].painted_at = Time.get_ticks_msec()
 	chunks[at].queue_redraw()
+	queued += 1
