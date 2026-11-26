@@ -48,6 +48,8 @@ var _melee: MeleeReticle
 ## 2D camera's global mouse. Returns a Vector2, or anything else for "no aim".
 ## Wired by Main; only the melee reticle reads it.
 var world_aim: Callable = func() -> Variant: return null
+## How high over its hit a number shows when placed exactly: about a body's middle.
+const NUMBER_LIFT := 24.0
 
 ## The 3D view drives these: with project_3d on, the overlay places its tags
 ## through world_projector (an affine world->screen fit to the 3D camera at the
@@ -57,6 +59,14 @@ var world_aim: Callable = func() -> Variant: return null
 var project_3d := false
 var world_projector := Transform2D()
 var world_view := Rect2()
+## A low 2.5D camera is in perspective, where world_projector drifts off away from
+## the player: then every tag and number is placed exactly instead. world_point
+## takes a world point and a height over it to its screen point (null when behind
+## the camera); world_scale gives screen pixels per world unit there. The labels
+## laid on the ground (captions, graves, tile labels, loot) hide meanwhile.
+var exact := false
+var world_point: Callable = func(_world: Vector2, _height: float) -> Variant: return null
+var world_scale: Callable = func(_world: Vector2, _height: float) -> float: return 1.0
 
 
 func setup(realm_state: RealmState, game_data: GameData = null) -> void:
@@ -99,6 +109,7 @@ func refresh() -> void:
 	bubbles = 0
 	var to_screen := world_projector if project_3d else get_viewport().get_canvas_transform()
 	var view := world_view if project_3d else ViewRect.of(_root)
+	var grounded := null if exact else state
 	_bars.begin()
 	if state != null:
 		_show_players(to_screen, view)
@@ -106,9 +117,10 @@ func refresh() -> void:
 	_player_tags.sweep()
 	_enemy_tags.sweep()
 	_bars.finish()
-	_melee.place(state, content, to_screen, world_aim.call())
-	_labels.show_all(state, content, to_screen, view, project_3d)
-	_loot.show_all(state, content, to_screen, _root.size)
+	_melee.place(grounded, content, to_screen, world_aim.call())
+	_labels.show_all(state, content, to_screen, view, project_3d,
+		_place_number if exact else Callable())
+	_loot.show_all(grounded, content, to_screen, _root.size)
 	_vignette.follow(state, to_screen, _root.size)
 
 
@@ -135,6 +147,26 @@ func _anchor(to_screen: Transform2D, world_topleft: Vector2, world_size: float,
 	return anchored.round() if snap else anchored
 
 
+func _place_number(world: Vector2) -> Variant:
+	return world_point.call(world, NUMBER_LIFT)
+
+
+## The square on screen a body of world_size at world_topleft takes, which its tag
+## is laid around; null when an exact placement finds it behind the camera.
+func _box(to_screen: Transform2D, world_topleft: Vector2, world_size: float, snap := true) -> Variant:
+	if not exact:
+		var size := world_size * to_screen.get_scale().x
+		return Rect2(_anchor(to_screen, world_topleft, world_size, size, snap), Vector2(size, size))
+	# The 3D body stands up from its feet, so its middle is half its height up.
+	var centre := world_topleft + Vector2(world_size, world_size) * 0.5
+	var on_screen: Variant = world_point.call(centre, world_size * 0.5)
+	if not on_screen is Vector2:
+		return null
+	var size: float = world_size * world_scale.call(centre, world_size * 0.5)
+	var at: Vector2 = on_screen - Vector2(size, size) * 0.5
+	return Rect2(at.round() if snap else at, Vector2(size, size))
+
+
 func tag_count() -> int:
 	return _player_tags.size() + _enemy_tags.size()
 
@@ -145,7 +177,6 @@ func bar_count() -> int:
 
 
 func _show_players(to_screen: Transform2D, view: Rect2) -> void:
-	var scale := to_screen.get_scale().x
 	var local := state.local
 	var on: GameSettings = state.settings
 	# Settings read once a frame, not once a player.
@@ -169,11 +200,14 @@ func _show_players(to_screen: Transform2D, view: Rect2) -> void:
 		# size, so the name/bars stay pinned below a resized player.
 		var body_size: float = local.size if is_local else float(player.get("size", GameConstants.PLAYER_SIZE))
 		var render_world := float(GameConstants.PLAYER_RENDER_SIZE) * (body_size / float(GameConstants.PLAYER_SIZE))
-		var size := render_world * scale
-		var tag: EntityTag = _player_tags.acquire(id)
 		# Local player's tag stays snapped (crisp, camera-aligned); a remote player's
 		# glides sub-pixel with its body so the two don't drift apart at low speed.
-		tag.show_player(_anchor(to_screen, position, render_world, size, is_local),
+		var box: Variant = _box(to_screen, position, render_world, is_local)
+		if box == null:
+			continue
+		var size: float = box.size.x
+		var tag: EntityTag = _player_tags.acquire(id)
+		tag.show_player(box.position,
 			size, label if names_on else "",
 			NameColours.over_head(String(player.get("chat_role", "")), is_local, LOCAL_NAME),
 			local.health if is_local else int(player.get("health", 0)),
@@ -189,7 +223,6 @@ func _show_players(to_screen: Transform2D, view: Rect2) -> void:
 
 
 func _show_enemies(to_screen: Transform2D, view: Rect2) -> void:
-	var zoom := to_screen.get_scale().x
 	var chips_on := state.settings.is_on("show_status_chips")
 	var blind := Blind.active(state)
 	for id in state.entities.enemies:
@@ -205,9 +238,11 @@ func _show_enemies(to_screen: Transform2D, view: Rect2) -> void:
 		var immune: Array = enemy.get("immune_effects", NO_EFFECTS) if chips_on else NO_EFFECTS
 		if health >= maximum and effects.is_empty() and immune.is_empty():
 			continue
-		var enemy_size := float(enemy.get("size", 16))
-		var width := enemy_size * zoom
-		var at := _anchor(to_screen, position, enemy_size, width)
+		var box: Variant = _box(to_screen, position, float(enemy.get("size", 16)))
+		if box == null:
+			continue
+		var width: float = box.size.x
+		var at: Vector2 = box.position
 		# The bar is the wound, not the creature: only a hurt enemy has one.
 		if health < maximum:
 			_bars.add(at, width, EntityTag.fraction(health, maximum))

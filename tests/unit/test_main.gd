@@ -477,9 +477,25 @@ func test_the_lowest_camera_sits_at_eye_height_and_still_aims():
 	assert_eq(view._camera.projection, Camera3D.PROJECTION_PERSPECTIVE)
 	assert_almost_eq(view._camera.position.y, WorldView3D.EYE_HEIGHT, 0.01)
 	assert_true(view._bullets_upright)
-	assert_false(main.screens.overlay.visible, "affine-pinned tags hidden in perspective")
+	assert_true(main.screens.overlay.exact, "tags placed exactly in perspective")
 	# The cursor's corner is above the horizon there: it aims along its direction.
 	assert_not_null(view.get_ground_point())
+
+
+func test_a_low_camera_still_shows_damage_numbers():
+	_login()
+	main.state.settings.set_on("view_25d", true)
+	var view: WorldView3D = main._view_3d
+	view._descent_goal = 1.0
+	view._descent = 1.0
+	var ahead: Vector2 = main.state.local.render_centre() + Vector2(0.0, -200.0)
+	main.state.apply_packet("TextEffectPacket", {"textEffectId": 0, "entityType": 1,
+		"targetEntityId": 0, "text": "42", "posX": ahead.x, "posY": ahead.y})
+	var behind: Vector2 = main.state.local.render_centre() + Vector2(0.0, 200.0)
+	main.state.apply_packet("TextEffectPacket", {"textEffectId": 0, "entityType": 1,
+		"targetEntityId": 0, "text": "7", "posX": behind.x, "posY": behind.y})
+	view._process(0.016)
+	assert_eq(main.screens.overlay.texts, 1, "the hit ahead shows; the one behind the camera doesn't")
 
 
 func test_looking_into_the_sun_fills_the_sprites():
@@ -500,7 +516,7 @@ func test_leaving_the_25d_view_low_brings_the_tags_back():
 	main._view_3d._descent = 1.0
 	main._view_3d._follow_camera(Vector2(320.0, 320.0), 0.016)
 	main.state.settings.set_on("view_25d", false)
-	assert_true(main.screens.overlay.visible)
+	assert_false(main.screens.overlay.exact)
 
 
 static func _wheel(button: MouseButton, shift: bool) -> InputEventMouseButton:

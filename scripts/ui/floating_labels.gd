@@ -34,16 +34,19 @@ func _init(root: Control) -> void:
 	_numbers = ControlPool.new(root, func() -> Control: return _label(TagStyles.damage_label()), true)
 
 
+## With `exact` (world point -> screen point or null), only the numbers show, each
+## placed through it rather than to_screen.
 func show_all(state: RealmState, content: GameData, to_screen: Transform2D, view: Rect2,
-		project_3d := false) -> void:
+		project_3d := false, exact := Callable()) -> void:
 	captions = 0
 	texts = 0
 	tile_captions = 0
 	if state != null:
-		_show_captions(state, to_screen, view, project_3d)
-		_show_graves(state, content, to_screen, view, project_3d)
-		_show_tile_labels(state, content, to_screen, view, project_3d)
-		_show_numbers(state, to_screen, view)
+		if not exact.is_valid():
+			_show_captions(state, to_screen, view, project_3d)
+			_show_graves(state, content, to_screen, view, project_3d)
+			_show_tile_labels(state, content, to_screen, view, project_3d)
+		_show_numbers(state, to_screen, view, exact)
 	_captions.sweep()
 	_graves.sweep()
 	_tile_captions.sweep()
@@ -180,12 +183,15 @@ func _tile_label(state: RealmState, content: GameData, tx: int, ty: int) -> Stri
 	return ""
 
 
-func _show_numbers(state: RealmState, to_screen: Transform2D, view: Rect2) -> void:
+func _show_numbers(state: RealmState, to_screen: Transform2D, view: Rect2, exact: Callable) -> void:
 	if not state.settings.is_on("show_damage_numbers"):
 		return
 	for text in state.texts.texts:
 		var at := DamageText.render_position(text)
 		if not view.has_point(at):
+			continue
+		var on_screen: Variant = exact.call(at) if exact.is_valid() else EntityOverlay.screen(to_screen, at)
+		if not on_screen is Vector2:
 			continue
 		# Pooled by the number's own id, so a label keeps its text (and its shaped
 		# glyphs) for its whole rise rather than taking the next one's as others expire.
@@ -198,7 +204,7 @@ func _show_numbers(state: RealmState, to_screen: Transform2D, view: Rect2) -> vo
 		label.modulate = Color(text["colour"], fade)
 		label.pivot_offset = label.size * 0.5
 		label.scale = Vector2.ONE * number_scale(fade)
-		label.position = (EntityOverlay.screen(to_screen, at) - label.size * 0.5).round()
+		label.position = (on_screen - label.size * 0.5).round()
 		texts += 1
 
 

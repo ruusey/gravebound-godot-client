@@ -54,8 +54,9 @@ const PITCH_EYE := 8.0
 ## Bullets lie flat on the ground, edge-on to a low camera; below this pitch they
 ## stand up facing it instead.
 const UPRIGHT_BELOW_PITCH := 30.0
-## The overlay's tags are pinned by an affine fit, which drifts in perspective.
-const OVERLAY_HIDE_DESCENT := 0.35
+## The overlay's tags are pinned by an affine fit, which drifts in perspective; below
+## this the overlay places every tag and number exactly through the camera.
+const OVERLAY_EXACT_DESCENT := 0.35
 ## Standing sprites face the camera, so looking into the sun shows their unlit
 ## backs. A shadowless fill light on their own light layer shines from the camera,
 ## as strong as the sun when the camera faces straight into it and off when the
@@ -275,7 +276,8 @@ func _ready() -> void:
 	# screen is then an exact affine, so the overlay's affine projector pins
 	# names, bars, portal captions and loot precisely at any position and any
 	# orbit -- perspective made a single affine drift for far entities. Shift+wheel's
-	# descent turns it perspective, and hides the overlay below OVERLAY_HIDE_DESCENT.
+	# descent turns it perspective; below OVERLAY_EXACT_DESCENT the overlay places
+	# its tags and numbers through the camera exactly instead.
 	_camera = Camera3D.new()
 	_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_camera.size = CAM_ORTHO_SIZE
@@ -311,7 +313,7 @@ func _ready() -> void:
 ## Leaving the 2.5D view with the camera down must not leave the flat view's tags hidden.
 func _exit_tree() -> void:
 	if overlay != null:
-		overlay.visible = true
+		overlay.exact = false
 
 
 func _process(delta: float) -> void:
@@ -412,7 +414,7 @@ func _follow_camera(centre: Vector2, delta: float) -> void:
 		_env.fog_depth_begin = _camera_distance + FOG_BEGIN
 		_env.fog_depth_end = _camera_distance + FOG_END
 	if overlay != null:
-		overlay.visible = _descent < OVERLAY_HIDE_DESCENT
+		overlay.exact = _descent >= OVERLAY_EXACT_DESCENT
 
 
 ## Fits the overlay an affine world->screen transform to the 3D camera at the
@@ -428,6 +430,8 @@ func _update_overlay(centre: Vector2) -> void:
 	overlay.world_projector = Transform2D(along_x, along_z, origin_screen - along_x * centre.x - along_z * centre.y)
 	overlay.world_view = Rect2(centre - Vector2(ENTITY_RANGE, ENTITY_RANGE), Vector2(ENTITY_RANGE, ENTITY_RANGE) * 2.0)
 	overlay.project_3d = true
+	overlay.world_point = _world_point
+	overlay.world_scale = _world_scale
 	# Refresh here, after the projector is set for THIS frame, rather than letting
 	# the overlay's own _process run a frame behind -- that lag is what made the
 	# tags/pills lag and jitter while rotating. Its own _process is off in 3D.
@@ -889,6 +893,21 @@ func _update_fill() -> void:
 	var into_sun := -Vector2(view.x, view.z).normalized().dot(Vector2(sun.x, sun.z).normalized())
 	_fill.global_transform.basis = _camera.global_transform.basis
 	_fill.light_energy = _sun.light_energy * FILL_MATCH * clampf(into_sun, 0.0, 1.0)
+
+
+## A world point `height` over the ground, through the camera exactly; null behind it.
+func _world_point(world: Vector2, height: float) -> Variant:
+	var point := Vector3(world.x, height, world.y)
+	if _camera.is_position_behind(point):
+		return null
+	return _camera.unproject_position(point)
+
+
+## Screen pixels per world unit at a point, across the view.
+func _world_scale(world: Vector2, height: float) -> float:
+	var point := Vector3(world.x, height, world.y)
+	var across := _camera.global_transform.basis.x * float(TILE)
+	return _camera.unproject_position(point).distance_to(_camera.unproject_position(point + across)) / float(TILE)
 
 
 ## Dark ambient and a low sun when lit; the old full-bright albedo when off. Both
