@@ -16,8 +16,10 @@ const MAX_NOTICES := 3
 var notices: Array = []
 ## Bumped on every change, so a view can redraw only then.
 var version := 0
+## Who we are fighting in a PvP match, from its STARTED until WON or LOST; "" outside one.
+var pvp_opponent := ""
 
-## Kind -> {"from": the asking player, "until": clock ms}.
+## Kind -> {"from": the asking player, "detail": what it is for, "until": clock ms}.
 var _requests := {}
 var _clock: Callable
 
@@ -29,6 +31,7 @@ func _init(clock: Callable = func() -> int: return Time.get_ticks_msec()) -> voi
 ## Drops the standing requests (the notices fade on their own).
 func clear() -> void:
 	_requests.clear()
+	pvp_opponent = ""
 	version += 1
 
 
@@ -37,9 +40,14 @@ func apply(data: Dictionary) -> void:
 	var event := int(data.get("event", -1))
 	var other := String(data.get("otherName", ""))
 	if event == Interaction.Event.REQUESTED:
-		_requests[kind] = {"from": other, "until": int(_clock.call()) + int(data.get("durationMs", 0))}
+		_requests[kind] = {"from": other, "detail": String(data.get("detail", "")),
+			"until": int(_clock.call()) + int(data.get("durationMs", 0))}
 	elif event == Interaction.Event.CLOSED or event == Interaction.Event.STARTED:
 		_requests.erase(kind)
+	if kind == Interaction.Kind.PVP and event == Interaction.Event.STARTED:
+		pvp_opponent = other
+	elif kind == Interaction.Kind.PVP and (event == Interaction.Event.WON or event == Interaction.Event.LOST):
+		pvp_opponent = ""
 	var text := Interaction.notice(kind, event, other, String(data.get("detail", "")))
 	if text != "":
 		notices.append({"text": text, "failed": event == Interaction.Event.FAILED, "at": _clock.call()})
@@ -52,6 +60,14 @@ func apply(data: Dictionary) -> void:
 func request_from(kind: int) -> String:
 	var request: Dictionary = _requests.get(kind, {})
 	return String(request.get("from", ""))
+
+
+## The prompt line for this kind's standing request, or "".
+func prompt(kind: int) -> String:
+	var request: Dictionary = _requests.get(kind, {})
+	if request.is_empty():
+		return ""
+	return Interaction.fill(Interaction.PROMPTS[kind], String(request["from"]), String(request["detail"]))
 
 
 ## Takes the prompt down once answered, without waiting on the server.

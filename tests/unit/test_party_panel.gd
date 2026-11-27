@@ -74,14 +74,14 @@ func test_the_prompt_names_who_asked_and_its_buttons_answer():
 	assert_true(popup.visible)
 	assert_eq(popup._line.text, "Zed wants you in their party")
 	assert_true(actions.accept())
-	assert_eq(_sent(), ["PARTY ACCEPT"])
+	assert_eq(_sent(), ["PARTY ACCEPT Zed"], "an answer names whose request it answers")
 	popup._process(0.0)
 	assert_false(popup.visible, "answered, so gone at once")
 	assert_false(actions.accept(), "nothing to answer now")
 	_invited()
 	transport.clear_sent()
 	assert_true(actions.decline())
-	assert_eq(_sent(), ["PARTY DECLINE"])
+	assert_eq(_sent(), ["PARTY DECLINE Zed"])
 
 
 func test_the_panel_lists_everyone_but_you_and_counts_the_whole_party():

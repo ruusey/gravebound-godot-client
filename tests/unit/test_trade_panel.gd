@@ -68,7 +68,7 @@ func test_the_popup_names_who_asked_and_its_buttons_answer():
 	popup._process(0.0)
 	assert_false(popup.visible, "answered, so gone at once")
 	assert_true(actions.decline())
-	assert_eq(WireHelper.interaction_actions(transport), ["TRADE ACCEPT", "TRADE DECLINE"])
+	assert_eq(WireHelper.interaction_actions(transport), ["TRADE ACCEPT Mingau", "TRADE DECLINE"], "an answer names whose request it answers")
 
 
 func test_the_panel_shows_both_pages_and_lights_what_is_on_the_table():

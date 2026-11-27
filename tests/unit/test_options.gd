@@ -65,6 +65,18 @@ func test_other_players_bullets_hide_but_ours_and_enemies_never_do():
 	assert_false(BulletRenderer._hidden(state, enemy))
 
 
+func test_a_pvp_opponents_bullets_always_show():
+	state.apply_packet("LoadPacket", {"players": [WireHelper.player(1, "me", Vector2.ZERO),
+		WireHelper.player(2, "them", Vector2(10, 0)), WireHelper.player(3, "other", Vector2(20, 0))]})
+	state.settings.set_on("show_other_bullets", false)
+	var theirs := Projectile.from_fields({"src_entity_id": 2})
+	state.apply_packet("InteractionPacket", WireHelper.interaction(Interaction.Kind.PVP, Interaction.Event.STARTED, "them"))
+	assert_false(BulletRenderer._hidden(state, theirs), "the shots that can hit us")
+	assert_true(BulletRenderer._hidden(state, Projectile.from_fields({"src_entity_id": 3})), "not anyone else's")
+	state.apply_packet("InteractionPacket", WireHelper.interaction(Interaction.Kind.PVP, Interaction.Event.WON, "them"))
+	assert_true(BulletRenderer._hidden(state, theirs), "the match is over")
+
+
 func test_ability_effects_by_owner_and_all_at_once():
 	state.apply_packet("LoadPacket", {"players": [WireHelper.player(1, "me", Vector2.ZERO),
 		WireHelper.player(2, "them", Vector2(10, 0))]})

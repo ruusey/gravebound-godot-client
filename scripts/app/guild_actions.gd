@@ -59,12 +59,6 @@ func edit_hall() -> bool:
 	return _action(Action.EDIT_HALL)
 
 
-func respond_invite(accept: bool) -> bool:
-	var guild_id := state.guild.invite_guild_id
-	state.guild.clear_invite()
-	return _send("GuildInviteResponsePacket", { "guildId": guild_id, "accept": accept })
-
-
 ## Open the scoped guild-hall editor in a new browser tab (web build only).
 func open_editor(token: String) -> void:
 	if token == "":

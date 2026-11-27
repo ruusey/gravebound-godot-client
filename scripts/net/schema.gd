@@ -71,8 +71,6 @@ const PACKET_NAMES := {
 	49: "GuildInfoPacket",
 	50: "GuildActionPacket",
 	51: "OpenGuildEditorPacket",
-	52: "GuildInvitePacket",
-	53: "GuildInviteResponsePacket",
 	54: "InteractionPacket",
 	55: "InteractionActionPacket",
 	56: "CompanionActionPacket",
@@ -102,8 +100,6 @@ const PACKET_IDS := {
 	"GlobalPlayerPositionPacket": 23,
 	"GuildActionPacket": 50,
 	"GuildInfoPacket": 49,
-	"GuildInvitePacket": 52,
-	"GuildInviteResponsePacket": 53,
 	"HeartbeatPacket": 5,
 	"HotbarSwapPacket": 39,
 	"InteractTilePacket": 28,
@@ -244,15 +240,6 @@ const PACKETS := {
 		["canEditHall", "bool", false],
 		["members", "NetGuildMember", true],
 		["openRoster", "bool", false],
-	],
-	"GuildInvitePacket": [
-		["guildId", "string", false],
-		["guildName", "string", false],
-		["inviterName", "string", false],
-	],
-	"GuildInviteResponsePacket": [
-		["guildId", "string", false],
-		["accept", "bool", false],
 	],
 	"HeartbeatPacket": [
 		["timestamp", "long", false],

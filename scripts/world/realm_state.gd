@@ -171,8 +171,6 @@ func apply_packet(name: String, data: Dictionary) -> void:
 			guild.apply_info(data, local.id)
 		"OpenGuildEditorPacket":
 			guild.apply_editor(data)
-		"GuildInvitePacket":
-			guild.apply_invite(data)
 		"CompanionRosterPacket":
 			companions.apply_roster(data)
 

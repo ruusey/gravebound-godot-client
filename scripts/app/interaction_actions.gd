@@ -1,9 +1,10 @@
 class_name InteractionActions
 extends RefCounted
 
-## Asks another player to trade, party up or fight, and answers their asks, on
-## InteractionActionPacket. An answer takes its prompt down at once rather than
-## waiting for the server's CLOSED.
+## Asks another player to trade, party up, fight or join a guild, and answers
+## their asks, on InteractionActionPacket. An answer names whose request it
+## answers, and takes its prompt down at once rather than waiting for the
+## server's CLOSED.
 
 var state: RealmState
 var client: GraveBoundClient
@@ -38,9 +39,11 @@ func kick(kind: int, player_name: String) -> bool:
 
 
 func _answer(kind: int, action: int) -> bool:
+	var asker := ""
 	if state != null:
+		asker = state.interactions.request_from(kind)
 		state.interactions.answered(kind)
-	return _send(kind, action, "")
+	return _send(kind, action, asker)
 
 
 func _send(kind: int, action: int, target_name: String) -> bool:

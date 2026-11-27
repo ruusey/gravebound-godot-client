@@ -35,7 +35,6 @@ var companions: CompanionPanel
 var companion_actions: CompanionActions
 var guild_dialog: CreateGuildDialog
 var guild_roster: GuildRosterPanel
-var guild_invite: GuildInvitePopup
 var nearby: NearbyPanel
 var options: OptionsPanel
 var leaderboard: LeaderboardWindow
@@ -138,9 +137,6 @@ func build(state: RealmState, game_data: GameData, client: GraveBoundClient,
 	guild_roster = GuildRosterPanel.new()
 	guild_roster.setup(state, guild_actions)
 	add_child(guild_roster)
-	guild_invite = GuildInvitePopup.new()
-	guild_invite.setup(state, guild_actions)
-	add_child(guild_invite)
 	options = OptionsPanel.new()
 	options.setup(state.settings, client)
 	add_child(options)
@@ -200,7 +196,7 @@ func build(state: RealmState, game_data: GameData, client: GraveBoundClient,
 ## A click on the bag, the bar or the sheet is a gesture on it, not a shot.
 func captures_mouse() -> bool:
 	return [inventory, abilities, skills, masteries, quests, store, fame, forge, minimap, minimap_expanded, market, trade,
-		party, guild_dialog, guild_roster, guild_invite,
+		party, guild_dialog, guild_roster,
 		nearby, options, chat, player, prompt, loot, leaderboard, touch, tutorial_exit, vault_chest, companions,
 		buy_fame].any(func(panel) -> bool: return panel.captures_mouse()) \
 		or requests.any(func(popup: InteractionRequestPopup) -> bool: return popup.captures_mouse())

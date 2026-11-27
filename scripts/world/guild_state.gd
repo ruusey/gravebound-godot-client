@@ -31,10 +31,6 @@ var create_in_guild := false
 # The hall roster panel.
 var roster_open := false
 
-# An invite awaiting this player's answer ("" = none).
-var invite_from := ""
-var invite_guild_id := ""
-var invite_guild_name := ""
 
 # One-shot editor hand-off: a token to open the scoped hall editor with.
 var editor_token := ""
@@ -73,13 +69,6 @@ func apply_editor(data: Dictionary) -> void:
 	version += 1
 
 
-func apply_invite(data: Dictionary) -> void:
-	invite_from = String(data.get("inviterName", ""))
-	invite_guild_id = String(data.get("guildId", ""))
-	invite_guild_name = String(data.get("guildName", ""))
-	version += 1
-
-
 func close_create() -> void:
 	create_open = false
 	version += 1
@@ -87,13 +76,6 @@ func close_create() -> void:
 
 func close_roster() -> void:
 	roster_open = false
-	version += 1
-
-
-func clear_invite() -> void:
-	invite_from = ""
-	invite_guild_id = ""
-	invite_guild_name = ""
 	version += 1
 
 

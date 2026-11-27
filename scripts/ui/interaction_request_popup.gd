@@ -1,13 +1,15 @@
 class_name InteractionRequestPopup
 extends CanvasLayer
 
-## A trade request, party invite or PvP challenge waiting on an answer, with
-## Accept and Decline: up while the request stands, gone once it is answered,
-## closed by the server or out of time. One per kind, each at its own height so
-## two standing at once both show.
+## A trade request, party invite, PvP challenge or guild invite waiting on an
+## answer, with Accept and Decline: up while the request stands, gone once it is
+## answered, closed by the server or out of time. One per kind; the ones standing
+## stack down from TOP in kind order, so any number at once all show.
 
-const TOPS := {Interaction.Kind.TRADE: 120.0, Interaction.Kind.PARTY: 200.0, Interaction.Kind.PVP: 240.0}
-const TITLE_COLOURS := {Interaction.Kind.PVP: Color("ff8a8a")}
+## Under the notices, which hold at most InteractionState.MAX_NOTICES lines from their own TOP.
+const TOP := 150.0
+const STACK_GAP := 8.0
+const TITLE_COLOURS := {Interaction.Kind.PVP: Color("ff8a8a"), Interaction.Kind.GUILD: TagStyles.GUILD_BLUE}
 
 var state: RealmState
 var actions: InteractionActions
@@ -30,7 +32,7 @@ func _ready() -> void:
 	_root = PanelContainer.new()
 	_root.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_root.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_root.offset_top = TOPS.get(kind, 120.0)
+	_root.offset_top = TOP
 	add_child(_root)
 	var column := InventoryLayout.column(_root)
 	_line = InventoryLayout.heading(column, "")
@@ -45,13 +47,26 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	var from := state.interactions.request_from(kind) if state != null else ""
-	visible = from != "" and state.local.is_present()
-	if visible and _shown_for != from:
-		_shown_for = from
-		_line.text = Interaction.PROMPTS[kind] % from
+	var line := state.interactions.prompt(kind) if state != null else ""
+	visible = line != "" and state.local.is_present()
+	if visible and _shown_for != line:
+		_shown_for = line
+		_line.text = line
 	elif not visible:
 		_shown_for = ""
+	if visible:
+		_root.offset_top = TOP + _slot() * (_root.size.y + STACK_GAP)
+
+
+## How many requests of an earlier kind stand above this one.
+func _slot() -> int:
+	var slot := 0
+	for other in Interaction.Kind.values():
+		if other == kind:
+			break
+		if state.interactions.request_from(other) != "":
+			slot += 1
+	return slot
 
 
 func captures_mouse() -> bool:
