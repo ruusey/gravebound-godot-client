@@ -343,6 +343,22 @@ static func _walking(state: RealmState, direction: Vector2) -> void:
 
 static func _collision(state: RealmState) -> void:
 	_entities(state)
+	# A shot from each side, an enemy's beam wall and a melee swing: the F2 view
+	# outlines each as the server tests it.
+	_shot(state, 100, 1, Vector2(16, -24), 0.0, 12, [], 0.0, 300.0)
+	_shot(state, 101, 3, Vector2(-40, -8), PI * 0.25, 16, [], 0.0, 300.0)
+	_shot(state, 102, 4, Vector2(112, -8), 0.0, 12, [ProjectileKind.LINE_SEGMENT], 96.0, 300.0)
+	_shot(state, 103, 2, Vector2(54, -34), PI * 0.5, 16, [ProjectileKind.MELEE_SWING], 0.0, 56.0)
+
+
+static func _shot(state: RealmState, id: int, source: int, at: Vector2, angle: float, size: int,
+		flags: Array, length: float, reach: float) -> void:
+	state.projectiles.bullets[id] = Projectile.from_wire({
+		"id": id, "projectileId": 87, "size": size, "pos": {"x": at.x, "y": at.y},
+		"angle": angle, "magnitude": 0.0, "range": reach, "flags": flags, "length": length,
+		"srcEntityId": source, "invert": false, "timeStep": 0, "amplitude": 0, "frequency": 0,
+		"orbitCenterX": 0.0, "orbitCenterY": 0.0, "orbitRadius": 0.0,
+		"orbitPhase": 0.0, "damage": 1, "createdTime": 0}, 0)
 
 
 ## Entities standing directly on collision-layer tiles.
