@@ -195,6 +195,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		# The reply key opens a /tell to whoever last messaged us.
 		_input.open("/tell %s " % state.chat.last_whisper_from)
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("guild_chat") and not event.is_echo() and not _input.is_open() \
+			and state.guild.in_guild:
+		# The guild key opens a /g line to every online member.
+		_input.open("/g ")
+		get_viewport().set_input_as_handled()
 
 
 ## Clear of the touch buttons (`thumbs`, in the canvas's pixels): beside

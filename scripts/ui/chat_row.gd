@@ -18,6 +18,8 @@ const PLAYER_COLOUR := Color(0.9, 0.9, 0.95)
 const WHISPER_COLOUR := Color(0.37, 0.66, 1.0)
 const WHISPER_IN := ChatLog.WHISPER_IN
 const WHISPER_OUT := "WHISPER_OUT"
+# A /g guild message: whole line in this green.
+const GUILD_COLOUR := Color(0.4, 0.9, 0.4)
 
 
 func _init(width: float, font_size := FONT_SIZE) -> void:
@@ -63,6 +65,8 @@ static func markup(line: Dictionary) -> String:
 		var direction := "From" if role == WHISPER_IN else "To"
 		return "[color=#%s]%s [lb]%s]: %s[/color]" % [
 			WHISPER_COLOUR.to_html(false), direction, escaped(from), message]
+	if role == ChatLog.GUILD:
+		return "[color=#%s]Guild [lb]%s]: %s[/color]" % [GUILD_COLOUR.to_html(false), escaped(from), message]
 	var colour := NameColours.chat_sender(from, role)
 	return "[color=#%s][lb]%s][/color]: %s" % [colour.to_html(false), escaped(from), message]
 

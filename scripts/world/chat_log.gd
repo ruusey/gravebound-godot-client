@@ -22,6 +22,8 @@ const SYSTEM := "SYSTEM"
 const EVENT_MARKER := "EVENT_MARKER"
 ## The `to` a received /tell arrives with; `from` is who sent it.
 const WHISPER_IN := "WHISPER_IN"
+## The `to` a /g guild message arrives with; `from` is the member who said it.
+const GUILD := "GUILD"
 
 var lines: Array = []
 ## Bumped on every stored line and on clear. `size` saturates at MAX_LINES once

@@ -162,11 +162,15 @@ func test_without_actions_a_line_is_still_closed_after_enter():
 	assert_false(bare.is_typing(), "no state, no realm to talk in")
 
 
-func _reply_key() -> InputEventKey:
+func _action_key(action: String) -> InputEventKey:
 	var event := InputEventKey.new()
-	event.physical_keycode = KeyBindings.key_of("reply_tell")
+	event.physical_keycode = KeyBindings.key_of(action)
 	event.pressed = true
 	return event
+
+
+func _reply_key() -> InputEventKey:
+	return _action_key("reply_tell")
 
 
 func test_the_reply_key_opens_a_tell_to_the_last_player_who_messaged_us():
@@ -184,3 +188,27 @@ func test_the_reply_key_opens_a_tell_to_the_last_player_who_messaged_us():
 func test_tab_replies_and_i_opens_the_bag_by_default():
 	assert_eq(KeyBindings.default_key("reply_tell"), KEY_TAB)
 	assert_eq(KeyBindings.default_key("toggle_inventory"), KEY_I)
+
+
+func test_the_guild_key_opens_a_guild_line_only_for_a_member():
+	_in_game()
+	panel._unhandled_input(_action_key("guild_chat"))
+	assert_false(panel.is_typing(), "no guild to talk to")
+	state.guild.in_guild = true
+	panel._unhandled_input(_action_key("guild_chat"))
+	assert_true(panel.is_typing())
+	assert_eq(panel._input.text, "/g ")
+	assert_eq(KeyBindings.default_key("guild_chat"), KEY_G)
+
+
+func test_a_guild_line_goes_out_as_the_g_command():
+	_in_game()
+	assert_true(actions.say("/g meet at the hall"))
+	var packets := _sent()
+	assert_eq(packets[0]["name"], "CommandPacket")
+	assert_eq(JSON.parse_string(packets[0]["data"]["command"]), {"command": "g", "args": ["meet", "at", "the", "hall"]})
+
+
+func test_a_guild_line_is_green_and_marked_guild():
+	var line := ChatRow.markup({"from": "Mira", "to": ChatLog.GUILD, "message": "on my way [now]"})
+	assert_eq(line, "[color=#%s]Guild [lb]Mira]: on my way [lb]now][/color]" % ChatRow.GUILD_COLOUR.to_html(false))

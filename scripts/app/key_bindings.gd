@@ -24,6 +24,7 @@ const ACTIONS := {
 	"toggle_quests": "Quest log",
 	"toggle_minimap": "Minimap",
 	"reply_tell": "Reply to last PM",
+	"guild_chat": "Guild chat",
 }
 
 
