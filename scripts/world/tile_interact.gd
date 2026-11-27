@@ -61,6 +61,7 @@ static func verb(candidate: Dictionary, guild_name := "") -> String:
 		"forge": return "Use Forge"
 		"fame_store": return "Open Fame Store"
 		"potion_storage": return "Open Potion Storage"
+		"guild_potion_storage": return "Open Guild Potion Storage"
 		"exchange_market": return "Open Exchange Market"
 		"arena": return "Enter the Colosseum"
 		"display_text": return "Read"

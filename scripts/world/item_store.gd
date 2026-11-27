@@ -1,8 +1,8 @@
 class_name ItemStore
 extends RefCounted
 
-## A store the server opens for you -- today only the potion storage, thirty
-## two slots of stackables and gems kept in the vault.
+## A store the server opens for you: the vault's potion storage or the guild
+## hall's shared one, thirty two slots of stackables and gems either way.
 ##
 ## Its slots share the bag's index space from SLOT_BASE up, so a drag between
 ## the two panels is one integer pair like any other and the two sides of an
@@ -10,6 +10,7 @@ extends RefCounted
 ## what is in it on open and after every move; nothing here moves an item.
 
 const KIND_POTION := 0
+const KIND_GUILD_POTION := 1
 const SIZE := 32
 const SLOT_BASE := 1000
 const SIDE_INVENTORY := 0

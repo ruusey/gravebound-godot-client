@@ -19,3 +19,9 @@ func test_create_dialog_refusal_names_the_guild() -> void:
 func test_roster_standing_line() -> void:
 	assert_eq(GuildRosterPanel.standing("Owner", 1), "You are Owner   -   1 member")
 	assert_eq(GuildRosterPanel.standing("Officer", 4), "You are Officer   -   4 members")
+
+
+func test_guild_shelf_prompt_and_title() -> void:
+	assert_eq(TileInteract.verb({"type": "guild_potion_storage"}), "Open Guild Potion Storage")
+	assert_eq(ItemStorePanel.title(ItemStore.KIND_GUILD_POTION), "GUILD POTION STORAGE")
+	assert_eq(ItemStorePanel.title(ItemStore.KIND_POTION), "POTION STORAGE")

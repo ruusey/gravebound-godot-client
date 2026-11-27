@@ -1,8 +1,8 @@
 class_name ItemStorePanel
 extends CanvasLayer
 
-## The potion storage the vault's shelves open: thirty-two slots in two
-## grids, beside the bag, until the Close button.
+## The potion storage a shelf opens, the vault's or the guild hall's:
+## thirty-two slots in two grids, beside the bag, until the Close button.
 ##
 ## Godot's own controls, like the bag; the slots are ItemSlots with store
 ## indices, so a drag between here and the bag is the same gesture as one
@@ -10,7 +10,7 @@ extends CanvasLayer
 ## index when it sees one. A click on a shelf item takes it into the first
 ## free backpack slot, as the web client's does.
 
-const TITLE := "POTION STORAGE"
+const TITLES := {ItemStore.KIND_POTION: "POTION STORAGE", ItemStore.KIND_GUILD_POTION: "GUILD POTION STORAGE"}
 const COLUMNS := 4
 const HALF := ItemStore.SIZE / 2
 
@@ -20,6 +20,7 @@ var actions: InventoryActions
 var shop: ShopActions
 
 var _root: Container
+var _title: Label
 var _slots: Array = []
 var _tooltip: ItemTooltip
 var _drawn := -1
@@ -47,7 +48,8 @@ func _ready() -> void:
 	var column := InventoryLayout.column(_root)
 	var bar := HBoxContainer.new()
 	column.add_child(bar)
-	InventoryLayout.heading(bar, TITLE).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title = InventoryLayout.heading(bar, title(ItemStore.KIND_POTION))
+	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var close := Button.new()
 	close.text = "Close"
 	close.pressed.connect(func() -> void: state.store.close())
@@ -76,8 +78,14 @@ func _process(_delta: float) -> void:
 		_tooltip.follow(_root.get_global_mouse_position())
 
 
+## The heading for a store of `kind`.
+static func title(kind: int) -> String:
+	return String(TITLES.get(kind, TITLES[ItemStore.KIND_POTION]))
+
+
 func refresh() -> void:
 	_drawn = state.store.version
+	_title.text = title(state.store.kind)
 	for i in _slots.size():
 		_slots[i].show_from(state.store.item_at(i), content)
 
