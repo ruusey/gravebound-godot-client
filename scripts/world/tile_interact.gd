@@ -51,9 +51,13 @@ static func _text(value: Variant, fallback: String = "") -> String:
 	return fallback if value == null else str(value)
 
 
-## What the prompt says, in the web client's words.
-static func verb(candidate: Dictionary) -> String:
+## What the prompt says, in the web client's words. `guild_name` is the
+## player's own guild, "" when they have none.
+static func verb(candidate: Dictionary, guild_name := "") -> String:
 	match str(candidate.get("type", "")):
+		"create_guild":
+			if guild_name != "":
+				return "Your Guild: %s" % guild_name
 		"forge": return "Use Forge"
 		"fame_store": return "Open Fame Store"
 		"potion_storage": return "Open Potion Storage"

@@ -89,7 +89,8 @@ func candidate() -> Dictionary:
 		return {}
 	var tile: Dictionary = shop.candidate() if shop != null else {}
 	if not tile.is_empty():
-		return {"text": TileInteract.verb(tile), "key": "F", "tile": tile}
+		var guild_name := state.guild.guild_name if state.guild.in_guild else ""
+		return {"text": TileInteract.verb(tile, guild_name), "key": "F", "tile": tile}
 	var portal: Dictionary = portals.nearest() if portals != null else {}
 	if portal.is_empty():
 		return {}

@@ -68,7 +68,7 @@ func _process(_delta: float) -> void:
 		_input.grab_focus()
 		_info.text = "Cost: %d fame     You have: %d" % [COST, state.guild.create_fame]
 		if state.guild.create_in_guild:
-			_error.text = "You are already in a guild."
+			_error.text = already_in(state.guild.guild_name if state.guild.in_guild else "")
 			_error.visible = true
 			_create.disabled = true
 		else:
@@ -87,6 +87,11 @@ func _submit(_text: String = "") -> void:
 	if actions != null:
 		actions.create_guild(name)
 	state.guild.close_create()
+
+
+## The refusal for a player who already has a guild, naming it when known.
+static func already_in(guild_name: String) -> String:
+	return "You are already in %s." % guild_name if guild_name != "" else "You are already in a guild."
 
 
 func captures_mouse() -> bool:

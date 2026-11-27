@@ -15,6 +15,7 @@ var actions: GuildActions
 
 var _root: PanelContainer
 var _title: Label
+var _standing: Label
 var _list: VBoxContainer
 var _invite_row: HBoxContainer
 var _invite_input: LineEdit
@@ -44,7 +45,9 @@ func _ready() -> void:
 	column.add_child(bar)
 	_title = InventoryLayout.heading(bar, "GUILD")
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.42))
 	InventoryLayout.button(bar, "Close", func() -> void: state.guild.close_roster())
+	_standing = InventoryLayout.heading(column, "")
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(0, LIST_HEIGHT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -89,7 +92,8 @@ func _process(_delta: float) -> void:
 func _refresh() -> void:
 	_drawn = state.guild.version
 	var guild := state.guild
-	_title.text = "%s   -   you are %s" % [guild.guild_name, GuildState.rank_name(guild.your_rank)]
+	_title.text = guild.guild_name
+	_standing.text = standing(GuildState.rank_name(guild.your_rank), guild.members.size())
 	for child in _list.get_children():
 		child.queue_free()
 	for member in guild.members:
@@ -111,6 +115,11 @@ func _refresh() -> void:
 	_edit_hall.visible = guild.can_edit_hall
 	_disband.visible = guild.is_owner()
 	_leave.visible = not guild.is_owner()
+
+
+## The line under the guild name: your rank and how many members there are.
+static func standing(rank_name: String, member_count: int) -> String:
+	return "You are %s   -   %d %s" % [rank_name, member_count, "member" if member_count == 1 else "members"]
 
 
 func _do_invite() -> void:
