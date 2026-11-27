@@ -3,7 +3,7 @@ extends PanelContainer
 
 ## A floating hover pane for another player -- the parity version of the old
 ## clients' inspect panel. Shows the class sprite, name (+ role badge), level and
-## class, HP/MP, and when the data carries them (party members, via the richer
+## class, its [guild], HP/MP, and when the data carries them (party members, via the richer
 ## PartyUpdatePacket) the six stats and the equipped items as icons.
 ##
 ## One instance per panel, reused: populate it and show_at() on row hover, hide()
@@ -22,6 +22,7 @@ const SLOT_BG := Color(0.11, 0.09, 0.13, 1.0)
 var _content: GameData
 var _sprite: TextureRect
 var _name: Label
+var _guild: Label
 var _sub: Label
 var _hp: Label
 var _mp: Label
@@ -63,6 +64,7 @@ func _init() -> void:
 	head_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	header.add_child(head_col)
 	_name = _line(head_col, 13, NAME_COLOUR)
+	_guild = _line(head_col, 11, TagStyles.GUILD_BLUE)
 	_sub = _line(head_col, 11, MUTED)
 	_hp = _line(head_col, 11, HP_COLOUR)
 	_mp = _line(head_col, 11, MP_COLOUR)
@@ -95,7 +97,7 @@ func setup(content: GameData) -> void:
 	_content = content
 
 
-## data keys: name, role, class_id, dye_id, level, hp, max_hp, mp, max_mp,
+## data keys: name, role, guild, class_id, dye_id, level, hp, max_hp, mp, max_mp,
 ## stats (Dictionary or {}), equipment (Array of item dicts or []).
 func show_player(data: Dictionary) -> void:
 	var cls := _content.classes_art.display_name(int(data.get("class_id", 0)))
@@ -105,6 +107,9 @@ func show_player(data: Dictionary) -> void:
 	var player_name := String(data.get("name", ""))
 	_name.text = (player_name if player_name != "" else cls) + (("  [%s]" % role) if role != "" else "")
 	_name.add_theme_color_override("font_color", NameColours.role(role))
+	var guild := String(data.get("guild", ""))
+	_guild.visible = guild != ""
+	_guild.text = "[%s]" % guild
 	_sub.text = "Lv %d  %s" % [int(data.get("level", 0)), cls]
 	_hp.text = "HP %d/%d" % [int(data.get("hp", 0)), int(data.get("max_hp", 0))]
 	_mp.text = "MP %d/%d" % [int(data.get("mp", 0)), int(data.get("max_mp", 0))]

@@ -147,6 +147,7 @@ func _show_inspect(player: Dictionary, row: Control) -> void:
 	_inspect.show_player({
 		"name": player.get("name", ""),
 		"role": player.get("chat_role", ""),
+		"guild": player.get("guild", ""),
 		"class_id": int(player.get("class_id", 0)),
 		"dye_id": int(player.get("dye_id", 0)),
 		"level": level,

@@ -6,6 +6,8 @@ extends RefCounted
 
 ## The web's gold for a player's quest stars.
 const STAR_GOLD := Color("ffd34d")
+## The light blue of a player's [guild] tag.
+const GUILD_BLUE := Color("8fd8ff")
 
 
 ## 16px bold with a 3px black stroke: PIXI.Text {fontSize: 16, fontWeight:
@@ -18,6 +20,11 @@ static func name_label() -> LabelSettings:
 ## settings, because a LabelSettings colour wins over a theme override.
 static func star_label() -> LabelSettings:
 	return _label(bold(), 16, STAR_GOLD, 3)
+
+
+## A player's [guild] tag under the name: smaller, in light blue.
+static func guild_label() -> LabelSettings:
+	return _label(bold(), 12, GUILD_BLUE, 3)
 
 
 ## 24px bold with a 4px stroke, the damage numbers.

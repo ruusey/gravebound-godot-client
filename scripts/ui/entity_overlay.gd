@@ -220,7 +220,8 @@ func _show_players(to_screen: Transform2D, view: Rect2) -> void:
 			int(local.stats.get("mp", 0)) if is_local else int(player.get("max_mana", 0)),
 			(local.effects if is_local else player.get("effects", [])) if chips_on else [],
 			(local.effect_stacks if is_local else player.get("effect_stacks", [])) if chips_on else [],
-			state.bubbles.over(label) if bubbles_on else NO_BUBBLE, int(player.get("stars", 0)))
+			state.bubbles.over(label) if bubbles_on else NO_BUBBLE, int(player.get("stars", 0)),
+			String(player.get("guild", "")))
 		chips += tag.chip_count()
 		if tag.has_bubble():
 			bubbles += 1

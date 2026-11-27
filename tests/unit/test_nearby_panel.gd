@@ -83,6 +83,18 @@ func test_lists_the_others_with_their_role_colour_and_tooltip():
 	rows[0].mouse_entered.emit()
 	assert_true(panel._inspect.visible, "a hover brings up the inspect card")
 	assert_eq(panel._inspect._name.text, "Mingau  [admin]")
+	assert_false(panel._inspect._guild.visible, "no guild, no line")
+
+
+func test_the_inspect_card_shows_their_guild_in_blue():
+	_in_game()
+	_others(["Mingau"], "")
+	var id: int = state.entities.players.keys().filter(func(k) -> bool: return k != state.local.id)[0]
+	state.apply_packet("UpdatePacket", {"playerId": id, "guildName": "Night Watch", "stats": {}})
+	_rows()[0].mouse_entered.emit()
+	assert_true(panel._inspect._guild.visible)
+	assert_eq(panel._inspect._guild.text, "[Night Watch]")
+	assert_eq(panel._inspect._guild.get_theme_color("font_color"), TagStyles.GUILD_BLUE)
 
 
 func test_rebuilds_only_when_who_is_listed_changes():

@@ -190,3 +190,28 @@ func test_stars_ride_the_update_and_sit_under_the_name():
 	assert_eq(theirs._stars.label_settings.font_color, Color("ffd34d"), "the web's gold, really applied")
 	assert_gt(theirs._stars.position.y, theirs._mp.position.y, "under the bars")
 	assert_false(mine._stars.visible, "no stars, no line")
+
+
+func test_the_guild_rides_the_update_and_sits_under_the_name_in_blue():
+	state.local.id = 9
+	state.apply_packet("LoadPacket", {"players": [WireHelper.player(9, "Ruu", Vector2.ZERO),
+		WireHelper.player(10, "Mingau", Vector2(40, 0))]})
+	state.apply_packet("UpdatePacket", {"playerId": 10, "guildName": "Night Watch", "stats": {}})
+	assert_eq(state.entities.players[10]["guild"], "Night Watch")
+	var overlay := EntityOverlay.new()
+	overlay.setup(state)
+	add_child_autofree(overlay)
+	await wait_process_frames(1)
+	overlay.refresh()
+	var theirs: EntityTag = overlay._player_tags.acquire(10)
+	var mine: EntityTag = overlay._player_tags.acquire(9)
+	assert_true(theirs._guild.visible)
+	assert_eq(theirs._guild.text, "[Night Watch]")
+	assert_eq(theirs._guild.label_settings.font_color, TagStyles.GUILD_BLUE)
+	assert_lt(theirs._guild.label_settings.font_size, theirs._name.label_settings.font_size, "smaller than the name")
+	assert_gt(theirs._guild.position.y, theirs._name.position.y, "under the name")
+	assert_lt(theirs._guild.position.y, theirs._hp.position.y, "over the bars")
+	assert_false(mine._guild.visible, "no guild, no tag")
+	state.apply_packet("UpdatePacket", {"playerId": 10, "guildName": "", "stats": {}})
+	overlay.refresh()
+	assert_false(theirs._guild.visible, "gone once they leave it")

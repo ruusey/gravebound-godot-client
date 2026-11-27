@@ -456,6 +456,7 @@ const PACKETS := {
 		["investedSlot2", "byte", false],
 		["investedSlot3", "byte", false],
 		["stars", "int", false],
+		["guildName", "string", false],
 	],
 	"UpdatePlayerTradeSelectionPacket": [
 		["selection", "NetInventorySelection", false],
