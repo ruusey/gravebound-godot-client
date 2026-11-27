@@ -8,8 +8,9 @@ extends CanvasLayer
 ## HP, MP and XP bars with their numbers on them, then the six stats in a
 ## grid of three by two, each with the equipment's part beside it in green
 ## or red. The numbers are the wire's computed stats; the bonus is
-## EquipmentBonus taken back off them, and a stat whose BASE is at the
-## class cap reads gold, which is the server's own isStatMaxed. The XP bar counts within the level and,
+## EquipmentBonus taken back off them. A stat reads gold when the server
+## flags its base as at the class cap (maxedStats): the computed numbers also
+## carry passives, gems and buffs, so the base can't be worked out here. The XP bar counts within the level and,
 ## past the last level, turns gold and counts fame.
 
 const MARGIN := 8
@@ -18,6 +19,8 @@ const HEIGHT := 158
 ## Where the column ends, for whatever is pinned beneath it.
 const BOTTOM := MinimapPanel.MARGIN + MinimapPanel.SIDE + MARGIN + HEIGHT
 const STATS := ["str", "def", "spd", "dex", "vit", "wis"]
+## Bit of each stat in the wire's maxedStats: Player.isStatMaxed's index.
+const MAXED_BITS := {"hp": 0, "mp": 1, "def": 2, "str": 3, "spd": 4, "dex": 5, "vit": 6, "wis": 7}
 const GOLD := Color("c8a86e")
 const HP_FILL := Color("c03030")
 const MP_FILL := Color("3060c0")
@@ -112,8 +115,9 @@ func _process(_delta: float) -> void:
 		_root.offset_top = below.call() + MARGIN
 		_root.offset_bottom = _root.offset_top + (_root.get_combined_minimum_size().y if fold.folded else float(HEIGHT))
 		fold.place_right(_root.offset_top + 2.0, TouchScale.view_size(_root).x - MinimapPanel.MARGIN - 2.0)
-	var key := "%s|%d|%d|%d|%d|%d" % [state.local.stats, state.local.health, state.local.mana,
-		state.local.inventory.experience, state.local.inventory.version, state.local.class_id]
+	var key := "%s|%d|%d|%d|%d|%d|%d" % [state.local.stats, state.local.health, state.local.mana,
+		state.local.inventory.experience, state.local.inventory.version, state.local.class_id,
+		state.local.maxed_stats]
 	if key != _drawn:
 		_drawn = key
 		refresh()
@@ -127,18 +131,16 @@ func refresh() -> void:
 	var local := state.local
 	var computed: Dictionary = local.stats
 	var bonus := EquipmentBonus.of(local.inventory)
-	var base := EquipmentBonus.base(computed, bonus)
-	var caps: Dictionary = content.library.classes.get(local.class_id, {}).get("maxStats", {})
 	_identity.text = "%s  %s" % [local.name, content.classes_art.display_name(local.class_id)]
-	_fill("hp", local.health, int(computed.get("hp", 0)), maxed(base, caps, "hp"))
-	_fill("mp", local.mana, int(computed.get("mp", 0)), maxed(base, caps, "mp"))
+	_fill("hp", local.health, int(computed.get("hp", 0)), flagged(local.maxed_stats, "hp"))
+	_fill("mp", local.mana, int(computed.get("mp", 0)), flagged(local.maxed_stats, "mp"))
 	var xp := xp_line(content.levels, local.inventory.experience)
 	_bars["xp"][0].value = xp[1]
 	_bars["xp"][1].text = xp[0]
 	HudWidgets.refill(_bars["xp"][0], GOLD if xp[2] else XP_FILL)
 	for stat in STATS:
 		_cells[stat][0].text = str(int(computed.get(stat, 0)))
-		_cells[stat][0].add_theme_color_override("font_color", GOLD if maxed(base, caps, stat) else Color.WHITE)
+		_cells[stat][0].add_theme_color_override("font_color", GOLD if flagged(local.maxed_stats, stat) else Color.WHITE)
 		_cells[stat][1].text = bonus_text(int(bonus[stat]))
 		_cells[stat][1].add_theme_color_override("font_color", BONUS_UP if bonus[stat] > 0 else BONUS_DOWN)
 
@@ -160,6 +162,10 @@ static func xp_line(levels: ExperienceLevels, experience: int) -> Array:
 	if progress[1] <= 0:
 		return ["Lv %d" % level, 0.0, false]
 	return ["Lv %d  %d / %d" % [level, progress[0], progress[1]], minf(1.0, float(progress[0]) / progress[1]), false]
+
+
+static func flagged(mask: int, stat: String) -> bool:
+	return (mask >> int(MAXED_BITS[stat])) & 1 == 1
 
 
 ## Judged on the base, never on the equipment-boosted value.

@@ -17,7 +17,7 @@ func before_each():
 	add_child_autofree(hud)
 
 
-func _arrive(stats: Dictionary, health: int, mana: int, experience: int, worn := {}) -> void:
+func _arrive(stats: Dictionary, health: int, mana: int, experience: int, worn := {}, maxed := 0) -> void:
 	state.local.id = 1
 	state.local.name = "Ruu"
 	state.local.class_id = 0
@@ -28,7 +28,7 @@ func _arrive(stats: Dictionary, health: int, mana: int, experience: int, worn :=
 		carried[slot] = worn[slot]
 	state.apply_packet("UpdatePacket", {"playerId": 1, "playerName": "Ruu", "stats": stats,
 		"health": health, "mana": mana, "experience": experience, "inventory": carried,
-		"hpPotions": 0, "mpPotions": 0, "dyeId": 0})
+		"hpPotions": 0, "mpPotions": 0, "dyeId": 0, "maxedStats": maxed})
 	hud._process(0.0)
 
 
@@ -63,25 +63,33 @@ func test_the_xp_bar_becomes_fame_past_the_table():
 	assert_eq(hud._bars["xp"][0].value, 1.0, "full, and gold")
 
 
-func test_the_bonus_shows_beside_the_value_and_the_cap_is_judged_on_the_base():
-	# Barbarian caps: str 75, spd 50 (the fixture). A sword worth +7 STR on
-	# a base of 72 shows 79 but is not maxed; boots costing 2 SPD show 48
-	# on a base of 50, which is.
+func test_the_bonus_shows_beside_the_value_and_gold_follows_the_server_flag():
+	# A sword worth +7 STR shows 79 and the server says STR is not maxed;
+	# boots costing 2 SPD show 48 and the server says SPD is (bit 4).
 	_arrive({"hp": 340, "mp": 120, "str": 79, "spd": 48}, 340, 120, 0, {
 		0: {"itemId": 49, "stats": {"str": 4}, "attributeModifiers": [{"statId": 4, "deltaValue": 3}]},
-		3: {"itemId": 845, "stats": {"spd": -2}}})
+		3: {"itemId": 845, "stats": {"spd": -2}}}, 1 << 4)
 	assert_eq(hud._cells["str"][0].text, "79")
 	assert_eq(hud._cells["str"][1].text, "+7")
 	assert_eq(hud._cells["str"][1].get_theme_color("font_color"), PlayerHud.BONUS_UP)
-	assert_eq(hud._cells["str"][0].get_theme_color("font_color"), Color.WHITE, "72 base is under the 75 cap")
+	assert_eq(hud._cells["str"][0].get_theme_color("font_color"), Color.WHITE, "not flagged maxed")
 	assert_eq(hud._cells["spd"][0].text, "48")
 	assert_eq(hud._cells["spd"][1].text, "-2")
 	assert_eq(hud._cells["spd"][1].get_theme_color("font_color"), PlayerHud.BONUS_DOWN)
-	assert_eq(hud._cells["spd"][0].get_theme_color("font_color"), PlayerHud.GOLD, "50 base is at the cap")
+	assert_eq(hud._cells["spd"][0].get_theme_color("font_color"), PlayerHud.GOLD, "flagged maxed")
+
+
+func test_a_passive_bonus_alone_never_reads_gold():
+	# A Wizard's passive WIS lifts the shown value past the cap with no gear
+	# worn; only the server's flag on the base turns it gold.
+	_arrive({"hp": 340, "mp": 120, "wis": 78}, 340, 120, 0)
+	assert_eq(hud._cells["wis"][0].get_theme_color("font_color"), Color.WHITE)
+	_arrive({"hp": 340, "mp": 120, "wis": 80}, 340, 120, 0, {}, -128)
+	assert_eq(hud._cells["wis"][0].get_theme_color("font_color"), PlayerHud.GOLD, "bit 7 arrives as a signed byte")
 
 
 func test_hp_and_mp_numbers_go_gold_at_their_caps():
-	_arrive({"hp": 780, "mp": 100}, 400, 100, 0)
+	_arrive({"hp": 780, "mp": 100}, 400, 100, 0, {}, 1 << 0)
 	assert_eq(hud._bars["hp"][1].get_theme_color("font_color"), PlayerHud.GOLD)
 	assert_eq(hud._bars["mp"][1].get_theme_color("font_color"), Color.WHITE)
 

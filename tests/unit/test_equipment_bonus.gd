@@ -38,12 +38,3 @@ func test_the_backpack_does_not_count():
 func test_an_unknown_stat_id_is_ignored():
 	_wear(1, {"attributeModifiers": [{"statId": 8, "deltaValue": 9}, {"statId": -1, "deltaValue": 9}]})
 	assert_eq(EquipmentBonus.of(inventory), EquipmentBonus.empty())
-
-
-func test_the_base_is_the_computed_value_less_the_bonus():
-	var computed := {"hp": 340, "str": 79, "spd": 48}
-	var base := EquipmentBonus.base(computed, {"str": 7, "spd": -2})
-	assert_eq(base["hp"], 340)
-	assert_eq(base["str"], 72)
-	assert_eq(base["spd"], 50, "a stat the item lowers reads higher without it")
-	assert_eq(base["wis"], 0, "every stat is present, missing ones as zero")

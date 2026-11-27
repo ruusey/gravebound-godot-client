@@ -4,8 +4,8 @@
 #   python3 tools/gen_schema.py <java-src-root>
 #
 # Source tree : C:\Users\ruuse\Documents\GitHub\gravebound\src
-# Generated   : 2026-11-26 05:29:41Z
-# Packets     : 59
+# Generated   : 2026-11-27 21:28:28Z
+# Packets     : 57
 # Entities    : 23
 #
 # Field tuples are [name, wire_type, is_collection]; list order is wire order.
@@ -444,6 +444,7 @@ const PACKETS := {
 		["investedSlot3", "byte", false],
 		["stars", "int", false],
 		["guildName", "string", false],
+		["maxedStats", "byte", false],
 	],
 	"UpdatePlayerTradeSelectionPacket": [
 		["selection", "NetInventorySelection", false],

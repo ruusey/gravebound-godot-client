@@ -40,6 +40,8 @@ var tick_alpha := 0.0
 var health := 0
 var mana := 0
 var stats := {}
+## The server's isStatMaxed per stat as bits, in MAXED_BITS order.
+var maxed_stats := 0
 ## What we carry, in the server's slot order. Fed from UpdatePacket here;
 ## the panel and the item actions read it.
 var inventory := Inventory.new()
@@ -120,6 +122,7 @@ func apply_update(data: Dictionary) -> void:
 		return
 	name = data.get("playerName", "")
 	stats = data.get("stats", {})
+	maxed_stats = int(data.get("maxedStats", 0))
 	health = int(data.get("health", 0))
 	mana = int(data.get("mana", 0))
 	effects = data.get("effectIds", [])
