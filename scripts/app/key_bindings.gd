@@ -23,6 +23,7 @@ const ACTIONS := {
 	"toggle_inventory": "Bag", "toggle_skills": "Character sheet", "toggle_masteries": "Skills",
 	"toggle_quests": "Quest log",
 	"toggle_minimap": "Minimap",
+	"reply_tell": "Reply to last PM",
 }
 
 

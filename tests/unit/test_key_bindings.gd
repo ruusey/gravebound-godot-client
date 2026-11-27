@@ -31,10 +31,10 @@ func test_the_defaults_are_the_projects():
 
 
 func test_a_new_key_drives_the_action_and_the_old_one_no_longer_does():
-	assert_eq(KeyBindings.rebind("move_up", KEY_I), ["move_up"])
-	assert_true(_key(KEY_I).is_action("move_up"))
+	assert_eq(KeyBindings.rebind("move_up", KEY_O), ["move_up"])
+	assert_true(_key(KEY_O).is_action("move_up"))
 	assert_false(_key(KEY_W).is_action("move_up"))
-	assert_eq(KeyBindings.custom(), {"move_up": KEY_I})
+	assert_eq(KeyBindings.custom(), {"move_up": KEY_O})
 
 
 func test_a_taken_key_swaps_so_nothing_is_left_unbound():
@@ -71,9 +71,9 @@ func test_the_controls_tab_binds_the_next_key_and_escape_cancels():
 	tab.buttons["move_up"].pressed.emit()
 	assert_eq(tab.waiting_for, "move_up")
 	assert_eq(tab.buttons["move_up"].text, ControlsTab.WAITING)
-	tab.take(_key(KEY_I))
-	assert_eq(KeyBindings.key_of("move_up"), KEY_I)
-	assert_eq(tab.buttons["move_up"].text, "I")
+	tab.take(_key(KEY_O))
+	assert_eq(KeyBindings.key_of("move_up"), KEY_O)
+	assert_eq(tab.buttons["move_up"].text, "O")
 	assert_eq(tab.waiting_for, "", "one key, then done")
 	tab.listen("move_down")
 	tab.take(_key(KEY_ESCAPE))

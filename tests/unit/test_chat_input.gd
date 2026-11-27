@@ -160,3 +160,27 @@ func test_without_actions_a_line_is_still_closed_after_enter():
 	add_child_autofree(bare)
 	bare._unhandled_input(_key(KEY_ENTER))
 	assert_false(bare.is_typing(), "no state, no realm to talk in")
+
+
+func _reply_key() -> InputEventKey:
+	var event := InputEventKey.new()
+	event.physical_keycode = KeyBindings.key_of("reply_tell")
+	event.pressed = true
+	return event
+
+
+func test_the_reply_key_opens_a_tell_to_the_last_player_who_messaged_us():
+	_in_game()
+	panel._unhandled_input(_reply_key())
+	assert_false(panel.is_typing(), "nobody to reply to yet")
+	state.apply_packet("TextPacket", {"from": "Gharr", "to": ChatLog.WHISPER_IN, "message": "hi"})
+	state.apply_packet("TextPacket", {"from": "Mira", "to": ChatLog.WHISPER_IN, "message": "yo"})
+	panel._unhandled_input(_reply_key())
+	assert_true(panel.is_typing())
+	assert_eq(panel._input.text, "/tell Mira ")
+	assert_eq(panel._input.caret_column, panel._input.text.length(), "type the message straight after")
+
+
+func test_tab_replies_and_i_opens_the_bag_by_default():
+	assert_eq(KeyBindings.default_key("reply_tell"), KEY_TAB)
+	assert_eq(KeyBindings.default_key("toggle_inventory"), KEY_I)

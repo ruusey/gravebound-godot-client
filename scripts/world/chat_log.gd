@@ -20,12 +20,16 @@ const SYSTEM := "SYSTEM"
 ## returns before its log ("never display in chat"); the native appends it and
 ## then only skips the bubble, which is why its chat fills with coordinates.
 const EVENT_MARKER := "EVENT_MARKER"
+## The `to` a received /tell arrives with; `from` is who sent it.
+const WHISPER_IN := "WHISPER_IN"
 
 var lines: Array = []
 ## Bumped on every stored line and on clear. `size` saturates at MAX_LINES once
 ## the ring is full, so a panel watching size alone would stop seeing new lines
 ## -- watch this instead.
 var revision := 0
+## Who last sent us a /tell, for the reply key; "" until someone has.
+var last_whisper_from := ""
 
 var _clock: Callable
 
@@ -36,6 +40,7 @@ func _init(clock: Callable = func() -> int: return Time.get_ticks_msec()) -> voi
 
 func clear() -> void:
 	lines.clear()
+	last_whisper_from = ""
 	revision += 1
 
 
@@ -59,6 +64,8 @@ func apply_text(data: Dictionary) -> void:
 		"message": String(data.get("message", "")),
 		"at_ms": _clock.call(),
 	})
+	if String(data.get("to", "")) == WHISPER_IN:
+		last_whisper_from = String(data.get("from", ""))
 	while lines.size() > MAX_LINES:
 		lines.pop_front()
 	revision += 1

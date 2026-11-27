@@ -16,7 +16,7 @@ const PLAYER_COLOUR := Color(0.9, 0.9, 0.95)
 # A /tell private message: whole line in this blue. The server tags the direction in
 # the `to` (chat-role) field -- IN is received ("From X"), OUT is the sender's echo.
 const WHISPER_COLOUR := Color(0.37, 0.66, 1.0)
-const WHISPER_IN := "WHISPER_IN"
+const WHISPER_IN := ChatLog.WHISPER_IN
 const WHISPER_OUT := "WHISPER_OUT"
 
 

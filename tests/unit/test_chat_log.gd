@@ -349,3 +349,15 @@ func test_a_name_that_never_comes_stops_being_waited_for():
 	state.advance(0.1, Vector2.ZERO, 0.0)
 	_said("SYSTEM", "You have been granted a gift", "Ruu")
 	assert_eq(state.transition.zone, "")
+
+
+func test_the_last_tell_received_is_who_a_reply_goes_to():
+	var log := ChatLog.new()
+	assert_eq(log.last_whisper_from, "", "nobody has messaged us yet")
+	log.apply_text({"from": "Gharr", "to": ChatLog.WHISPER_IN, "message": "hi"})
+	log.apply_text({"from": "Mira", "to": ChatLog.WHISPER_IN, "message": "yo"})
+	log.apply_text({"from": "Tess", "to": "WHISPER_OUT", "message": "our own echo"})
+	log.apply_text({"from": "Bram", "to": "", "message": "said in the open"})
+	assert_eq(log.last_whisper_from, "Mira", "only a received tell counts, the latest one")
+	log.clear()
+	assert_eq(log.last_whisper_from, "", "gone with the session")

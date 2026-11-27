@@ -190,6 +190,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Slash opens the line pre-filled with "/" so a command is one keystroke away.
 		_input.open("/")
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("reply_tell") and not event.is_echo() and not _input.is_open() \
+			and state.chat.last_whisper_from != "":
+		# The reply key opens a /tell to whoever last messaged us.
+		_input.open("/tell %s " % state.chat.last_whisper_from)
+		get_viewport().set_input_as_handled()
 
 
 ## Clear of the touch buttons (`thumbs`, in the canvas's pixels): beside
