@@ -17,7 +17,7 @@ const BANNER_HEIGHT := 64.0
 ## The public game wiki, served only on the production domain. Opened in a new
 ## browser tab on web, the OS browser on desktop.
 const WIKI_URL := "https://grave-bound.com/wiki/"
-const DISCORD_URL := "https://discord.gg/Hcfx5MdQr"
+const DISCORD_URL := "https://discord.gg/376sYCvqKH"
 ## The external links sit below the sign-in controls, smaller and set apart, so
 ## they don't read as part of signing in. Rows stay tappable on a phone.
 const LINK_FONT := 13
