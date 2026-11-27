@@ -16,11 +16,11 @@ const MAX_LEVEL := 99
 ## it boosts, and how XP is earned. Indexed by the server's ordinal.
 const SKILLS := [
 	["Ranged Combat Mastery", "Damage with ranged (light) weapons.", 0.1, "ranged damage",
-		"0.25 XP per damage dealt with ranged weapons"],
+		"1 XP per 20 damage dealt with ranged weapons"],
 	["Melee Combat Mastery", "Damage with melee (heavy) weapons.", 0.1, "melee damage",
-		"0.25 XP per damage dealt with melee weapons"],
+		"1 XP per 20 damage dealt with melee weapons"],
 	["Magic Combat Mastery", "Damage with magic weapons.", 0.1, "magic damage",
-		"0.25 XP per damage dealt with magic weapons"],
+		"1 XP per 20 damage dealt with magic weapons"],
 	["Heavy Armor Mastery", "Toughness while wearing heavy armor.", 0.1, "damage reduction",
 		"1 XP per damage taken while in heavy armor"],
 	["Light Armor Mastery", "Toughness while wearing light armor.", 0.1, "damage reduction",
