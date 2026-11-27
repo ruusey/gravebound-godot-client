@@ -55,6 +55,16 @@ const SHADOW_SMOOTH := 11.0
 ## reads warm and inviting instead of a cold, cut-out silhouette. Lower the alpha
 ## for even gentler shadows; raise it toward 1.0 for deeper ones.
 const SHADOW_COLOR := Color(0.14, 0.11, 0.10, 0.5)
+## Lights that cast no shadow are drawn into a screen-sized light layer instead of
+## going to Godot as Light2Ds, which it hands to every ground chunk separately and
+## which cut a glow off at a chunk border. The ground, liquids and bodies add the
+## layer per pixel (scene_light.gdshaderinc). It renders at 1/this of the screen;
+## the glows are soft, so that costs nothing to look at.
+const LIGHT_LAYER_DOWNSCALE := 2.0
+## A colour drawn into the layer is clamped to 1, so each glow goes in over this and
+## the shader scales the sum back up (scene_light_range); the layer's floats keep the
+## overlaps exact. Covers the brightest light over the darkest dungeon ambient.
+const LIGHT_LAYER_RANGE := 8.0
 ## Tiles do not move, so the view is rescanned every Nth frame, not every frame.
 const SCAN_EVERY := 20
 ## Re-pick the glowing tiles the moment the player has moved this far (px), not only on
@@ -63,6 +73,8 @@ const SCAN_EVERY := 20
 const RESCAN_MOVE_SQ := 36.0
 
 var _state: RealmState
+## Set by Main: the layers that take the light layer.
+var world: WorldRenderer
 ## Set by Main: a tile's light comes up with its tile as it dissolves in.
 var reveal: TerrainReveal
 var _content: GameData
@@ -83,6 +95,15 @@ var _enemy_lights_shown := 0
 var _enemy_light_by_id := {}
 var _enemy_energy := ENEMY_LIGHT_ENERGY
 var _occluders: Array[LightOccluder2D] = []
+## The light layer: its viewport, the one canvas item every glow is drawn into, the
+## additive blend it draws with, and whether the world is reading it.
+var _layer := SubViewport.new()
+var _layer_item: RID
+var _layer_blend := CanvasItemMaterial.new()
+var _layer_on := false
+var _glow_texture: GradientTexture2D
+## Every pooled light, walked when the layer is drawn.
+var _all_lights: Array[PointLight2D] = []
 ## The rect each occluder last took, so a rescan rebuilds only the ones that moved.
 var _occluder_rects: Array[Rect2i] = []
 ## The nearest light-emitting bullets this frame, nearest first.
@@ -118,7 +139,8 @@ var _max_tile_lights := MAX_TILE_LIGHTS if OS.has_feature("web") else 64
 ## at all). Native: the nearest handful -- each caster is its own shadow-map pass per
 ## frame, so lighting them all tanked crowded dungeon fights; the far candles still
 ## glow (they just stop throwing a wall shadow once past the nearest casters).
-var _shadow_casters := 0 if OS.has_feature("web") else 16
+## Casters stay Light2Ds; at 15 no ground chunk can hold more than Godot lights one with.
+var _shadow_casters := 0 if OS.has_feature("web") else 15
 ## Native ambient runs 10% brighter (overworld and dungeon alike) than web.
 var _ambient_mul := 1.0 if OS.has_feature("web") else 1.1
 
@@ -135,6 +157,8 @@ func setup(state: RealmState, content: GameData) -> void:
 	_bullet_energy = BULLET_LIGHT_ENERGY * glow_mul
 	_enemy_energy = ENEMY_LIGHT_ENERGY * glow_mul
 	var glow := _soft_texture()
+	_glow_texture = glow
+	_build_light_layer()
 	for i in _max_tile_lights:
 		var light := PointLight2D.new()
 		_light(light, glow, Color.WHITE, _tile_energy, 1.0)
@@ -144,14 +168,19 @@ func setup(state: RealmState, content: GameData) -> void:
 		var light := PointLight2D.new()
 		_light(light, glow, Color.WHITE, _bullet_energy, 1.0)
 		light.shadow_enabled = false
+		light.enabled = false
 		light.visible = false
 		_bullet_lights.append(light)
 	for i in MAX_ENEMY_LIGHTS:
 		var light := PointLight2D.new()
 		_light(light, glow, Color.WHITE, _enemy_energy, 1.0)
 		light.shadow_enabled = false
+		light.enabled = false
 		light.visible = false
 		_enemy_lights.append(light)
+	_all_lights.append_array(_pool)
+	_all_lights.append_array(_bullet_lights)
+	_all_lights.append_array(_enemy_lights)
 	_near_distance.resize(MAX_BULLET_LIGHTS)
 	_near_at.resize(MAX_BULLET_LIGHTS)
 	_near_light.resize(MAX_BULLET_LIGHTS)
@@ -190,6 +219,8 @@ func _light(light: PointLight2D, glow: GradientTexture2D, colour: Color, energy:
 func _process(delta: float) -> void:
 	var live := _state != null and _state.settings.is_on("lighting") \
 		and _state.local != null and _state.tiles.width > 0
+	if _layer_on != live:
+		_set_light_layer(live)
 	if _ambient.visible != live:
 		_ambient.visible = live
 		for light in _pool:
@@ -235,6 +266,65 @@ func _process(delta: float) -> void:
 	# Bullets move every frame, so this is not on the tile scan's cadence.
 	_place_bullet_lights()
 	_place_enemy_lights()
+	_draw_light_layer()
+
+
+## The light layer's viewport and canvas item; its camera follows the world's in
+## _follow_camera, just before each frame draws.
+func _build_light_layer() -> void:
+	_layer.use_hdr_2d = true
+	_layer.disable_3d = true
+	_layer.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	add_child(_layer)
+	_layer_blend.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_layer_item = RenderingServer.canvas_item_create()
+	RenderingServer.canvas_item_set_parent(_layer_item, _layer.find_world_2d().canvas)
+	RenderingServer.canvas_item_set_material(_layer_item, _layer_blend.get_rid())
+	RenderingServer.frame_pre_draw.connect(_follow_camera)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and _layer_item.is_valid():
+		RenderingServer.free_rid(_layer_item)
+
+
+## The layer renders and the world reads it only while lighting is live.
+func _set_light_layer(on: bool) -> void:
+	_layer_on = on
+	_layer.render_target_update_mode = SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
+	if world != null:
+		world.set_scene_light(_layer.get_texture() if on else null)
+
+
+## Every shown light that isn't a Light2D, as its glow texture added over black. Each is
+## divided by the ambient, since the world multiplies the ambient in after adding it,
+## and by LIGHT_LAYER_RANGE.
+func _draw_light_layer() -> void:
+	RenderingServer.canvas_item_clear(_layer_item)
+	var ambient := _ambient.color * LIGHT_LAYER_RANGE
+	var glow := _glow_texture.get_rid()
+	var side := float(_glow_texture.width)
+	for light in _all_lights:
+		if not light.visible or light.enabled:
+			continue
+		var span := side * light.texture_scale
+		var tint := light.color * light.energy
+		RenderingServer.canvas_item_add_texture_rect(_layer_item,
+			Rect2(light.global_position - Vector2(span, span) * 0.5, Vector2(span, span)), glow, false,
+			Color(tint.r / ambient.r, tint.g / ambient.g, tint.b / ambient.b, 1.0))
+
+
+## Frames the layer on the screen exactly as the world is, at its downscale, once the
+## camera has moved for this frame.
+func _follow_camera() -> void:
+	if not _layer_on:
+		return
+	var screen := get_viewport_rect().size
+	var size := Vector2i((screen / LIGHT_LAYER_DOWNSCALE).ceil())
+	if _layer.size != size:
+		_layer.size = size
+	_layer.canvas_transform = Transform2D(0.0, Vector2(size) / screen, 0.0, Vector2.ZERO) \
+		* get_canvas_transform()
 
 
 ## The nearest light-emitting bullets in flight, one travelling light each,
@@ -395,8 +485,10 @@ func _rescan() -> void:
 			var energy := _tile_energy * (LIQUID_GLOW_ENERGY_MUL if liquid else 1.0)
 			light.energy = energy
 			light.set_meta("energy_base", energy)
-			# found is distance-sorted; the nearest _shadow_casters cast (all on native).
+			# found is distance-sorted; the nearest _shadow_casters cast and stay Light2Ds,
+			# the rest glow from the light layer.
 			light.shadow_enabled = i < _shadow_casters
+			light.enabled = light.shadow_enabled
 	var rects := _merge_wall_rects(walls)
 	for i in _occluders.size():
 		var occluder := _occluders[i]
@@ -445,6 +537,7 @@ func set_active(on: bool) -> void:
 	set_process(on)
 	if not on:
 		_set_bloom(false)
+		_set_light_layer(false)
 
 
 ## In an assembled dungeon that isn't the personal vault -- where the ambient dims.

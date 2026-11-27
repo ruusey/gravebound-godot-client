@@ -94,6 +94,7 @@ func _ready() -> void:
 	_lighting = SceneLighting.new()
 	_lighting.setup(state, game_data)
 	_lighting.reveal = _world.reveal
+	_lighting.world = _world
 	add_child(_lighting)
 
 	_camera = Camera2D.new()

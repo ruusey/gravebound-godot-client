@@ -33,6 +33,8 @@ uniform vec3 foam_colour : source_color = vec3(0.86, 0.95, 1.0);
 // A capture pins it, as it pins every other clock.
 uniform float pinned_time = -1.0;
 
+#include "res://scripts/render/shaders/scene_light.gdshaderinc"
+
 const float CELL = 32.0;
 
 varying vec2 world_pos;
@@ -174,5 +176,5 @@ void fragment() {
 		colour = mix(mix(water, lava, warm), lip, step(coast, 0.0));
 	}
 
-	COLOR = vec4(colour, base.a);
+	COLOR = vec4(scene_lit_colour(colour, SCREEN_UV), base.a);
 }

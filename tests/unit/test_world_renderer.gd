@@ -94,11 +94,22 @@ func test_each_layer_carries_its_own_material():
 	var ground := CanvasItemMaterial.new()
 	renderer.tiles.material = ground
 	assert_eq(renderer.tiles.material, ground)
-	assert_null(renderer.entities.material, "an effect on one layer stays there")
+	assert_ne(renderer.entities.material, ground, "an effect on one layer stays there")
 	# The bright overlays share one unlit material so the scene lights skip them.
 	assert_eq(renderer.bullets.material.light_mode, CanvasItemMaterial.LIGHT_MODE_UNSHADED)
 	for overlay in [renderer.particles, renderer.effects, renderer.debug]:
 		assert_eq(overlay.material, renderer.bullets.material, "overlays share the unlit material")
+
+
+func test_scene_light_reaches_the_lit_layers_and_switches_off():
+	var layer := ImageTexture.create_from_image(Image.create(4, 4, false, Image.FORMAT_RGBA8))
+	renderer.set_scene_light(layer)
+	for lit in [renderer.tiles, renderer.entities, renderer.liquid]:
+		assert_true(lit.material.get_shader_parameter("scene_lit"), str(lit))
+		assert_eq(lit.material.get_shader_parameter("scene_light"), layer)
+	renderer.set_scene_light(null)
+	for lit in [renderer.tiles, renderer.entities, renderer.liquid]:
+		assert_false(lit.material.get_shader_parameter("scene_lit"), str(lit))
 
 
 func test_draw_is_a_no_op_without_state():

@@ -16,6 +16,8 @@ extends Node2D
 ## value is relative to the parent, and a stray one is what put a map layer
 ## over the players the last time this was a tree of nodes.
 
+const SCENE_LIT_SHADER := preload("res://scripts/render/shaders/scene_lit.gdshader")
+
 var state: RealmState
 var game_data: GameData
 
@@ -35,6 +37,8 @@ var debug := CollisionOverlay.new()
 ## The layers redrawn every frame (all but the chunk-cached ground), built once
 ## so _process doesn't allocate an array literal per frame.
 var _redraw_layers: Array = []
+## The ground and bodies' material: lit by SceneLighting's buffer while it runs.
+var _scene_lit := ShaderMaterial.new()
 
 var show_collision: bool:
 	get: return debug.show_collision
@@ -73,9 +77,21 @@ func _ready() -> void:
 	# was pure cost, since none of them is meant to be darkened by the ambient.
 	for overlay in [bullets, particles, effects, debug, hit_chips]:
 		overlay.material = unlit
+	# The lit layers also take SceneLighting's light buffer (see set_scene_light).
+	_scene_lit.shader = SCENE_LIT_SHADER
+	tiles.material = _scene_lit
+	entities.material = _scene_lit
 	# Liquid is chunk-cached and animates on the GPU, so it is not redrawn per frame.
 	_redraw_layers = [entities, hit_chips, particles, bullets, effects, debug]
 	_wire()
+
+
+## SceneLighting's light buffer on the ground, liquids and bodies; null turns it off.
+func set_scene_light(buffer: Texture2D) -> void:
+	for material: ShaderMaterial in [_scene_lit, liquid.material]:
+		material.set_shader_parameter("scene_light", buffer)
+		material.set_shader_parameter("scene_lit", buffer != null)
+		material.set_shader_parameter("scene_light_range", SceneLighting.LIGHT_LAYER_RANGE)
 
 
 func setup(realm_state: RealmState, content: GameData) -> void:
