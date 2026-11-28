@@ -122,11 +122,10 @@ static func _effect_text(effect: Dictionary, definition: Dictionary, invested: i
 		"PROJECTILE_GROUP":
 			return "Fires a projectile volley%s" % target
 		"DASH":
-			return "Dash up to %.1f tiles" % (float(effect.get("baseMagnitude", 0)) / GameConstants.TILE_SIZE)
-		"DEFLECT":
-			var most := int(effect.get("maxStacks", 0))
-			return "Deflect shots: +%d%% damage each%s" % [int(effect.get("baseMagnitude", 0)),
-				(" (max +%d%%)" % (most * int(effect.get("baseMagnitude", 0)))) if most > 0 else ""]
+			return "Dash up to %.1f tiles%s" % [float(effect.get("baseMagnitude", 0)) / GameConstants.TILE_SIZE,
+				_kill_refund_text(effect)]
+		"ABSORB":
+			return "Armored guard: burst for %dx the damage you take" % int(effect.get("baseMagnitude", 0))
 		"DUEL":
 			var refund := float(effect.get("killRefund", 0))
 			return "Duel %.1fs: +%d%% damage from you%s" % [float(effect.get("baseDurationMs", 0)) / 1000.0,
@@ -154,6 +153,14 @@ static func _scaling_text(scaling: Dictionary, invested: int, stats: Dictionary)
 	var contribution := _scaling_contribution(scaling, invested, stats)
 	var current := " (+%d)" % int(contribution) if contribution > 0 else ""
 	return "%s x%s -> %s%s" % [_stat_label(scaling, invested), _number(scaling.get("coeff", 0)), target, current]
+
+
+## What a kill by the ability's own hit gives back, for effects other than a Duel.
+static func _kill_refund_text(effect: Dictionary) -> String:
+	var refund := float(effect.get("killRefund", 0))
+	if refund <= 0.0:
+		return ""
+	return ", a kill resets the cooldown" if refund >= 1.0 else ", %d%% cooldown back on a kill" % roundi(refund * 100.0)
 
 
 ## An effect's magnitude at the current rank: its base plus every scaling that

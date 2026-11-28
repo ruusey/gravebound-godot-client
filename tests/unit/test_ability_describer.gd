@@ -11,10 +11,15 @@ func test_a_dash_reads_in_tiles():
 	assert_eq(_line({"type": "DASH", "baseMagnitude": 96}), "Dash up to 3.0 tiles")
 
 
-func test_a_deflect_names_its_bonus_and_cap():
-	assert_eq(_line({"type": "DEFLECT", "baseMagnitude": 20, "maxStacks": 5}),
-		"Deflect shots: +20% damage each (max +100%)")
-	assert_eq(_line({"type": "DEFLECT", "baseMagnitude": 20}), "Deflect shots: +20% damage each")
+func test_a_dash_names_its_kill_refund():
+	assert_eq(_line({"type": "DASH", "baseMagnitude": 96, "killRefund": 1.0}),
+		"Dash up to 3.0 tiles, a kill resets the cooldown")
+	assert_eq(_line({"type": "DASH", "baseMagnitude": 96, "killRefund": 0.5}),
+		"Dash up to 3.0 tiles, 50% cooldown back on a kill")
+
+
+func test_an_absorb_names_its_burst_multiplier():
+	assert_eq(_line({"type": "ABSORB", "baseMagnitude": 10}), "Armored guard: burst for 10x the damage you take")
 
 
 func test_a_duel_names_its_length_bonus_and_refund():
