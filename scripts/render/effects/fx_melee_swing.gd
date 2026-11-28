@@ -10,8 +10,9 @@ extends RefCounted
 ## far the cursor is.
 ##
 ## Sword: a steel-blue crescent slashed across the point. Axe: a heavier
-## ember cleave that throws sparks when it bites. Hammer: a slam with a
-## flash, two shockwaves, cracks and debris. Dagger: two quick violet cuts
+## ember cleave that throws sparks when it bites. Hammer: the head arcs
+## over and down onto the point, then a flash, two shockwaves, cracks and
+## debris. Dagger: two quick violet cuts
 ## crossing in an X. Each swing picks its direction from its start time,
 ## so consecutive swings alternate at random.
 
@@ -21,7 +22,7 @@ const HAMMER := 3
 const DAGGER := 10
 ## Least time each strike stays on screen. The server's window is just the
 ## swing; this keeps the afterglow long enough to read.
-const HOLD_MS := {SWORD: 300, AXE: 340, HAMMER: 420, DAGGER: 260}
+const HOLD_MS := {SWORD: 300, AXE: 340, HAMMER: 560, DAGGER: 260}
 const SEGMENTS := 20
 
 
@@ -42,7 +43,7 @@ static func draw(canvas: CanvasItem, fx: Dictionary, progress: float, _colour: C
 	var turn := 1.0 if int(fx.get("started", 0)) % 2 == 0 else -1.0
 	match int(fx.get("tier", 0)):
 		AXE: _axe(canvas, fx, at, angle, size, progress, turn)
-		HAMMER: _hammer(canvas, fx, at, angle, size, progress)
+		HAMMER: _hammer(canvas, fx, at, angle, size, progress, turn)
 		DAGGER: _dagger(canvas, at, angle, size, progress, turn)
 		_: _sword(canvas, at, angle, size, progress, turn)
 
@@ -165,13 +166,12 @@ static func _axe(canvas: CanvasItem, fx: Dictionary, at: Vector2, angle: float, 
 
 
 static func _hammer(canvas: CanvasItem, fx: Dictionary, at: Vector2, angle: float, size: float,
-		progress: float) -> void:
-	const IMPACT := 0.2
+		progress: float, turn: float) -> void:
+	const IMPACT := 0.3
+	_hammer_swing(canvas, at, angle, size, progress, IMPACT, turn)
 	if progress < IMPACT:
-		# The wind-up: a ring pulling in on the point as the head comes down.
 		var p := progress / IMPACT
-		CircleStamp.ring(canvas, at, size * (0.55 - 0.4 * p), 2.5, Color("ffd27a", 0.4 + 0.5 * p), 40)
-		CircleStamp.disc(canvas, at, size * 0.08 * p, Color("fff6d8", p))
+		CircleStamp.ring(canvas, at, size * (0.5 - 0.35 * p), 2.5, Color("ffd27a", 0.3 + 0.5 * p), 40)
 		return
 	var p := (progress - IMPACT) / (1.0 - IMPACT)
 	var alpha := 1.0 - p
@@ -203,6 +203,40 @@ static func _hammer(canvas: CanvasItem, fx: Dictionary, at: Vector2, angle: floa
 		var reach := size * rng.randf_range(0.3, 0.6) * p
 		var lift := size * 0.35 * p * (1.0 - p) * rng.randf_range(0.5, 1.0)
 		Fx.dot(canvas, Fx.polar(at, a, reach) - Vector2(0, lift), 3.2, Color("c89a5a", alpha))
+
+
+## The hammer itself: a handle pivoting from behind the point, its head
+## accelerating round over the top and landing on the point at `impact`,
+## with a heavy trail behind it. Head and trail fade just after the blow.
+static func _hammer_swing(canvas: CanvasItem, at: Vector2, angle: float, size: float, progress: float,
+		impact: float, turn: float) -> void:
+	var fade := 1.0 if progress < impact else 1.0 - clampf((progress - impact) / 0.25, 0.0, 1.0)
+	if fade <= 0.0:
+		return
+	var radius := size * 0.62
+	var pivot := Fx.polar(at, angle + PI, radius)
+	var start := angle + 1.9 * turn
+	var p := clampf(progress / impact, 0.0, 1.0)
+	var head := lerpf(start, angle, p * p)
+	var lag := clampf((progress - impact * 0.5) / impact, 0.0, 1.0)
+	var tail := lerpf(start, angle, lag * lag)
+	var width := size * 0.4
+	crescent(canvas, pivot, radius, tail, head, width * 1.8, Color("fff0b0", 0.4 * fade))
+	crescent(canvas, pivot, radius, tail, head, width, Color("ffb42e", 0.85 * fade))
+	crescent(canvas, pivot, radius + width * 0.1, tail, head, width * 0.4, Color("fff6d8", 0.95 * fade))
+	# The handle and a squared iron head across the end of it.
+	var end := Fx.polar(pivot, head, radius)
+	var along := Vector2(cos(head), sin(head))
+	var across := along.orthogonal()
+	Fx.line(canvas, pivot.lerp(end, 0.3), end, 5.0, Color("8a5a2b", fade))
+	var long := size * 0.2
+	var deep := size * 0.12
+	var corners := [end - across * long - along * deep, end + across * long - along * deep,
+		end + across * long + along * deep, end - across * long + along * deep]
+	Fx.polygon(canvas, corners, Color("3c3f48", fade))
+	Fx.polygon(canvas, [corners[0].lerp(corners[3], 0.15), corners[1].lerp(corners[2], 0.15),
+		corners[1].lerp(corners[2], 0.45), corners[0].lerp(corners[3], 0.45)], Color("c9d0dc", fade))
+	Fx.polyline(canvas, PackedVector2Array(corners + [corners[0]]), 2.0, Color("ffe8a8", 0.9 * fade))
 
 
 static func _dagger(canvas: CanvasItem, at: Vector2, angle: float, size: float, progress: float, turn: float) -> void:
