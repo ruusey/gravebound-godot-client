@@ -12,7 +12,8 @@ extends Node2D
 ##
 ## --sheet writes contact sheets instead -- every effect caught at five
 ## points through its life, a page of rows at a time -- and quits:
-##   godot --path . res://tests/visual/fx_gallery.tscn -- --sheet <out_dir> [radius] [tier]
+##   godot --path . res://tests/visual/fx_gallery.tscn -- --sheet <out_dir> [radius] [tier] [first-last]
+## where first-last keeps the sheets to that range of effect ids.
 ## --check draws every effect across its whole life at every radius, naming
 ## each case first, so an engine error in the log points at its drawer:
 ##   godot --path . res://tests/visual/fx_gallery.tscn -- --check
@@ -41,6 +42,7 @@ const LINE_RADIUS := {
 	EffectType.BEAM_WARNING: 8.0, EffectType.CHAIN_LIGHTNING: 0.0, EffectType.KNIGHT_SHOCKWAVE: 40.0,
 	EffectType.MELEE_SWING: 40.0, EffectType.NINJA_DASH: 20.0, EffectType.POISON_SPLASH: 0.0,
 	EffectType.TRAP_THROW: 0.0, EffectType.CONE_WARNING: 30.0, EffectType.GROUND_CRACK: 0.0,
+	EffectType.ASSASSIN_THROWN_DAGGER: 24.0, EffectType.WIZARD_FIRE_BREATH: 40.0, EffectType.DUELIST_LUNGE: 64.0, EffectType.DUELIST_DUEL: 40.0, EffectType.TRAPPER_BOLAS: 28.0, EffectType.TRAPPER_TAR_SHOT: 28.0, EffectType.TRAPPER_SHOOTDOWN: 32.0, EffectType.NECROMANCER_WRETCH: 28.0, EffectType.NINJA_SHURIKEN: 24.0, EffectType.NINJA_CALTROPS: 28.0, EffectType.DUELIST_DEFLECT: 16.0,
 }
 
 var types: Array = []
@@ -68,6 +70,10 @@ func _ready() -> void:
 			radius = args[2].to_float()
 		if args.size() > 3:
 			tier = args[3].to_int()
+		if args.size() > 4:
+			var ids := args[4].split("-")
+			types = types.filter(func(kind: int) -> bool:
+				return kind >= ids[0].to_int() and kind <= ids[ids.size() - 1].to_int())
 		await write_sheets(args[1])
 		get_tree().quit()
 		return

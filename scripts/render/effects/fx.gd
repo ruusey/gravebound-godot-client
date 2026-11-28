@@ -111,6 +111,41 @@ static func _resolve_type(kind: int) -> Callable:
 		EffectType.DUST_BURST: return FxDustBurst.draw
 		EffectType.EMERGE: return FxEmerge.draw
 		EffectType.CIRCLE_WARNING: return FxCircleWarning.draw
+		EffectType.BARBARIAN_BUTCHER: return FxBarbarianButcher.draw
+		EffectType.BARBARIAN_GROUND_POUND: return FxBarbarianGroundPound.draw
+		EffectType.BARBARIAN_RAGE: return FxBarbarianRage.draw
+		EffectType.ASSASSIN_THROWN_DAGGER: return FxAssassinThrownDagger.draw
+		EffectType.ASSASSIN_RAPID_STRIKES: return FxAssassinRapidStrikes.draw
+		EffectType.ASSASSIN_IMBUE_POISON: return FxAssassinImbuePoison.draw
+		EffectType.WIZARD_FIRE_BREATH: return FxWizardFireBreath.draw
+		EffectType.WIZARD_FROST_SPIKE: return FxWizardFrostSpike.draw
+		EffectType.WIZARD_SUPERNOVA: return FxWizardSupernova.draw
+		EffectType.DUELIST_LUNGE: return FxDuelistLunge.draw
+		EffectType.DUELIST_RIPOSTE: return FxDuelistRiposte.draw
+		EffectType.DUELIST_DUEL: return FxDuelistDuel.draw
+		EffectType.TRAPPER_BOLAS: return FxTrapperBolas.draw
+		EffectType.TRAPPER_TAR_SHOT: return FxTrapperTarShot.draw
+		EffectType.TRAPPER_SHOOTDOWN: return FxTrapperShootdown.draw
+		EffectType.NECROMANCER_SOUL_DRAIN: return FxNecromancerSoulDrain.draw
+		EffectType.NECROMANCER_WRETCH: return FxNecromancerWretch.draw
+		EffectType.NECROMANCER_WITHER: return FxNecromancerWither.draw
+		EffectType.PALADIN_DIVINE_BEAM: return FxPaladinDivineBeam.draw
+		EffectType.PALADIN_FORTIFY: return FxPaladinFortify.draw
+		EffectType.PALADIN_BLESS: return FxPaladinBless.draw
+		EffectType.PRIEST_HEALING_WORD: return FxPriestHealingWord.draw
+		EffectType.PRIEST_HEALING_TOUCH: return FxPriestHealingTouch.draw
+		EffectType.PRIEST_ENLIGHTEN: return FxPriestEnlighten.draw
+		EffectType.KNIGHT_SHIELD_BASH: return FxKnightShieldBash.draw
+		EffectType.KNIGHT_HOLD_YOUR_GROUND: return FxKnightHoldYourGround.draw
+		EffectType.KNIGHT_PARRY: return FxKnightParry.draw
+		EffectType.NINJA_SHURIKEN: return FxNinjaShuriken.draw
+		EffectType.NINJA_CALTROPS: return FxNinjaCaltrops.draw
+		EffectType.NINJA_SMOKEBOMB: return FxNinjaSmokebomb.draw
+		EffectType.CULTIST_FRENZY: return FxCultistFrenzy.draw
+		EffectType.CULTIST_ENCHANT_WEAPON: return FxCultistEnchantWeapon.draw
+		EffectType.CULTIST_BLOOD_DRINK: return FxCultistBloodDrink.draw
+		EffectType.DUELIST_RIPOSTE_GUARD: return FxDuelistRiposteGuard.draw
+		EffectType.DUELIST_DEFLECT: return FxDuelistDeflect.draw
 	return Callable()
 
 

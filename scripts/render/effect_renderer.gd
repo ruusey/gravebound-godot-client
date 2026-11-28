@@ -23,7 +23,7 @@ const CAST_BAR := Vector2(28.0, 3.0)
 const CAST_BACK := Color(0.0, 0.0, 0.0, 0.6)
 const CAST_FILL := Color(0.6, 0.85, 1.0)
 ## Effects drawn round their owner wherever they move, not where they began.
-const FOLLOWS_OWNER := [EffectType.QUEST_COMPLETE]
+const FOLLOWS_OWNER := [EffectType.QUEST_COMPLETE, EffectType.BARBARIAN_RAGE, EffectType.ASSASSIN_RAPID_STRIKES, EffectType.ASSASSIN_IMBUE_POISON, EffectType.PALADIN_FORTIFY, EffectType.KNIGHT_PARRY, EffectType.CULTIST_FRENZY, EffectType.CULTIST_ENCHANT_WEAPON, EffectType.CULTIST_BLOOD_DRINK, EffectType.DUELIST_RIPOSTE_GUARD]
 
 var state: RealmState
 var drawn := 0
