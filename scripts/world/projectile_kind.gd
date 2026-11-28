@@ -39,7 +39,8 @@ const TRAIT_SPEED_CURVE := 8
 const TRAIT_HOMING := 16
 const TRAIT_ANCHORED := 32
 const TRAIT_LINE_SEGMENT := 64
-const TRAIT_STOPS_AT_WALLS := 128
+## PASS_THROUGH_TERRAIN: crosses solid props and trees, never walls.
+const TRAIT_PASSES_TERRAIN := 128
 const TRAIT_PIERCES := 256
 const TRAIT_MELEE_SWING := 512
 const TRAIT_ALLY := 1024
@@ -85,8 +86,8 @@ static func traits(bullet: Projectile) -> int:
 		bits |= TRAIT_HOMING
 	if flags & (1 << ANCHORED):
 		bits |= TRAIT_ANCHORED
-	if not flags & (1 << PASS_THROUGH_TERRAIN):
-		bits |= TRAIT_STOPS_AT_WALLS
+	if flags & (1 << PASS_THROUGH_TERRAIN):
+		bits |= TRAIT_PASSES_TERRAIN
 	if flags & (1 << PASS_THROUGH_ENEMIES):
 		bits |= TRAIT_PIERCES
 	if flags & (1 << MELEE_SWING):

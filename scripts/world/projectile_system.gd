@@ -26,6 +26,11 @@ const CONSUME_LINGER_MS := 50
 ## wall's life at 10s, so this never fires during a live one.
 const WALL_FALLBACK_LIFETIME_MS := 30_000
 const NO_TILES := {}
+## A collision-layer tile, for bullets: open (no collision), solid (a tree or prop:
+## stops all but PASS_THROUGH_TERRAIN shots) or a wall (stops every shot).
+const TERRAIN_OPEN := 0
+const TERRAIN_SOLID := 1
+const TERRAIN_WALL := 2
 ## The server re-applies a LINE_SEGMENT wall's hit to a player still touching it
 ## this often (ServerCombatHelper.HAZARD_HIT_INTERVAL_TICKS).
 const HAZARD_HIT_INTERVAL_TICKS := 16
@@ -57,8 +62,8 @@ var _slow_hits := {}
 ## advance, so every other shot still stands where the last frame left it.
 var _advanced_ms := -1
 var _loaded_since_advance := {}
-## tile id -> whether it stops a bullet, once the content has loaded.
-var _tile_stops := {}
+## tile id -> TERRAIN_OPEN/SOLID/WALL, once the content has loaded.
+var _tile_terrain := {}
 ## Scratch lists reused every frame: what advance() drops, and the own shots that
 ## hit prediction tests.
 var _dropped: Array = []
@@ -306,7 +311,7 @@ func advance(delta: float) -> void:
 		if traits & ProjectileKind.TRAIT_LINE_SEGMENT:
 			drop = _should_drop_locally(bullet, traits, now, solid)
 		else:
-			if walls and traits & ProjectileKind.TRAIT_STOPS_AT_WALLS:
+			if walls:
 				var half := bullet.size * 0.5
 				var pos := bullet.pos
 				var tile_id: int = solid.get(Vector2i(floori((pos.x + half) / tile_size),
@@ -394,12 +399,12 @@ func _solid_layer() -> Dictionary:
 	return _tiles.layers.get(GameConstants.COLLISION_LAYER, NO_TILES)
 
 
-## Mirrors the server's proccessTerrainHit: a bullet that isn't PASS_THROUGH_TERRAIN
-## dies the instant its centre enters a collision-layer tile that has collision (a
-## wall or a solid prop like a tree). Removed locally so a shot stops at the wall
-## instead of sailing through it until the server's Unload arrives a round-trip later.
+## Mirrors the server's proccessTerrainHit: a bullet dies the instant its centre enters
+## a collision-layer tile that has collision. A wall stops every bullet; a solid prop
+## (a tree, a rock) stops all but PASS_THROUGH_TERRAIN shots. Removed locally so a shot
+## stops at the wall instead of sailing through it until the server's Unload arrives.
 func _in_wall(bullet: Projectile, traits: int, solid: Dictionary) -> bool:
-	if not traits & ProjectileKind.TRAIT_STOPS_AT_WALLS or solid.is_empty():
+	if solid.is_empty():
 		return false
 	var half := bullet.size * 0.5
 	var pos := bullet.pos
@@ -407,12 +412,16 @@ func _in_wall(bullet: Projectile, traits: int, solid: Dictionary) -> bool:
 		floori((pos.y + half) / GameConstants.TILE_SIZE)), -1)
 	if tile_id <= 0:
 		return false
-	var stops: Variant = _tile_stops.get(tile_id)
-	if stops == null:
-		stops = _content.tile_has_collision(tile_id)
+	var terrain: Variant = _tile_terrain.get(tile_id)
+	if terrain == null:
+		terrain = TERRAIN_OPEN
+		if _content.tile_has_collision(tile_id):
+			terrain = TERRAIN_WALL if _content.tile_is_wall(tile_id) else TERRAIN_SOLID
 		if _content.ready:
-			_tile_stops[tile_id] = stops
-	return stops
+			_tile_terrain[tile_id] = terrain
+	if terrain == TERRAIN_WALL:
+		return true
+	return terrain == TERRAIN_SOLID and not traits & ProjectileKind.TRAIT_PASSES_TERRAIN
 
 
 ## Client-side predicted bullet-vs-enemy hits for our own non-pierce shots, mirroring

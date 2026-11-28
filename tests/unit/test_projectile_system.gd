@@ -113,6 +113,38 @@ func test_an_enemy_shot_past_its_range_waits_for_the_server():
 	assert_eq(system.bullets.size(), 0)
 
 
+# --- terrain (the server's proccessTerrainHit) -------------------------------
+
+## A system whose collision layer holds `tile_id` under a bullet loaded at the origin.
+func _over_tile(tile_id: int) -> void:
+	var tiles := TileMapState.new(content)
+	tiles.layers[GameConstants.COLLISION_LAYER] = {Vector2i(0, 0): tile_id}
+	system = ProjectileSystem.new(player, content, func() -> int: return now, null, tiles)
+
+
+func test_a_solid_prop_stops_a_plain_shot():
+	_over_tile(9)   # Anvil: collision, not a wall
+	system.apply_load({"bullets": [_wire_bullet(1)]})
+	system.advance(RealmState.TICK_DELTA)
+	assert_eq(system.bullets.size(), 0)
+
+
+func test_a_pass_through_terrain_shot_crosses_a_solid_prop():
+	_over_tile(9)
+	system.apply_load({"bullets": [_wire_bullet(1, {"flags": [ProjectileKind.PASS_THROUGH_TERRAIN]})]})
+	system.advance(RealmState.TICK_DELTA)
+	assert_eq(system.bullets.size(), 1)
+
+
+func test_a_wall_stops_even_a_pass_through_terrain_shot():
+	_over_tile(2)   # Wall
+	system.apply_load({"bullets": [
+		_wire_bullet(1, {"flags": [ProjectileKind.PASS_THROUGH_TERRAIN]}),
+		_wire_bullet(2, {"flags": [ProjectileKind.PASS_THROUGH_TERRAIN], "srcEntityId": player.id})]})
+	system.advance(RealmState.TICK_DELTA)
+	assert_eq(system.bullets.size(), 0, "an enemy's and our own")
+
+
 func test_advance_on_an_empty_table_is_cheap():
 	system.advance(RealmState.TICK_DELTA)
 	assert_eq(system.bullets.size(), 0)
