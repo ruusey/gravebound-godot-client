@@ -161,6 +161,13 @@ var input: PlayerInput
 ## True while a chat line or an options rebind owns the keyboard, so Q/E do not
 ## orbit the camera out from under someone who is typing.
 var keyboard_captured: Callable = func() -> bool: return false
+## The F2 hitbox view, drawn on the floor with the ability effects.
+var show_collision: bool:
+	get: return _collision != null and _collision.show_collision
+	set(value):
+		_wants_collision = value
+		if _collision != null:
+			_collision.show_collision = value
 
 var _camera: Camera3D
 var _backdrop: MeshInstance3D
@@ -205,6 +212,8 @@ var _fx_viewport: SubViewport
 var _fx_renderer: EffectRenderer
 var _fx_camera: Camera2D
 var _fx_ground: MeshInstance3D
+var _collision: CollisionOverlay
+var _wants_collision := false
 
 var _ground_viewport: SubViewport
 var _ground_renderer: TileRenderer
@@ -761,6 +770,12 @@ func _build_effect_ground() -> void:
 	_fx_renderer = EffectRenderer.new()
 	_fx_renderer.state = state
 	_fx_viewport.add_child(_fx_renderer)
+	_collision = CollisionOverlay.new()
+	_collision.state = state
+	_collision.content = content
+	_collision.show_collision = _wants_collision
+	_collision.line_width = 2.0
+	_fx_viewport.add_child(_collision)
 
 	_fx_ground = MeshInstance3D.new()
 	var plane := PlaneMesh.new()
@@ -783,16 +798,18 @@ func _update_effects(centre: Vector2) -> void:
 	# The 16 MB ground viewport is re-rendered only while there is something to show;
 	# most frames have no ground effect, so this skips the whole pass then.
 	var abilities := state.abilities
-	var has_fx := not (abilities.effects.is_empty() and abilities.rings.is_empty()
-		and abilities.casts.is_empty())
+	var has_fx := _collision.show_collision or not (abilities.effects.is_empty()
+		and abilities.rings.is_empty() and abilities.casts.is_empty())
 	if has_fx:
 		_fx_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		_fx_camera.position = centre
 		_fx_ground.position = Vector3(centre.x, 1.5, centre.y)
 		_fx_renderer.queue_redraw()
+		_collision.queue_redraw()
 	elif _fx_viewport.render_target_update_mode == SubViewport.UPDATE_ALWAYS:
 		# Effects just ended: one last (empty) render clears the ground, then stop.
 		_fx_renderer.queue_redraw()
+		_collision.queue_redraw()
 		_fx_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 

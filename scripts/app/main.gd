@@ -258,6 +258,7 @@ func _enable_3d_view() -> void:
 	_lighting.set_active(false)
 	_view_3d = WorldView3D.new()
 	_view_3d.setup(state, game_data)
+	_view_3d.show_collision = _world.show_collision
 	# The overlay (names, bars, damage numbers, bubbles, loot) keeps drawing, but
 	# through the 3D camera: the view fits it an affine projector and refreshes it
 	# each frame. Its own _process is stopped so it never runs a frame stale.
@@ -424,6 +425,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		print("\n[packet mix]\n%s" % client.stats.mix())
 	elif event.is_action_pressed("toggle_collision_view"):
 		_world.show_collision = not _world.show_collision
+		if _view_3d != null:
+			_view_3d.show_collision = _world.show_collision
 	elif event.is_action_pressed("toggle_lighting"):
 		state.settings.set_on("lighting", not state.settings.is_on("lighting"))
 	elif event.is_action_pressed("record_hitches"):

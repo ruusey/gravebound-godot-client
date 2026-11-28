@@ -430,6 +430,25 @@ func test_a_refused_command_lands_in_the_chat_as_the_web_client_shows_it():
 
 # --- 2.5D view ---------------------------------------------------------------
 
+func test_f2_shows_hitboxes_in_the_25d_view_too():
+	main.state.settings.set_on("view_25d", true)
+	await wait_process_frames(1)
+	var view: WorldView3D = main._view_3d
+	assert_false(view.show_collision)
+	_press(KEY_F2)
+	assert_true(view.show_collision, "drawn on the 3D floor")
+	assert_eq(view._collision.get_parent(), view._fx_viewport, "with the ability effects")
+	_press(KEY_F2)
+	assert_false(view.show_collision)
+
+
+func test_hitboxes_already_on_carry_into_the_25d_view():
+	_press(KEY_F2)
+	main.state.settings.set_on("view_25d", true)
+	await wait_process_frames(1)
+	assert_true(main._view_3d.show_collision)
+
+
 func test_the_25d_option_swaps_the_views_both_ways():
 	assert_null(main._view_3d, "flat by default")
 	main.state.settings.set_on("view_25d", true)

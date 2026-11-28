@@ -10,13 +10,13 @@ extends Node2D
 ##
 ## Its own layer, last in the world, rather than drawn with the tiles: the
 ## wall tops are stamped above the tile layer, so anything drawn down there
-## is hidden by them. F2 toggles it.
+## is hidden by them. F2 toggles it. In the 2.5D view it draws into the
+## effect texture laid on the floor (WorldView3D), under the bodies it outlines.
 
 const PLAYER_COLOUR := Color(0.3, 1.0, 0.4)
 const ENEMY_COLOUR := Color(1.0, 0.55, 0.1)
 const PLAYER_SHOT_COLOUR := Color(0.3, 0.8, 1.0)
 const ENEMY_SHOT_COLOUR := Color(1.0, 0.3, 0.9)
-const LINE_WIDTH := 1.0
 const SEGMENTS := 24
 ## The server's GlobalConstants.MELEE_CONE_HALF_ANGLE.
 const MELEE_CONE_HALF_ANGLE := 0.6
@@ -24,6 +24,8 @@ const MELEE_CONE_HALF_ANGLE := 0.6
 var state: RealmState
 var content: GameData
 var show_collision := false
+## Outline width in world px; thicker on the 3D floor, which is seen at an angle.
+var line_width := 1.0
 
 
 func _draw() -> void:
@@ -73,7 +75,7 @@ func _draw_shots(view: Rect2) -> void:
 				var axis := Vector2(cos(bullet.angle), -sin(bullet.angle)) * bullet.length * 0.5
 				_capsule(centre - axis, centre + axis, radius, colour)
 		elif view.grow(radius).has_point(centre):
-			draw_arc(centre, radius, 0.0, TAU, SEGMENTS, colour, LINE_WIDTH)
+			draw_arc(centre, radius, 0.0, TAU, SEGMENTS, colour, line_width)
 
 
 ## A body whose top-left is `position`: its hit circle and a dot at its centre.
@@ -82,16 +84,16 @@ func _circle(view: Rect2, position: Vector2, size: float, colour: Color) -> void
 	var radius := size * ProjectileSystem.HIT_RADIUS_FACTOR
 	if not view.grow(radius).has_point(centre):
 		return
-	draw_arc(centre, radius, 0.0, TAU, SEGMENTS, colour, LINE_WIDTH)
+	draw_arc(centre, radius, 0.0, TAU, SEGMENTS, colour, line_width)
 	draw_circle(centre, 1.0, colour)
 
 
 func _capsule(from: Vector2, to: Vector2, radius: float, colour: Color) -> void:
 	var side := (to - from).orthogonal().normalized() * radius
-	draw_line(from + side, to + side, colour, LINE_WIDTH)
-	draw_line(from - side, to - side, colour, LINE_WIDTH)
-	draw_arc(from, radius, 0.0, TAU, SEGMENTS, colour, LINE_WIDTH)
-	draw_arc(to, radius, 0.0, TAU, SEGMENTS, colour, LINE_WIDTH)
+	draw_line(from + side, to + side, colour, line_width)
+	draw_line(from - side, to - side, colour, line_width)
+	draw_arc(from, radius, 0.0, TAU, SEGMENTS, colour, line_width)
+	draw_arc(to, radius, 0.0, TAU, SEGMENTS, colour, line_width)
 
 
 ## The swing's facing is (sin, cos) of its angle, as the server reads it.
@@ -102,4 +104,4 @@ func _cone(apex: Vector2, angle: float, reach: float, colour: Color) -> void:
 		var turn := facing - MELEE_CONE_HALF_ANGLE + 2.0 * MELEE_CONE_HALF_ANGLE * float(i) / SEGMENTS
 		points.append(apex + Vector2(cos(turn), sin(turn)) * reach)
 	points.append(apex)
-	draw_polyline(points, colour, LINE_WIDTH)
+	draw_polyline(points, colour, line_width)
