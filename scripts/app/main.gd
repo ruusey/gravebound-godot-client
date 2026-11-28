@@ -40,6 +40,7 @@ var _view_3d: WorldView3D
 var _data_service: DataService
 var _http: HttpBackend
 var _startup: StartupTrace
+var _updater: UpdateChecker
 
 
 func _ready() -> void:
@@ -203,10 +204,12 @@ func _ready() -> void:
 	# The moment before the frame is drawn, for the motion trace: the
 	# transform the world is about to be drawn with, against the player.
 	RenderingServer.frame_pre_draw.connect(_on_pre_draw)
-	# Desktop-only self-update against the GitHub releases page; no-ops on web/dev.
-	var updater := UpdateChecker.new()
-	add_child(updater)
-	updater.check()
+	# Desktop self-update against the GitHub releases page on launch; no-ops on web/dev.
+	# A login the server refuses as out of date forces it on any platform.
+	_updater = UpdateChecker.new()
+	add_child(_updater)
+	_updater.check()
+	session.update_required.connect(_updater.require_update)
 	_load_content()
 
 

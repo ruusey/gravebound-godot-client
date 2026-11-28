@@ -14,6 +14,8 @@ signal packet_received(name: String, data: Dictionary)
 ## The server refusing a command once in game -- a /spawn without the
 ## provision for it, say. During the login it is a login_failed instead.
 signal server_error(reason: String)
+## The server turned this build away as out of date; the player must update.
+signal update_required(reason: String)
 signal disconnected(reason: String)
 
 enum State { IDLE, CONNECTING, AWAITING_LOGIN, IN_GAME, ENDED, CLOSED }
@@ -158,6 +160,10 @@ func _apply(event: Dictionary) -> void:
 		"login_rejected":
 			login_failed.emit(event["reason"])
 			_close("login rejected")
+		"update_required":
+			# Closed first, so the reason is what the login screen is left showing.
+			_close("client out of date")
+			update_required.emit(event["reason"])
 		"server_error":
 			if state == State.AWAITING_LOGIN:
 				login_failed.emit(event["reason"])

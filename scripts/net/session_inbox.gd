@@ -9,7 +9,7 @@ extends RefCounted
 ## doing only state transitions and signal emission.
 ##
 ## Event kinds: "packet", "unknown", "login_ok", "login_rejected",
-## "server_error", "desync".
+## "update_required", "server_error", "desync".
 
 static func process(read_result: Dictionary, stats: NetStats, now_ms: int) -> Array:
 	var events: Array = []
@@ -35,6 +35,8 @@ static func process(read_result: Dictionary, stats: NetStats, now_ms: int) -> Ar
 					events.append({"kind": "login_ok", "body": command["body"]})
 				"login_rejected":
 					events.append({"kind": "login_rejected", "reason": command["reason"]})
+				"update_required":
+					events.append({"kind": "update_required", "reason": command["reason"]})
 				"server_error":
 					events.append({"kind": "server_error", "reason": command["reason"]})
 

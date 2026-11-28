@@ -156,6 +156,32 @@ func test_server_error_during_login_is_surfaced():
 	assert_signal_emitted(client, "login_failed")
 
 
+func test_login_carries_the_build_version():
+	client.connect_to_server("h", 1)
+	transport.become_connected()
+	client._process(0.0)
+	client.login("a", "b", "c")
+	var body: Dictionary = JSON.parse_string(transport.sent_packets()[0]["data"]["command"])
+	assert_eq(body["clientVersion"], ProjectSettings.get_setting("application/config/version"),
+		"the version stamped into the build, which the server checks")
+
+
+func test_an_outdated_build_is_told_to_update_not_that_its_login_failed():
+	client.connect_to_server("h", 1)
+	transport.become_connected()
+	client._process(0.0)
+	client.login("a", "b", "c")
+	transport.deliver(WireHelper.frame("CommandPacket", {
+		"playerId": 0,
+		"commandId": LoginHandshake.SERVER_ERROR,
+		"command": JSON.stringify({"code": LoginHandshake.CLIENT_OUTDATED, "message": "GraveBound v9.9.9 is out."}),
+	}))
+	client._process(0.0)
+	assert_signal_emitted_with_parameters(client, "update_required", ["GraveBound v9.9.9 is out."])
+	assert_signal_not_emitted(client, "login_failed")
+	assert_eq(client.state, GraveBoundClient.State.CLOSED)
+
+
 func test_unparseable_command_body_is_ignored():
 	_connect_and_login()
 	transport.deliver(WireHelper.frame("CommandPacket",

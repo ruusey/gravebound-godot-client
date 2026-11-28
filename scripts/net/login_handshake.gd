@@ -9,6 +9,8 @@ const LOGIN_RESPONSE := 2
 const SERVER_COMMAND := 3
 const SERVER_ERROR := 4
 const PLAYER_ACCOUNT := 5
+## The server's answer to a client build older than the one /play serves.
+const CLIENT_OUTDATED := 426
 
 
 static func login_request(email: String, password: String, character_uuid: String,
@@ -22,8 +24,15 @@ static func login_request(email: String, password: String, character_uuid: Strin
 			"characterUuid": character_uuid,
 			# The Java DTO expects an absent token as null, not "".
 			"token": token if token != "" else null,
+			"clientVersion": client_version(),
 		}),
 	}
+
+
+## This build's version, stamped into the project from the release tag when
+## it is built ("dev" from a source checkout). The server turns older ones away.
+static func client_version() -> String:
+	return String(ProjectSettings.get_setting("application/config/version", "dev"))
 
 
 ## The body is a ServerCommandMessage: the word after the slash and the
@@ -41,7 +50,7 @@ static func server_command(player_id: int, text: String) -> Dictionary:
 
 ## Interprets an inbound CommandPacket.
 ##
-## Returns {"kind": "login_ok"|"login_rejected"|"server_error"|"ignored",
+## Returns {"kind": "login_ok"|"login_rejected"|"update_required"|"server_error"|"ignored",
 ##          "body": Variant, "reason": String}.
 static func interpret(data: Dictionary) -> Dictionary:
 	var raw: String = data.get("command", "")
@@ -59,5 +68,7 @@ static func interpret(data: Dictionary) -> Dictionary:
 			return {"kind": "login_rejected", "body": body, "reason": "server rejected the login"}
 		SERVER_ERROR:
 			var reason := str(body.get("message", body)) if body is Dictionary else str(body)
+			if body is Dictionary and int(body.get("code", 0)) == CLIENT_OUTDATED:
+				return {"kind": "update_required", "body": body, "reason": reason}
 			return {"kind": "server_error", "body": body, "reason": reason}
 	return {"kind": "ignored", "body": body, "reason": ""}

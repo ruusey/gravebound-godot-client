@@ -9,6 +9,8 @@ extends RefCounted
 signal entered_realm(response: Dictionary)
 signal died(player_name: String, grave: Dictionary)
 signal arena_ended(results: Dictionary)
+## The server refused this build as out of date.
+signal update_required(reason: String)
 
 var client: GraveBoundClient
 var state: RealmState
@@ -39,6 +41,7 @@ func _init(net_client: GraveBoundClient, realm_state: RealmState,
 	client.login_failed.connect(_on_login_failed)
 	client.packet_received.connect(_on_packet)
 	client.server_error.connect(_on_server_error)
+	client.update_required.connect(_on_update_required)
 	client.disconnected.connect(_on_disconnected)
 	login_screen.character_chosen.connect(begin)
 
@@ -92,6 +95,12 @@ func _on_login_succeeded(response: Dictionary) -> void:
 func _on_login_failed(reason: String) -> void:
 	login_screen.visible = true
 	login_screen.set_status("Login rejected: %s" % reason, true)
+
+
+func _on_update_required(reason: String) -> void:
+	login_screen.visible = true
+	login_screen.set_status(reason, true)
+	update_required.emit(reason)
 
 
 func _on_packet(name: String, data: Dictionary) -> void:

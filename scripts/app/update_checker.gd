@@ -11,7 +11,8 @@ extends Node
 ##
 ## The lock only fires when GitHub is reached AND the build is genuinely behind, so
 ## an offline launch, a parse failure, a dev build or the web client all fail OPEN
-## and start normally (the web client is always latest, served from /play).
+## and start normally. A client left open past a release is caught at its next
+## login instead: the server refuses it and require_update() locks it here.
 
 const OWNER := "ruusey"
 const REPO := "gravebound-godot-client"
@@ -44,6 +45,30 @@ func check() -> void:
 		["User-Agent: " + USER_AGENT, "Accept: application/vnd.github+json"])
 	if err != OK:
 		print("[UPDATE] release request failed to start: %d" % err)
+
+
+## The server refused our login as out of date. The web build updates by
+## reloading the page (every /play file is served no-cache, so the reload is the
+## new build); a desktop build runs the release check, which locks on finding it.
+func require_update(reason: String) -> void:
+	if _locked:
+		return
+	if not OS.has_feature("web"):
+		check()
+		return
+	_dialog = AcceptDialog.new()
+	_dialog.title = "Update required"
+	_dialog.dialog_text = "%s\n\nReload to get the new version." % reason
+	_dialog.exclusive = true
+	_dialog.unresizable = true
+	_dialog.dialog_close_on_escape = false
+	_dialog.get_ok_button().text = "Reload"
+	_dialog.confirmed.connect(func() -> void: JavaScriptBridge.eval("window.location.reload()"))
+	# There is nothing to go back to: closing it just shows it again.
+	_dialog.close_requested.connect(func() -> void: _dialog.popup_centered(Vector2i(480, 220)))
+	_locked = true
+	get_tree().root.add_child(_dialog)
+	_dialog.popup_centered(Vector2i(480, 220))
 
 
 func _on_latest(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
