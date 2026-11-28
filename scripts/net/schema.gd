@@ -4,8 +4,8 @@
 #   python3 tools/gen_schema.py <java-src-root>
 #
 # Source tree : C:\Users\ruuse\Documents\GitHub\gravebound\src
-# Generated   : 2026-11-27 21:28:28Z
-# Packets     : 57
+# Generated   : 2026-11-28 04:02:55Z
+# Packets     : 58
 # Entities    : 23
 #
 # Field tuples are [name, wire_type, is_collection]; list order is wire order.
@@ -77,12 +77,14 @@ const PACKET_NAMES := {
 	57: "CompanionRosterPacket",
 	58: "PartyVitalsPacket",
 	59: "ArenaResultsPacket",
+	60: "AbilityCooldownPacket",
 	101: "TestPacket",
 }
 
 # class name -> packet id
 const PACKET_IDS := {
 	"AbilityCastStartPacket": 38,
+	"AbilityCooldownPacket": 60,
 	"AcceptTradeRequestPacket": 17,
 	"ArenaResultsPacket": 59,
 	"BuyFameItemPacket": 33,
@@ -150,6 +152,10 @@ const PACKETS := {
 		["durationMs", "int", false],
 		["worldTargetX", "float", false],
 		["worldTargetY", "float", false],
+	],
+	"AbilityCooldownPacket": [
+		["slot", "byte", false],
+		["remainingMs", "int", false],
 	],
 	"AcceptTradeRequestPacket": [
 		["accepted", "bool", false],

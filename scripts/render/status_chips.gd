@@ -25,7 +25,7 @@ const DEFS := [
 	[35, "Dex+", Color("ffd060")], [41, "DEATH", Color("ff0000")], [42, "Sac", Color("b03060")],
 	[43, "Downed", Color("9999a0")], [36, "Bleed", Color("b01818")], [37, "Drink", Color("8a1030")],
 	[38, "Wither", Color("7a6a8a")], [39, "Venom", Color("70d040")], [40, "Dodge", Color("d0e8ff")],
-	[44, "Sick", Color("8aa83a")],
+	[44, "Sick", Color("8aa83a")], [45, "Guard", Color("f0d890")], [46, "Duel", Color("e04848")],
 ]
 
 ## The standout violet shared with the "X Immune" floating text (DamageText.IMMUNE_COLOUR).

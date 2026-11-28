@@ -142,6 +142,8 @@ func apply_packet(name: String, data: Dictionary) -> void:
 			minimap.apply_purification(data)
 		"AbilityCastStartPacket":
 			abilities.apply_cast_start(data, entities, local.id)
+		"AbilityCooldownPacket":
+			abilities.apply_cooldown(data)
 		"CreateEffectPacket":
 			abilities.apply_effect(data, entities, local)
 		"OpenItemStorePacket":

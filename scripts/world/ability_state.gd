@@ -150,6 +150,15 @@ func start_cooldown(slot: int, duration_ms: int) -> void:
 	cooldown_total[slot] = duration_ms
 
 
+## The server changed a cooldown after the cast (a Duel won early, a cast
+## refunded): what is left of it, keeping its full length for the shade.
+func apply_cooldown(data: Dictionary) -> void:
+	var slot := int(data.get("slot", -1))
+	if slot < 0 or slot >= cooldown_until.size():
+		return
+	cooldown_until[slot] = now() + int(data.get("remainingMs", 0))
+
+
 func on_cooldown(slot: int) -> bool:
 	return now() < cooldown_until[slot]
 

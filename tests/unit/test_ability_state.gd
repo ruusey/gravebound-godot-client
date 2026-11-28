@@ -67,6 +67,15 @@ func test_a_cooldown_drains_from_full_to_nothing():
 	assert_eq(state.abilities.cooldown_fraction(2), 0.0, "a slot never cast")
 
 
+func test_the_server_can_shorten_or_clear_a_cooldown():
+	state.abilities.start_cooldown(2, 10000)
+	state.apply_packet("AbilityCooldownPacket", {"slot": 2, "remainingMs": 2500})
+	assert_true(state.abilities.on_cooldown(2))
+	assert_almost_eq(state.abilities.cooldown_fraction(2), 0.25, 0.001, "the shade keeps the full length")
+	state.apply_packet("AbilityCooldownPacket", {"slot": 2, "remainingMs": 0})
+	assert_false(state.abilities.on_cooldown(2))
+
+
 # --- casts -------------------------------------------------------------------
 
 func test_a_cast_start_is_tracked_and_a_remote_caster_swings():
