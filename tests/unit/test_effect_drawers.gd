@@ -124,8 +124,16 @@ func test_the_bolt_connects_its_ends_and_shivers_the_same_way_twice():
 func test_the_seal_and_the_swing_size_from_the_radius():
 	assert_eq(FxPaladinSeal.base_radius(100.0, 0.0), 70.0)
 	assert_eq(FxPaladinSeal.base_radius(100.0, 1.0), 100.0)
-	assert_eq(FxMeleeSwing.swing_radius(24.0), 40.8)
-	assert_eq(FxMeleeSwing.swing_radius(4.0), 30.0, "never under 30: a far cursor does not size it either")
+	assert_almost_eq(FxMeleeSwing.span(24.0), 72.0, 0.001)
+	assert_eq(FxMeleeSwing.span(4.0), 64.0, "never under 64: a far cursor does not size it either")
+	assert_eq(FxMeleeSwing.span(64.0), 120.0, "a big weapon tops out at 120")
+
+
+func test_a_swing_stays_on_screen_long_enough_to_read():
+	state.apply_packet("CreateEffectPacket", {"effectType": EffectType.MELEE_SWING, "posX": 10.0, "posY": 0.0,
+		"radius": 24.0, "duration": 165, "targetPosX": 0.0, "targetPosY": 0.0, "tier": FxMeleeSwing.SWORD})
+	assert_eq(state.abilities.effects[-1]["duration_ms"], 300, "the sword's afterglow outlasts the 165ms swing")
+	assert_eq(FxMeleeSwing.hold_ms(FxMeleeSwing.HAMMER, 900), 900, "a longer window from the server is kept")
 
 
 func test_the_generic_form_is_the_natives_in_the_tier_colour():

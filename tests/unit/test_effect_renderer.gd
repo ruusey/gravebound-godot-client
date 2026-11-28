@@ -83,10 +83,10 @@ func test_effects_are_drawn_in_among_the_bodies_not_over_them():
 	assert_eq(_drawn(), 2)
 
 
-func _placed(effects: Array, bodies: Array) -> PackedInt64Array:
+func _placed(effects: Array, bodies: Array, kind := 0) -> PackedInt64Array:
 	var realm := RealmState.new(content, func() -> int: return now)
 	for at in effects:
-		realm.abilities.effects.append({"type": 0, "pos": at, "radius": 20.0, "duration_ms": 1000,
+		realm.abilities.effects.append({"type": kind, "pos": at, "radius": 20.0, "duration_ms": 1000,
 			"target": Vector2.ZERO, "tier": 0, "owner": 0, "started": now})
 	var depths := PackedInt64Array()
 	for body in bodies:
@@ -109,6 +109,13 @@ func test_an_effect_touching_no_body_draws_after_them_all():
 	var body := {"pos": Vector2(0, 100), "size": 32.0}
 	var slots := _placed([Vector2(300, 0)], [body])
 	assert_eq(slots[0], 1, "after every body, so over every wall")
+
+
+func test_a_melee_swing_draws_over_the_bodies_it_hits():
+	var target := {"pos": Vector2(0, 0), "size": 32.0}
+	var in_front := {"pos": Vector2(0, 30), "size": 32.0}
+	var slots := _placed([Vector2(16, 16)], [target, in_front], EffectType.MELEE_SWING)
+	assert_eq(slots[0], 2, "after every body, so the swing stays on top of what it hits")
 
 
 func test_a_raised_body_is_found_after_the_ground_ones():

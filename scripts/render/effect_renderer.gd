@@ -24,6 +24,9 @@ const CAST_BACK := Color(0.0, 0.0, 0.0, 0.6)
 const CAST_FILL := Color(0.6, 0.85, 1.0)
 ## Effects drawn round their owner wherever they move, not where they began.
 const FOLLOWS_OWNER := [EffectType.QUEST_COMPLETE, EffectType.BARBARIAN_RAGE, EffectType.ASSASSIN_RAPID_STRIKES, EffectType.ASSASSIN_IMBUE_POISON, EffectType.PALADIN_FORTIFY, EffectType.KNIGHT_PARRY, EffectType.CULTIST_FRENZY, EffectType.CULTIST_ENCHANT_WEAPON, EffectType.CULTIST_BLOOD_DRINK, EffectType.DUELIST_RIPOSTE_GUARD]
+## Strikes in the air rather than on the ground: drawn over every body, never
+## tucked under the enemy they hit or the player swinging.
+const OVER_BODIES := [EffectType.MELEE_SWING]
 
 var state: RealmState
 var drawn := 0

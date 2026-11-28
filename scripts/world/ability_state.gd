@@ -98,6 +98,8 @@ func apply_effect(data: Dictionary, entities: EntityRegistry = null, local: Loca
 		"radius": float(data.get("radius", 0.0)), "duration_ms": int(data.get("duration", 0)),
 		"target": Vector2(data.get("targetPosX", 0.0), data.get("targetPosY", 0.0)),
 		"tier": int(data.get("tier", 0)), "owner": owner, "started": now()}
+	if kind == EffectType.MELEE_SWING:
+		fx["duration_ms"] = FxMeleeSwing.hold_ms(fx["tier"], fx["duration_ms"])
 	var origin := _caster_centre(owner, entities, local)
 	if origin != Vector2.INF:
 		fx["origin"] = origin

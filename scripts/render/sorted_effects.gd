@@ -42,14 +42,15 @@ func collect(realm: RealmState, view: Rect2) -> void:
 
 
 ## Slots each effect before the first of `items` (feet-ordered, keyed by `depths`,
-## EntityQueue.depth) that it overlaps, or after them all.
+## EntityQueue.depth) that it overlaps, or after them all; strikes always after.
 func place(items: Array, depths: PackedInt64Array) -> void:
 	_keys.resize(0)
 	_next = 0
 	var layered := depths.bsearch(EntityQueue.LAYER_STEP) if not depths.is_empty() else items.size()
 	for entry in _effects.size():
-		var box: Rect2 = _bounds[entry]
-		var slot := _first_touching(items, depths, box, layered)
+		var slot := items.size()
+		if not _effects[entry]["type"] in EffectRenderer.OVER_BODIES:
+			slot = _first_touching(items, depths, _bounds[entry], layered)
 		_keys.append((slot << 16) | entry)
 	_keys.sort()
 

@@ -1,108 +1,241 @@
 class_name FxMeleeSwing
 extends RefCounted
 
-## MELEE_SWING (62): a swing in front of the wielder, toward the aim. The
+## MELEE_SWING (62): the weapon's strike, drawn where it lands. The server
+## sends that point as `pos` -- the cursor, pulled in to the weapon's reach,
+## the same spot the melee reticle marks -- and the wielder as `target`, so
+## the strike is centred on the reticle and faces away from the player. The
 ## tier is the weapon: 1 sword, 2 axe, 3 hammer, 10 dagger. The size comes
-## from the effect's radius, never from how far the cursor is. The web
-## client can play an authored sheet instead; none is shipped, so this is
-## its procedural path. A sword or axe sweeps a tapered glowing arc that
-## holds and fades; a hammer arcs its head in and slams with a ring and a
-## star; a dagger flicks twice.
+## from the effect's radius (the weapon's projectile size), never from how
+## far the cursor is.
+##
+## Sword: a steel-blue crescent slashed across the point. Axe: a heavier
+## ember cleave that throws sparks when it bites. Hammer: a slam with a
+## flash, two shockwaves, cracks and debris. Dagger: two quick violet cuts
+## crossing in an X. Each swing picks its direction from its start time,
+## so consecutive swings alternate at random.
 
 const SWORD := 1
 const AXE := 2
 const HAMMER := 3
 const DAGGER := 10
+## Least time each strike stays on screen. The server's window is just the
+## swing; this keeps the afterglow long enough to read.
+const HOLD_MS := {SWORD: 300, AXE: 340, HAMMER: 420, DAGGER: 260}
+const SEGMENTS := 20
 
 
-static func swing_radius(radius: float) -> float:
-	return maxf(radius * 1.7, 30.0)
+## The strike's width across, in world px.
+static func span(radius: float) -> float:
+	return clampf(radius * 3.0, 64.0, 120.0)
+
+
+static func hold_ms(tier: int, sent_ms: int) -> int:
+	return maxi(sent_ms, int(HOLD_MS.get(tier, HOLD_MS[SWORD])))
 
 
 static func draw(canvas: CanvasItem, fx: Dictionary, progress: float, _colour: Color, _elapsed_ms: int) -> void:
-	var origin: Vector2 = fx["target"]
-	var aim: Vector2 = fx["pos"]
-	var angle := (aim - origin).angle()
-	var reach := swing_radius(fx["radius"])
-	var alpha := maxf(0.0, 1.0 - progress)
+	var at: Vector2 = fx["pos"]
+	var from: Vector2 = fx["target"]
+	var angle := (at - from).angle() if at.distance_squared_to(from) > 1.0 else 0.0
+	var size := span(fx["radius"])
+	var turn := 1.0 if int(fx.get("started", 0)) % 2 == 0 else -1.0
 	match int(fx.get("tier", 0)):
-		HAMMER: _hammer(canvas, origin, angle, reach, progress, alpha)
-		DAGGER: _dagger(canvas, origin, angle, reach, progress, alpha)
-		_: _blade(canvas, origin, angle, reach, progress, int(fx.get("tier", 0)) == AXE)
+		AXE: _axe(canvas, fx, at, angle, size, progress, turn)
+		HAMMER: _hammer(canvas, fx, at, angle, size, progress)
+		DAGGER: _dagger(canvas, at, angle, size, progress, turn)
+		_: _sword(canvas, at, angle, size, progress, turn)
 
 
-## A curved blade silhouette: the outer edge on the arc, the inner edge
-## tapering from nothing at the tail to `width` at the blade.
-static func slash(canvas: CanvasItem, origin: Vector2, from: float, to: float, radius: float,
+## A crescent along the circle round `centre`, from angle `tail` to `head`:
+## pointed at both ends and thickest near the head, `width` at most.
+static func crescent(canvas: CanvasItem, centre: Vector2, radius: float, tail: float, head: float,
 		width: float, colour: Color) -> void:
-	var points: Array = []
-	for i in 19:
-		points.append(Fx.polar(origin, from + (to - from) * i / 18.0, radius))
-	for i in range(18, -1, -1):
-		var u := i / 18.0
-		points.append(Fx.polar(origin, from + (to - from) * u, radius - width * pow(u, 0.55)))
-	Fx.polygon(canvas, points, colour)
-
-
-## The bright edge, segmented so it ramps up toward the leading end.
-static func edge(canvas: CanvasItem, origin: Vector2, from: float, to: float, radius: float,
-		colour: Color, width_px: float) -> void:
-	for i in 18:
-		var a0 := from + (to - from) * i / 18.0
-		var a1 := from + (to - from) * (i + 1) / 18.0
-		Fx.line(canvas, Fx.polar(origin, a0, radius), Fx.polar(origin, a1, radius), width_px,
-			Color(colour, colour.a * (0.1 + 0.9 * (i + 1) / 18.0)))
-
-
-static func _blade(canvas: CanvasItem, origin: Vector2, angle: float, reach: float, progress: float, axe: bool) -> void:
-	var sweep := 2.0 if axe else 2.45
-	var from := angle - sweep * 0.5
-	var to := from + maxf(0.06, progress * sweep)
-	var radius := reach * (1.0 if axe else 1.05)
-	var width := radius * (0.42 if axe else 0.3)
-	var hold := 1.0 if progress < 0.6 else maxf(0.0, (1.0 - progress) / 0.4)
-	slash(canvas, origin, from, to, radius * 1.06, width * 1.4, Color("ff7a2a" if axe else "7fd0ff", 0.13 * hold))
-	slash(canvas, origin, from, to, radius, width, Color("e8641e" if axe else "bfe8ff", 0.42 * hold))
-	slash(canvas, origin, from, to, radius, width * 0.45, Color("ffd9a0" if axe else "ffffff", 0.6 * hold))
-	edge(canvas, origin, from, to, radius, Color("ffe6b0" if axe else "ffffff", 0.95 * hold), 3.0 if axe else 2.2)
-	var tip := Fx.polar(origin, to, radius)
-	Fx.dot(canvas, tip, 3.5 if axe else 2.8, Color(Color.WHITE, hold))
-	if axe and progress > 0.72:
-		for k in 3:
-			Fx.line(canvas, tip, Fx.polar(tip, to + (k - 1) * 0.3, reach * 0.22), 2.0, Color("ffc080", hold))
-
-
-static func _hammer(canvas: CanvasItem, origin: Vector2, angle: float, reach: float, progress: float, alpha: float) -> void:
-	var strike := Fx.polar(origin, angle, reach * 0.8)
-	if progress < 0.45:
-		var p := progress / 0.45
-		var head := Fx.polar(origin, angle - 1.9 * (1.0 - p), reach * 0.8)
-		Fx.line(canvas, origin, head, 5.0, Color("caa878", alpha))
-		CircleStamp.disc(canvas, head, reach * 0.28, Color("9a6a38", alpha))
-		CircleStamp.disc(canvas, head, reach * 0.18, Color("5a3a1e", alpha))
-		CircleStamp.disc(canvas, head - Vector2(cos(angle), sin(angle)) * reach * 0.08, reach * 0.06, Color(Color.WHITE, alpha * 0.5))
+	if colour.a <= 0.001 or absf(head - tail) < 0.01:
 		return
-	var p := (progress - 0.45) / 0.55
-	var ring := reach * 0.15 + p * reach * 0.9
-	Fx.ring(canvas, strike, ring, 5.0 - 4.0 * p, Color("ffe0a0", alpha))
-	CircleStamp.disc(canvas, strike, ring * 0.5, Color("fff6d0", alpha * (1.0 - p) * 0.4))
+	var outer := PackedVector2Array()
+	var inner := PackedVector2Array()
+	for i in SEGMENTS + 1:
+		var u := float(i) / SEGMENTS
+		var a := lerpf(tail, head, u)
+		var w := width * pow(sin(PI * u), 0.7) * (0.3 + 0.7 * u)
+		outer.append(Fx.polar(centre, a, radius + w * 0.5))
+		inner.append(Fx.polar(centre, a, radius - w * 0.5))
+	strip(canvas, outer, inner, colour)
+
+
+## Fills between two matching edges as a strip of triangles. Indexed straight
+## to the renderer, so a hairline sliver can't fail triangulation the way a
+## polygon outline can.
+static func strip(canvas: CanvasItem, left: PackedVector2Array, right: PackedVector2Array, colour: Color) -> void:
+	var count := left.size()
+	var indices := PackedInt32Array()
+	for i in count - 1:
+		indices.append_array([i, i + 1, count + i, count + i, i + 1, count + i + 1])
+	var colours := PackedColorArray()
+	colours.resize(count * 2)
+	colours.fill(colour)
+	RenderingServer.canvas_item_add_triangle_array(canvas.get_canvas_item(), indices, left + right, colours)
+
+
+## The bright leading rim of a crescent, fading in toward the head.
+static func rim(canvas: CanvasItem, centre: Vector2, radius: float, tail: float, head: float,
+		width_px: float, colour: Color) -> void:
+	if colour.a <= 0.001 or absf(head - tail) < 0.01:
+		return
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	for i in SEGMENTS + 1:
+		var u := float(i) / SEGMENTS
+		points.append(Fx.polar(centre, lerpf(tail, head, u), radius))
+		colours.append(Color(colour, colour.a * u))
+	canvas.draw_polyline_colors(points, colours, width_px * Fx.S)
+
+
+## A four-point glint.
+static func glint(canvas: CanvasItem, at: Vector2, length: float, colour: Color) -> void:
+	if colour.a <= 0.001 or length <= 0.0:
+		return
+	var thin := length * 0.16
+	Fx.polygon(canvas, [at + Vector2(-length, 0), at + Vector2(0, -thin), at + Vector2(length, 0),
+		at + Vector2(0, thin)], colour)
+	Fx.polygon(canvas, [at + Vector2(0, -length), at + Vector2(thin, 0), at + Vector2(0, length),
+		at + Vector2(-thin, 0)], colour)
+
+
+## Where the head and the tail of a sweep across `half` either side of the
+## aim have got to: the head races out, the tail chases it and catches up by
+## the end, so the crescent forms, holds, then shrinks into the far tip.
+static func sweep(progress: float, half: float, turn: float, head_by: float, heavy: bool) -> Vector2:
+	var h := clampf(progress / head_by, 0.0, 1.0)
+	h = h * h if heavy else 1.0 - (1.0 - h) * (1.0 - h)
+	var t := clampf((progress - head_by * 0.6) / (1.0 - head_by * 0.6), 0.0, 1.0)
+	t = t * t * 0.7
+	return Vector2(-half + 2.0 * half * t, -half + 2.0 * half * h) * turn
+
+
+static func _fade(progress: float, start: float) -> float:
+	return 1.0 if progress < start else maxf(0.0, (1.0 - progress) / (1.0 - start))
+
+
+static func _sword(canvas: CanvasItem, at: Vector2, angle: float, size: float, progress: float, turn: float) -> void:
+	var radius := size * 0.58
+	var half := asin(clampf(size * 0.5 / radius, 0.0, 1.0))
+	var centre := Fx.polar(at, angle + PI, radius)
+	var ends := sweep(progress, half, turn, 0.32, false)
+	var tail := angle + ends.x
+	var head := angle + ends.y
+	var alpha := _fade(progress, 0.55)
+	var width := size * 0.28
+	crescent(canvas, centre, radius, tail, head, width * 2.1, Color("9fe4ff", 0.32 * alpha))
+	crescent(canvas, centre, radius, tail, head, width, Color("5cc8ff", 0.95 * alpha))
+	crescent(canvas, centre, radius + width * 0.12, tail, head, width * 0.42, Color(Color.WHITE, 0.95 * alpha))
+	rim(canvas, centre, radius + width * 0.32, tail, head, 3.0, Color(Color.WHITE, alpha))
+	if progress < 0.5:
+		var tip := Fx.polar(centre, head, radius)
+		glint(canvas, tip, size * 0.16 * (1.0 - progress), Color(Color.WHITE, 0.95))
+
+
+static func _axe(canvas: CanvasItem, fx: Dictionary, at: Vector2, angle: float, size: float, progress: float,
+		turn: float) -> void:
+	var radius := size * 0.55
+	var half := asin(clampf(size * 0.5 / radius, 0.0, 1.0)) * 1.1
+	var centre := Fx.polar(at, angle + PI, radius)
+	var ends := sweep(progress, half, turn, 0.38, true)
+	var tail := angle + ends.x
+	var head := angle + ends.y
+	var alpha := _fade(progress, 0.55)
+	var width := size * 0.42
+	crescent(canvas, centre, radius, tail, head, width * 1.9, Color("ffb25c", 0.36 * alpha))
+	crescent(canvas, centre, radius, tail, head, width, Color("ff8a2a", 0.95 * alpha))
+	crescent(canvas, centre, radius + width * 0.1, tail, head, width * 0.45, Color("ffe4a8", 0.95 * alpha))
+	rim(canvas, centre, radius + width * 0.3, tail, head, 4.0, Color("fff3d6", alpha))
+	# The bite: a flash where the blade lands and embers thrown off ahead of it.
+	var bite := clampf((progress - 0.34) / 0.5, 0.0, 1.0)
+	if bite <= 0.0 or bite >= 1.0:
+		return
+	CircleStamp.disc(canvas, at, size * 0.26 * (1.0 - bite), Color("ffd38a", 0.7 * (1.0 - bite)))
+	var rng := Fx.rng_for({"started": fx.get("started", 0), "pos": at}, 0)
 	for k in 6:
-		var a := angle + k * PI / 3.0 + p * 0.3
-		Fx.polygon(canvas, [Fx.polar(strike, a, reach * (0.5 + p * 0.5)), Fx.polar(strike, a + 0.22, reach * 0.13),
-			Fx.polar(strike, a - 0.22, reach * 0.13)], Color("fff2c0", alpha * (1.0 - p)))
+		var a := angle + rng.randf_range(-1.1, 1.1)
+		var reach := size * rng.randf_range(0.35, 0.7) * sqrt(bite)
+		var spark := Fx.polar(at, a, reach)
+		Fx.line(canvas, Fx.polar(at, a, reach * 0.7), spark, 3.0, Color("ffb050", 1.0 - bite))
+		Fx.dot(canvas, spark, 2.6, Color("fff0c0", 1.0 - bite))
 
 
-static func _dagger(canvas: CanvasItem, origin: Vector2, angle: float, reach: float, progress: float, alpha: float) -> void:
-	var radius := reach * 0.62
-	var first := progress / 0.55
-	var second := (progress - 0.3) / 0.55
-	if first > 0.0 and first < 1.0:
-		var from := angle - 0.55
-		var to := from + minf(1.0, first) * 1.05
-		slash(canvas, origin, from, to, radius, radius * 0.16, Color("cdeeff", 0.5 * alpha))
-		edge(canvas, origin, from, to, radius, Color(Color.WHITE, 0.95 * alpha), 2.0)
-	if second > 0.0 and second < 1.0:
-		var from := angle + 0.55
-		var to := from - minf(1.0, second) * 1.05
-		slash(canvas, origin, minf(from, to), maxf(from, to), radius * 0.94, radius * 0.15, Color("d4f2ff", 0.5 * alpha))
-		edge(canvas, origin, minf(from, to), maxf(from, to), radius * 0.94, Color(Color.WHITE, 0.9 * alpha), 2.0)
+static func _hammer(canvas: CanvasItem, fx: Dictionary, at: Vector2, angle: float, size: float,
+		progress: float) -> void:
+	const IMPACT := 0.2
+	if progress < IMPACT:
+		# The wind-up: a ring pulling in on the point as the head comes down.
+		var p := progress / IMPACT
+		CircleStamp.ring(canvas, at, size * (0.55 - 0.4 * p), 2.5, Color("ffd27a", 0.4 + 0.5 * p), 40)
+		CircleStamp.disc(canvas, at, size * 0.08 * p, Color("fff6d8", p))
+		return
+	var p := (progress - IMPACT) / (1.0 - IMPACT)
+	var alpha := 1.0 - p
+	CircleStamp.disc(canvas, at, size * 0.42 * (0.6 + 0.4 * p), Color("6a4520", 0.28 * alpha))
+	# Cracks in the ground, jagged and fixed for this strike.
+	var rng := Fx.rng_for({"started": fx.get("started", 0), "pos": at}, 0)
+	for k in 6:
+		var a := angle + k * TAU / 6.0 + rng.randf_range(-0.3, 0.3)
+		var points := PackedVector2Array([at])
+		var length := size * rng.randf_range(0.38, 0.55) * minf(1.0, p * 3.0)
+		for j in range(1, 4):
+			points.append(Fx.polar(at, a + rng.randf_range(-0.28, 0.28), length * j / 3.0))
+		Fx.polyline(canvas, points, 5.0, Color("3a2412", 0.85 * alpha))
+		Fx.polyline(canvas, points, 2.0, Color("ffcf6a", 0.8 * alpha))
+	# Two shockwaves, the second trailing the first.
+	for delay in [0.0, 0.22]:
+		var w := Fx.wave(p, delay)
+		if w >= 0.0:
+			CircleStamp.ring(canvas, at, size * (0.18 + 0.62 * w), (7.0 - 5.0 * w) * Fx.S,
+				Color("ffbf40", 0.95 * (1.0 - w)), 48)
+	# The flash of the blow.
+	var flash := 1.0 - minf(1.0, p * 3.5)
+	if flash > 0.0:
+		CircleStamp.disc(canvas, at, size * 0.34, Color("fff4c8", 0.85 * flash))
+		glint(canvas, at, size * 0.55 * flash, Color(Color.WHITE, flash))
+	# Debris flung out and falling back.
+	for k in 8:
+		var a := rng.randf() * TAU
+		var reach := size * rng.randf_range(0.3, 0.6) * p
+		var lift := size * 0.35 * p * (1.0 - p) * rng.randf_range(0.5, 1.0)
+		Fx.dot(canvas, Fx.polar(at, a, reach) - Vector2(0, lift), 3.2, Color("c89a5a", alpha))
+
+
+static func _dagger(canvas: CanvasItem, at: Vector2, angle: float, size: float, progress: float, turn: float) -> void:
+	var length := size * 0.5
+	for cut in 2:
+		var start := 0.0 if cut == 0 else 0.22
+		var p := clampf((progress - start) / 0.6, 0.0, 1.0)
+		if p <= 0.0 or p >= 1.0:
+			continue
+		var a := angle + (0.75 if cut == 0 else -0.75) * turn
+		var dir := Vector2(cos(a), sin(a))
+		var head := minf(1.0, p / 0.35)
+		var tail := clampf((p - 0.3) / 0.7, 0.0, 1.0)
+		var from := at - dir * length * (1.0 - 2.0 * tail)
+		var to := at - dir * length * (1.0 - 2.0 * head)
+		var alpha := 1.0 if p < 0.6 else (1.0 - p) / 0.4
+		_cut(canvas, from, to, size * 0.24, Color("c9a0ff", 0.45 * alpha))
+		_cut(canvas, from, to, size * 0.12, Color("dcc4ff", 0.95 * alpha))
+		Fx.line(canvas, from, to, 2.5, Color(Color.WHITE, alpha))
+	var cross := 1.0 - absf(progress - 0.42) / 0.16
+	if cross > 0.0:
+		glint(canvas, at, size * 0.28 * cross, Color(Color.WHITE, cross))
+
+
+## A straight cut: a thin lens from `from` to `to`, `width` across its middle.
+static func _cut(canvas: CanvasItem, from: Vector2, to: Vector2, width: float, colour: Color) -> void:
+	if colour.a <= 0.001 or from.distance_squared_to(to) < 1.0:
+		return
+	var normal := (to - from).normalized().orthogonal()
+	var left := PackedVector2Array()
+	var right := PackedVector2Array()
+	for i in 9:
+		var u := i / 8.0
+		left.append(from.lerp(to, u) + normal * width * 0.5 * sin(PI * u))
+		right.append(from.lerp(to, u) - normal * width * 0.2 * sin(PI * u))
+	strip(canvas, left, right, colour)
