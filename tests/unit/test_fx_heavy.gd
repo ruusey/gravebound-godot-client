@@ -123,15 +123,13 @@ func test_the_moonlight_ring_opens_and_the_moon_breathes():
 	assert_almost_eq(mote[1], 0.988, 0.001)
 
 
-func test_the_wild_surge_vines_wind_a_turn_and_a_half():
-	assert_almost_eq(FxDruidWildSurge.floor_radius(40.0, 0.0), 24.0, 0.001)
-	assert_almost_eq(FxDruidWildSurge.floor_radius(40.0, 0.5), 40.0, 0.001)
-	var vine := FxDruidWildSurge.vine(Vector2.ZERO, 40.0, 0, 0)
-	assert_eq(vine.size(), 27)
-	assert_almost_eq(vine[26].x, -40.0, 0.001, "three pi round: out on the far side")
-	assert_almost_eq(vine[26].y, 0.0, 0.001)
-	var leaf := FxDruidWildSurge.leaf(Vector2.ZERO, 40.0, 0, 0.5, 0)
-	assert_almost_eq(leaf[0].x, 28.8, 0.001, "leaf 0 at phase 0.65")
+func test_the_wild_surge_thorn_rings_rise_in_turn_and_sink_back():
+	assert_eq(FxDruidWildSurge.thorn_height(0.0, 0), 0.0, "still underground")
+	assert_almost_eq(FxDruidWildSurge.thorn_height(0.3, 0), 1.0, 0.001, "inner ring fully up")
+	assert_eq(FxDruidWildSurge.thorn_height(0.1, 1), 0.0, "outer ring waits a beat")
+	assert_almost_eq(FxDruidWildSurge.thorn_height(0.45, 1), 1.0, 0.001, "outer ring fully up")
+	assert_eq(FxDruidWildSurge.thorn_height(0.8, 0), 0.0, "inner ring sunk")
+	assert_gt(FxDruidWildSurge.thorn_height(0.8, 1), 0.0, "outer ring still sinking")
 
 
 func test_the_beam_warning_is_a_flashing_band_from_boss_to_end():
