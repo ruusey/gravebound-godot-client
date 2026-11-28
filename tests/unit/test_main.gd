@@ -136,10 +136,7 @@ func test_lag_in_the_chat_steps_the_delay_line_and_l_no_longer_does():
 func test_the_screenshot_key_also_traces_the_next_frames():
 	_login(5)
 	assert_false(main.trace.active())
-	var key := InputEventKey.new()
-	key.keycode = KEY_QUOTELEFT
-	key.pressed = true
-	main._unhandled_input(key)
+	_press(KEY_P)
 	assert_true(main.trace.active(), "the trace runs whether or not a frame could be read back")
 	main._process(0.008)
 	main._process(0.008)
@@ -309,9 +306,11 @@ func test_camera_follows_the_predicted_position():
 
 # --- hotkeys ---------------------------------------------------------------
 
+## Keys are bound by position, so a press carries both codes.
 func _press(keycode: Key) -> void:
 	var event := InputEventKey.new()
 	event.keycode = keycode
+	event.physical_keycode = keycode
 	event.pressed = true
 	main._unhandled_input(event)
 
@@ -354,11 +353,13 @@ func test_main_keeps_no_settings_file_under_test():
 func test_key_releases_and_echoes_are_ignored():
 	var released := InputEventKey.new()
 	released.keycode = KEY_F2
+	released.physical_keycode = KEY_F2
 	released.pressed = false
 	main._unhandled_input(released)
 
 	var echoed := InputEventKey.new()
 	echoed.keycode = KEY_F2
+	echoed.physical_keycode = KEY_F2
 	echoed.pressed = true
 	echoed.echo = true
 	main._unhandled_input(echoed)

@@ -320,11 +320,11 @@ func _exit_tree() -> void:
 func _process(delta: float) -> void:
 	if state == null or content == null or state.local == null:
 		return
-	# Q swings the view left of the player, E right -- but not while typing.
+	# The orbit keys (Q and E by default) swing the view -- but not while typing.
 	if not keyboard_captured.call():
-		if Input.is_key_pressed(KEY_Q):
+		if Input.is_action_pressed("orbit_left"):
 			_yaw += ORBIT_SPEED * delta
-		if Input.is_key_pressed(KEY_E):
+		if Input.is_action_pressed("orbit_right"):
 			_yaw -= ORBIT_SPEED * delta
 	if input != null:
 		input.view_yaw = _yaw

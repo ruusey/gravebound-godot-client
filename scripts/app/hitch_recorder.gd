@@ -14,8 +14,9 @@ extends Node
 ## blamed on the script phase that overran, on the GPU, or on the present when both
 ## fit and the swap still missed a refresh (the compositor, the driver, the browser).
 ##
-## Started with F4, /hitch [seconds], or --hitch=SECONDS from the command line;
-## the report goes to the console, the clipboard, user://hitch-reports and chat.
+## Started with the record_hitches key (F4 by default), /hitch [seconds], or
+## --hitch=SECONDS from the command line; the report goes to the console, the
+## clipboard, user://hitch-reports and chat.
 
 signal finished(report: String)
 

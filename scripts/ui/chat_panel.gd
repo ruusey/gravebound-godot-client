@@ -186,7 +186,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_input.open()
 		get_viewport().set_input_as_handled()
 	elif event is InputEventKey and event.pressed and not event.echo \
-			and event.keycode == KEY_SLASH and not _input.is_open():
+			and event.is_action_pressed("open_command") and not _input.is_open():
 		# Slash opens the line pre-filled with "/" so a command is one keystroke away.
 		_input.open("/")
 		get_viewport().set_input_as_handled()

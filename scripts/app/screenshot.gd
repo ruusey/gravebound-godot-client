@@ -1,7 +1,7 @@
 class_name Screenshot
 extends RefCounted
 
-## The ` key (tilde, top-left): the frame on screen, as a PNG, wherever this build can put one.
+## The screenshot key (P by default): the frame on screen, as a PNG, wherever this build can put one.
 ##
 ## On the desktop it is written under user://screenshots and the path
 ## printed; a browser has no filesystem the player can reach, so there the

@@ -66,7 +66,7 @@ func test_the_controls_tab_binds_the_next_key_and_escape_cancels():
 	var tab := ControlsTab.new(settings)
 	add_child_autofree(tab)
 	await wait_process_frames(1)
-	assert_eq(tab.buttons.size(), KeyBindings.ACTIONS.size())
+	assert_eq(tab.buttons.size(), KeyBindings.all_actions().size())
 	assert_eq(tab.buttons["move_up"].text, "W")
 	tab.buttons["move_up"].pressed.emit()
 	assert_eq(tab.waiting_for, "move_up")
@@ -105,3 +105,29 @@ func test_the_minimap_answers_its_new_key():
 	assert_eq(panel.shown, shown, "M does nothing now")
 	panel._unhandled_input(_key(KEY_N))
 	assert_ne(panel.shown, shown, "N toggles it")
+
+
+func test_the_directory_has_the_backtick_and_the_screenshot_moved_off_it():
+	assert_eq(KeyBindings.default_key("toggle_social"), KEY_QUOTELEFT)
+	assert_eq(KeyBindings.default_key("screenshot"), KEY_P)
+
+
+func test_a_bag_slot_is_shift_and_its_key_and_keeps_its_own_group():
+	assert_eq(KeyBindings.binding_name("quick_slot_1"), "Shift+1")
+	var shifted := _key(KEY_1)
+	shifted.shift_pressed = true
+	assert_true(shifted.is_action("quick_slot_1", true))
+	assert_false(_key(KEY_1).is_action("quick_slot_1", true), "a bare 1 is a cast")
+	assert_eq(KeyBindings.rebind("quick_slot_1", KEY_2), ["quick_slot_1", "quick_slot_2"],
+		"swaps with the other bag slot, never with the ability on 2")
+	assert_eq(KeyBindings.key_of("ability_2"), KEY_2)
+	var moved := _key(KEY_2)
+	moved.shift_pressed = true
+	assert_true(moved.is_action("quick_slot_1", true), "still Shift after a rebind")
+
+
+func test_every_hard_wired_key_is_an_action_now():
+	for action in ["open_command", "orbit_left", "orbit_right", "toggle_lighting", "debug_packet_mix",
+			"toggle_collision_view", "record_hitches", "screenshot", "toggle_social"]:
+		assert_true(action in KeyBindings.all_actions(), action)
+		assert_ne(KeyBindings.key_of(action), 0, action + " has a key")

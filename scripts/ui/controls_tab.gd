@@ -2,8 +2,8 @@ class_name ControlsTab
 extends VBoxContainer
 
 ## The Controls page of the options: an action and its key on a button,
-## two to a row, so the page is half as tall -- one to a row, its eighteen
-## rows ran off a phone held sideways.
+## two to a row, so the page is half as tall, in a scroll -- one to a row,
+## its eighteen rows ran off a phone held sideways.
 ##
 ## Click the button and the next key pressed is the new one -- Escape
 ## cancels. While it waits it owns the keyboard (OptionsPanel.capturing),
@@ -12,6 +12,7 @@ extends VBoxContainer
 ## key (KeyBindings.rebind). Reset puts every key back to the project's.
 
 const WAITING := "Press a key ..."
+const LIST_HEIGHT := 300.0
 
 var settings: GameSettings
 var buttons := {}   # action -> Button
@@ -25,12 +26,17 @@ func _init(game_settings: GameSettings = null) -> void:
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 4)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, LIST_HEIGHT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(scroll)
 	var grid := GridContainer.new()
 	grid.columns = 4
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 12)
-	add_child(grid)
-	for action in KeyBindings.ACTIONS:
-		var label := HudWidgets.label(KeyBindings.ACTIONS[action], 13, Color.WHITE)
+	scroll.add_child(grid)
+	for action in KeyBindings.all_actions():
+		var label := HudWidgets.label(KeyBindings.label(action), 13, Color.WHITE)
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(label)
 		var button := Button.new()
@@ -55,7 +61,7 @@ func listen(action: String) -> void:
 func refresh() -> void:
 	waiting_for = ""
 	for action in buttons:
-		buttons[action].text = KeyBindings.key_name(KeyBindings.key_of(action))
+		buttons[action].text = KeyBindings.binding_name(action)
 
 
 func _input(event: InputEvent) -> void:

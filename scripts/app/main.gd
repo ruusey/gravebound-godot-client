@@ -25,7 +25,7 @@ var chat_actions: ChatActions
 var ability_input: AbilityInput
 var screens: Screens
 var trace := MotionTrace.new()
-## Frame-phase timing for hitch reports (F4, /hitch, --hitch).
+## Frame-phase timing for hitch reports (record_hitches key, /hitch, --hitch).
 var hitches: HitchRecorder
 ## Unattended play for diagnostics (--autopilot); null otherwise.
 var autopilot: Autopilot
@@ -417,25 +417,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	# a command; only ESC still gets through, to close the panel it opened.
 	if event.keycode != KEY_ESCAPE and screens.captures_keyboard():
 		return
-	match event.keycode:
-		KEY_F1:
-			print("\n[packet mix]\n%s" % client.stats.mix())
-		KEY_F2:
-			_world.show_collision = not _world.show_collision
-		KEY_F3:
-			state.settings.set_on("lighting", not state.settings.is_on("lighting"))
-		KEY_F4:
-			_toggle_hitch_recording()
-		# Tilde rather than an F key: on a Mac the F row is brightness and
-		# volume unless fn is held, which is not something to do mid-fight.
-		KEY_QUOTELEFT:
-			var where := Screenshot.take(get_viewport())
-			print("[screenshot] %s" % (where if where != "" else "nothing to capture"))
-			# And the motion of the next second, which no screenshot can show.
-			trace.start(state.movement.corrections)
-		KEY_ESCAPE:
-			if client.is_in_game():
-				screens.options.toggle()
+	if event.keycode == KEY_ESCAPE:
+		if client.is_in_game():
+			screens.options.toggle()
+	elif event.is_action_pressed("debug_packet_mix"):
+		print("\n[packet mix]\n%s" % client.stats.mix())
+	elif event.is_action_pressed("toggle_collision_view"):
+		_world.show_collision = not _world.show_collision
+	elif event.is_action_pressed("toggle_lighting"):
+		state.settings.set_on("lighting", not state.settings.is_on("lighting"))
+	elif event.is_action_pressed("record_hitches"):
+		_toggle_hitch_recording()
+	elif event.is_action_pressed("screenshot"):
+		var where := Screenshot.take(get_viewport())
+		print("[screenshot] %s" % (where if where != "" else "nothing to capture"))
+		# And the motion of the next second, which no screenshot can show.
+		trace.start(state.movement.corrections)
 
 
 func _toggle_hitch_recording() -> void:
@@ -444,4 +441,5 @@ func _toggle_hitch_recording() -> void:
 		return
 	hitches.start()
 	state.chat.apply_text({"from": ChatLog.SYSTEM, "to": state.local.name,
-		"message": "Recording frame hitches for %ds (F4 again to stop early)." % HitchRecorder.DEFAULT_SECONDS})
+		"message": "Recording frame hitches for %ds (%s again to stop early)." % [HitchRecorder.DEFAULT_SECONDS,
+			KeyBindings.binding_name("record_hitches")]})
