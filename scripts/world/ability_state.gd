@@ -104,6 +104,13 @@ func apply_effect(data: Dictionary, entities: EntityRegistry = null, local: Loca
 	if origin != Vector2.INF:
 		fx["origin"] = origin
 	effects.append(fx)
+
+
+## Our own melee swing, drawn on the click: the server no longer echoes it back.
+func add_swing(at: Vector2, from: Vector2, size: float, archetype: int) -> void:
+	effects.append({"type": EffectType.MELEE_SWING, "pos": at, "radius": size,
+		"duration_ms": FxMeleeSwing.hold_ms(archetype, 0), "target": from,
+		"tier": archetype, "owner": 0, "started": now()})
 	if effects.size() > MAX_EFFECTS:
 		effects.remove_at(0)   # drop the oldest to stay bounded under crowd load
 

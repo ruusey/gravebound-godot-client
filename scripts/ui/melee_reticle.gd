@@ -59,7 +59,7 @@ func place(state: RealmState, content: GameData, to_screen: Transform2D, aim: Va
 	if not bool(archetype.get("melee", false)):
 		visible = false
 		return
-	var reach := _reach(content, weapon, archetype)
+	var reach := reach_of(content, weapon, archetype)
 	if reach <= 0.0:
 		visible = false
 		return
@@ -79,13 +79,16 @@ func place(state: RealmState, content: GameData, to_screen: Transform2D, aim: Va
 
 ## Max reach in world px: the weapon's projectile range scaled by the archetype's
 ## rangeMul, exactly as the server sizes the melee cone.
-func _reach(content: GameData, weapon: Dictionary, archetype: Dictionary) -> float:
+static func reach_of(content: GameData, weapon: Dictionary, archetype: Dictionary) -> float:
+	return float(cone_of(content, weapon).get("range", 0.0)) * float(archetype.get("rangeMul", 1.0))
+
+
+## The weapon group's first projectile: the server's melee cone, or {}.
+static func cone_of(content: GameData, weapon: Dictionary) -> Dictionary:
 	var group_id := int(weapon.get("damage", {}).get("projectileGroupId", 0))
 	if group_id == 0:
 		group_id = content.item_projectile_group(int(weapon.get("itemId", -1)))
 	if group_id == 0:
-		return 0.0
+		return {}
 	var definitions := content.projectiles_in_group(group_id)
-	if definitions.is_empty():
-		return 0.0
-	return float(definitions[0].get("range", 0.0)) * float(archetype.get("rangeMul", 1.0))
+	return {} if definitions.is_empty() else definitions[0]

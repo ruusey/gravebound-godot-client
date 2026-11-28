@@ -96,7 +96,25 @@ func _fire(_delta: float) -> void:
 		return
 	_next_shot_ms = clock.call() + int(interval() * 1000.0)
 	client.send("PlayerShootPacket", shot)
+	_show_own_swing(target)
 	_play_attack_sound()
+
+
+## A melee swing plays where the reticle sits, pulled in to the weapon's reach.
+func _show_own_swing(target: Vector2) -> void:
+	if content == null:
+		return
+	var weapon: Dictionary = state.local.equipped_weapon()
+	var archetype: Dictionary = content.archetype_for_item(int(weapon.get("itemId", -1)))
+	if not bool(archetype.get("melee", false)):
+		return
+	var cone := MeleeReticle.cone_of(content, weapon)
+	var reach := float(cone.get("range", 0.0)) * float(archetype.get("rangeMul", 1.0))
+	if reach <= 0.0:
+		return
+	var centre := state.local.render_centre()
+	var at := centre + (target - centre).limit_length(reach)
+	state.abilities.add_swing(at, centre, float(cone.get("size", 0.0)), int(archetype.get("id", 1)))
 
 
 ## The swing sound for the weapon in hand, by its archetype.

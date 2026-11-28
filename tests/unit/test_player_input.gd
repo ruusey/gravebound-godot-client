@@ -114,6 +114,26 @@ func test_holding_the_mouse_fires():
 	assert_eq(state.projectiles.bullets.size(), 1, "and a predicted bullet appears at once")
 
 
+func test_a_melee_swing_plays_at_once_on_the_reticle():
+	state.local.inventory.put(0, {"itemId": 107, "damage": {"projectileGroupId": 10}})
+	var centre := state.local.render_centre()
+	input.world_mouse = func() -> Variant: return centre + Vector2(2000, 0)
+	_press_mouse()
+	input.tick(RealmState.TICK_DELTA)
+	assert_eq(_shots_sent(), 1)
+	var swing: Dictionary = state.abilities.effects[-1]
+	assert_eq(swing["type"], EffectType.MELEE_SWING, "drawn on the click, not on the server's echo")
+	assert_almost_eq(swing["pos"].x - centre.x, 512.0 * 1.6, 0.01, "pulled in to the sword's reach")
+	assert_eq(swing["target"], centre, "facing away from us")
+	assert_eq(swing["tier"], 1)
+
+
+func test_a_ranged_shot_plays_no_swing():
+	_press_mouse()
+	input.tick(RealmState.TICK_DELTA)
+	assert_eq(state.abilities.effects.size(), 0)
+
+
 func test_firing_is_rate_limited():
 	_press_mouse()
 	input.tick(RealmState.TICK_DELTA)
