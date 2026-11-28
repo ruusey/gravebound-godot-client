@@ -5,9 +5,11 @@ extends CanvasLayer
 ## own controls, on the left under the party panel.
 ##
 ## A row per player -- the class's idle frame and the name in its chat
-## role's colour, bold for an admin -- with the web's tooltip on hover
+## role's colour (gold for a friend, green for a guild member, who are listed
+## first), bold for an admin -- with the web's tooltip on hover
 ## (NearbyPlayers.tooltip) and, on a click, the PlayerMenu beside it:
-## trade, teleport, invite to party, and invite to guild when your rank allows.
+## trade, teleport, invite to party, invite to guild when your rank allows,
+## and add friend.
 ## Rows are rebuilt when who is listed changes, which the web checks every
 ## half second; the list itself is the roster, so nothing polls the
 ## server. Sits under the party panel and moves down when that one shows.
@@ -101,8 +103,9 @@ func _process(_delta: float) -> void:
 	var top := above.top() if above != null else float(PartyPanel.TOP)
 	_root.offset_top = top + (above.height() + GAP if above != null and above.visible else 0.0)
 	fold.place(Vector2(PhoneLayout.chip_x(MARGIN + WIDTH, fold.chip.size.x, fold.folded), _root.offset_top + 2.0))
-	var players := NearbyPlayers.list(state.entities, state.local.id, state.party.member_ids())
-	var listed := ",".join(players.map(func(p: Dictionary) -> String:
+	var players := NearbyPlayers.list(state.entities, state.local.id, state.party.member_ids(),
+		state.social.nearby_rank)
+	var listed := "%d|" % state.social.version + ",".join(players.map(func(p: Dictionary) -> String:
 		return "%d:%s:%d:%s" % [int(p["id"]), p.get("name", ""), int(p.get("class_id", 0)), p.get("chat_role", "")]))
 	if listed != _listed:
 		_listed = listed
@@ -131,7 +134,9 @@ func _rebuild(players: Array) -> void:
 			int(player.get("dye_id", 0)))
 		row.add_child(icon)
 		var role := String(player.get("chat_role", ""))
-		var name := HudWidgets.label(String(player.get("name", "")).left(14), 12, NearbyPlayers.role_colour(role))
+		var player_name := String(player.get("name", ""))
+		var name := HudWidgets.label(player_name.left(14), 12,
+			state.social.name_colour(player_name, NearbyPlayers.role_colour(role)))
 		name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if NearbyPlayers.bold(role):
 			name.add_theme_font_override("font", TagStyles.bold())
@@ -174,7 +179,7 @@ func _on_row_input(event: InputEvent, player: Dictionary) -> void:
 
 func open_menu(player: Dictionary) -> void:
 	var name := String(player.get("name", ""))
-	menu.open_for(name, NearbyPlayers.role_colour(String(player.get("chat_role", ""))),
+	menu.open_for(name, state.social.name_colour(name, NearbyPlayers.role_colour(String(player.get("chat_role", "")))),
 		Vector2(_root.offset_right + GAP, _root.offset_top))
 
 
