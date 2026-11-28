@@ -1,7 +1,7 @@
 class_name InteractionRequestPopup
 extends CanvasLayer
 
-## A trade request, party invite, PvP challenge or guild invite waiting on an
+## A trade, party, PvP, guild, friend or summon request waiting on an
 ## answer, with Accept and Decline: up while the request stands, gone once it is
 ## answered, closed by the server or out of time. One per kind; the ones standing
 ## stack down from TOP in kind order, so any number at once all show.
@@ -9,7 +9,8 @@ extends CanvasLayer
 ## Under the notices, which hold at most InteractionState.MAX_NOTICES lines from their own TOP.
 const TOP := 150.0
 const STACK_GAP := 8.0
-const TITLE_COLOURS := {Interaction.Kind.PVP: Color("ff8a8a"), Interaction.Kind.GUILD: TagStyles.GUILD_BLUE}
+const TITLE_COLOURS := {Interaction.Kind.PVP: Color("ff8a8a"), Interaction.Kind.GUILD: TagStyles.GUILD_BLUE,
+	Interaction.Kind.FRIEND: NameColours.FRIEND, Interaction.Kind.SUMMON: NameColours.GUILDMATE}
 
 var state: RealmState
 var actions: InteractionActions

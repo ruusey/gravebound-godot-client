@@ -24,6 +24,7 @@ var trade: TradeActions
 var party: PartyActions
 var chat: ChatActions
 var guild: GuildActions
+var social: SocialActions
 ## The panel above, whose height decides where this one starts.
 var above: PartyPanel
 ## Off for a scripted render that is about something else.
@@ -43,7 +44,7 @@ var _inspect: PlayerInspectCard
 
 func setup(realm_state: RealmState, game_data: GameData, trade_actions: TradeActions,
 		party_actions: PartyActions, chat_actions: ChatActions, guild_actions: GuildActions = null,
-		party_panel: PartyPanel = null) -> void:
+		party_panel: PartyPanel = null, social_actions: SocialActions = null) -> void:
 	state = realm_state
 	content = game_data
 	trade = trade_actions
@@ -51,6 +52,7 @@ func setup(realm_state: RealmState, game_data: GameData, trade_actions: TradeAct
 	chat = chat_actions
 	guild = guild_actions
 	above = party_panel
+	social = social_actions
 
 
 func _ready() -> void:
@@ -77,7 +79,9 @@ func _ready() -> void:
 		func(name: String) -> bool: return party != null and party.invite(name),
 		func(name: String) -> bool: return guild != null and guild.invite(name),
 		func() -> bool: return state != null and state.guild.can_invite(),
-		func(name: String) -> bool: return trade != null and trade.interactions.request(Interaction.Kind.PVP, name))
+		func(name: String) -> bool: return trade != null and trade.interactions.request(Interaction.Kind.PVP, name),
+		func(name: String) -> bool: return social != null and social.add_friend(name),
+		func(name: String) -> bool: return state != null and state.social.is_friend(name))
 	add_child(menu)
 	_inspect = PlayerInspectCard.new()
 	_inspect.setup(content)

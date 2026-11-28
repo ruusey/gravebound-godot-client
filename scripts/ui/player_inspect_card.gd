@@ -98,7 +98,8 @@ func setup(content: GameData) -> void:
 
 
 ## data keys: name, role, guild, class_id, dye_id, level, hp, max_hp, mp, max_mp,
-## stats (Dictionary or {}), equipment (Array of item dicts or []).
+## stats (Dictionary or {}), equipment (Array of item dicts or []). Without
+## max_hp / max_mp their lines are left out.
 func show_player(data: Dictionary) -> void:
 	var cls := _content.classes_art.display_name(int(data.get("class_id", 0)))
 	_sprite.texture = _content.classes_art.frame(int(data.get("class_id", 0)), "idle", "front", 0,
@@ -113,6 +114,9 @@ func show_player(data: Dictionary) -> void:
 	_sub.text = "Lv %d  %s" % [int(data.get("level", 0)), cls]
 	_hp.text = "HP %d/%d" % [int(data.get("hp", 0)), int(data.get("max_hp", 0))]
 	_mp.text = "MP %d/%d" % [int(data.get("mp", 0)), int(data.get("max_mp", 0))]
+	# The directory knows a player's gear but not their vitals.
+	_hp.visible = data.has("max_hp")
+	_mp.visible = data.has("max_mp")
 
 	var stats: Dictionary = data.get("stats", {})
 	var has_stats := not stats.is_empty()

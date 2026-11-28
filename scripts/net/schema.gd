@@ -4,9 +4,9 @@
 #   python3 tools/gen_schema.py <java-src-root>
 #
 # Source tree : C:\Users\ruuse\Documents\GitHub\gravebound\src
-# Generated   : 2026-11-28 04:02:55Z
-# Packets     : 58
-# Entities    : 23
+# Generated   : 2026-11-28 06:40:30Z
+# Packets     : 59
+# Entities    : 24
 #
 # Field tuples are [name, wire_type, is_collection]; list order is wire order.
 # Primitive wire types are byte, bool, short, int, long, float and string;
@@ -78,6 +78,7 @@ const PACKET_NAMES := {
 	58: "PartyVitalsPacket",
 	59: "ArenaResultsPacket",
 	60: "AbilityCooldownPacket",
+	61: "SocialStatusPacket",
 	101: "TestPacket",
 }
 
@@ -131,6 +132,7 @@ const PACKET_IDS := {
 	"QuestStatePacket": 46,
 	"RealmPurificationPacket": 42,
 	"SkillsPacket": 43,
+	"SocialStatusPacket": 61,
 	"SplitStackPacket": 37,
 	"TestPacket": 101,
 	"TextEffectPacket": 14,
@@ -401,6 +403,10 @@ const PACKETS := {
 		["xp6", "long", false],
 		["xp7", "long", false],
 		["xp8", "long", false],
+	],
+	"SocialStatusPacket": [
+		["entries", "NetSocialEntry", true],
+		["maxFriends", "int", false],
 	],
 	"SplitStackPacket": [
 		["fromSlot", "int", false],
@@ -691,6 +697,16 @@ const ENTITIES := {
 		["targetPurificationGoal", "long", false],
 		["targetTier", "int", false],
 		["targetModifiers", "string", false],
+	],
+	"NetSocialEntry": [
+		["name", "string", false],
+		["flags", "byte", false],
+		["guildRank", "byte", false],
+		["classId", "int", false],
+		["level", "int", false],
+		["dyeId", "int", false],
+		["location", "string", false],
+		["equipment", "int", true],
 	],
 	"NetStats": [
 		["hp", "int", false],

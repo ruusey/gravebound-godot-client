@@ -23,6 +23,10 @@ const ROLES := {
 const PLAIN := Color("eeeeee")
 ## A sender with no role, in the chat log.
 const CHAT_PLAIN := Color("4080e0")
+## A friend's name in the nearby list and the directory.
+const FRIEND := Color("ffd34d")
+## A guild member's name there, the green of guild chat.
+const GUILDMATE := Color(0.4, 0.9, 0.4)
 ## Senders coloured by who they are rather than what role they hold.
 const CHAT_NAMED := {"SYSTEM": Color("c8a86e"), "Overseer": Color("e8c840")}
 

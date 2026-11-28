@@ -131,10 +131,11 @@ func _ready() -> void:
 	TouchFrame.adopt(self)
 
 
-## The chat line, opened as Enter opens it: the phone's Chat button.
-func open_line() -> void:
-	if not _input.is_open():
-		_input.open()
+## The chat line, opened as Enter opens it: the phone's Chat button. A
+## `prefill` (a "/tell name " from the directory) replaces what was typed.
+func open_line(prefill := "") -> void:
+	if prefill != "" or not _input.is_open():
+		_input.open(prefill)
 
 
 ## The Chat button: opens the line, or shuts an open one.

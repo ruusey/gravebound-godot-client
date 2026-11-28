@@ -1,7 +1,7 @@
 class_name Interaction
 extends RefCounted
 
-## Trades, party invites, PvP challenges and guild invites: one player asks, the other answers.
+## Trades, party, PvP, guild invites, friend requests and summons: one player asks, the other answers.
 ##
 ## The server tells each player what happened on InteractionPacket -- a kind, an
 ## event, the other player's name and, for a refusal, the reason -- and takes
@@ -9,7 +9,7 @@ extends RefCounted
 ## server's InteractionKind, InteractionAction and InteractionEvent. The wording
 ## lives here, so none of it passes through the chat.
 
-enum Kind { TRADE, PARTY, PVP, GUILD }
+enum Kind { TRADE, PARTY, PVP, GUILD, FRIEND, SUMMON }
 enum Action { REQUEST, ACCEPT, DECLINE, LEAVE, KICK }
 enum Event { REQUESTED, SENT, ACCEPTED, DECLINED, CANCELLED, COMPLETED, FAILED, CLOSED, STARTED, WON, LOST,
 	LEFT, DISBANDED, KICKED, REMOVED, EXPIRED, JOINED, RANK_CHANGED }
@@ -20,6 +20,8 @@ const PROMPTS := {
 	Kind.PARTY: "%s wants you in their party",
 	Kind.PVP: "%s challenges you to a PvP battle!",
 	Kind.GUILD: "%s invites you to join %s",
+	Kind.FRIEND: "%s wants to be your friend",
+	Kind.SUMMON: "%s wants to summon you to %s",
 }
 
 ## What each event reads as, by kind; the first %s is the other player (or a
@@ -64,6 +66,21 @@ const NOTICES := {
 		Event.REMOVED: "%s was removed from %s.",
 		Event.DISBANDED: "%s has been disbanded.",
 		Event.RANK_CHANGED: "%s is now %s.",
+	},
+	Kind.FRIEND: {
+		Event.SENT: "Friend request sent to %s.",
+		Event.ACCEPTED: "%s accepted your friend request.",
+		Event.DECLINED: "%s declined your friend request.",
+		Event.EXPIRED: "%s didn't answer your friend request.",
+		Event.JOINED: "You and %s are now friends.",
+		Event.REMOVED: "%s was removed from your friends.",
+	},
+	Kind.SUMMON: {
+		Event.SENT: "Summon sent to %s.",
+		Event.ACCEPTED: "%s answered your summon.",
+		Event.DECLINED: "%s declined your summon.",
+		Event.EXPIRED: "%s didn't answer your summon.",
+		Event.COMPLETED: "You were summoned by %s.",
 	},
 }
 

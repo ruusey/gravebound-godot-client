@@ -43,6 +43,7 @@ var transition_difficulty := 0.0
 var settings := GameSettings.new()
 var progress := AccountProgress.new()   # masteries, quests, stars: kept across realms
 var guild := GuildState.new()           # account-wide guild: roster, dialog, invite
+var social := SocialState.new()         # account-wide friends and guild directory
 var companions := CompanionState.new()  # account-wide AI party roster: kept across realms
 ## The frame's clock: remote entities and the frame's delta both read it (begin_frame).
 var pacer := FramePacer.new()
@@ -175,6 +176,8 @@ func apply_packet(name: String, data: Dictionary) -> void:
 			guild.apply_editor(data)
 		"CompanionRosterPacket":
 			companions.apply_roster(data)
+		"SocialStatusPacket":
+			social.apply(data)
 
 
 func advance(delta: float, input: Vector2, latency_ms: float) -> Array:
