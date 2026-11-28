@@ -25,6 +25,9 @@ const NO_LOOK: Array = []
 const SLOWED_EFFECT := 21
 ## The data.liquid kinds a player stands in up to the shins, and is drawn sunk into.
 const SUBMERGING_LIQUIDS := ["water", "lava"]
+## Interaction types whose floated caption reads differently from the capitalized
+## type name. Anything absent falls back to `type.capitalize()`.
+const TILE_CAPTIONS := {"display_text": "Read"}
 
 var library := ContentLibrary.new()
 var sprites := SpriteCache.new()
@@ -76,6 +79,8 @@ var _slow_ms_by_group := {}
 var tile_looks := {}
 ## tile id -> tile_solid_rows(), read per collision cell by movement prediction.
 var _solid_rows_by_id := {}
+## tile id -> tile_caption().
+var _caption_by_id := {}
 ## The most rows any tile blocks, and the most rows any tile's art reaches below its
 ## own cell; 0 until first asked once the content is ready.
 var _tallest_solid := 0
@@ -278,6 +283,27 @@ func tile_data(tile_id: int) -> Dictionary:
 	if ready:
 		_data_by_id[tile_id] = data
 	return data
+
+
+## The caption floated under an interactive tile: its `label`, else its interaction
+## type's name ("fame_store" -> "Fame Store"); "" for a tile nobody interacts with.
+func tile_caption(tile_id: int) -> String:
+	if _caption_by_id.has(tile_id):
+		return _caption_by_id[tile_id]
+	var caption := ""
+	var definition: Dictionary = library.tiles.get(tile_id, {})
+	# interactionType and label are often present-but-null, and str(null) is "<null>".
+	var type_value: Variant = definition.get("interactionType")
+	if type_value != null and str(type_value) != "":
+		var override: Variant = definition.get("label")
+		if override != null and str(override) != "":
+			caption = str(override)
+		else:
+			var kind := str(type_value)
+			caption = str(TILE_CAPTIONS.get(kind, kind.capitalize()))
+	if ready:
+		_caption_by_id[tile_id] = caption
+	return caption
 
 
 func tile_has_collision(tile_id: int) -> bool:

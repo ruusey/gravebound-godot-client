@@ -13,10 +13,6 @@ extends RefCounted
 const DAMAGE_SIZE := 24
 const CAPTION_SIZE := 14
 
-## Interaction types whose floated caption reads differently from the
-## capitalized type name. Anything absent falls back to `type.capitalize()`.
-const TILE_CAPTIONS := {"display_text": "Read"}
-
 var captions := 0
 var texts := 0
 var tile_captions := 0
@@ -48,7 +44,7 @@ func show_all(state: RealmState, content: GameData, to_screen: Transform2D, view
 	if state != null:
 		_show_captions(state, to_screen, view, ground)
 		_show_graves(state, content, to_screen, view, ground)
-		_show_tile_labels(state, content, to_screen, view, ground)
+		_show_tile_labels(state, to_screen, view, ground)
 		_show_numbers(state, to_screen, view, exact)
 	_captions.sweep()
 	_graves.sweep()
@@ -128,30 +124,26 @@ func _show_graves(state: RealmState, content: GameData, to_screen: Transform2D, 
 
 
 ## The caption floated under an interactive tile (its `label`), like a portal's.
-## A view-bounded scan each frame; tiles are static so this stays cheap.
-func _show_tile_labels(state: RealmState, content: GameData, to_screen: Transform2D,
-		view: Rect2, ground: Callable) -> void:
-	if content == null or state.tiles == null:
+func _show_tile_labels(state: RealmState, to_screen: Transform2D, view: Rect2,
+		ground: Callable) -> void:
+	if state.tiles == null:
 		return
 	var size := float(GameConstants.TILE_SIZE)
-	var x0 := maxi(0, floori(view.position.x / size))
-	var y0 := maxi(0, floori(view.position.y / size))
-	var x1 := floori(view.end.x / size)
-	var y1 := floori(view.end.y / size)
-	for ty in range(y0, y1 + 1):
-		for tx in range(x0, x1 + 1):
-			var text := _tile_label(state, content, tx, ty)
-			if text == "":
-				continue
-			var under: Variant = _under(to_screen, ground, Vector2(tx * size, ty * size))
-			if under == null:
-				continue
-			var label: Label = _tile_captions.acquire(ty * 100003 + tx)
-			if label.text != text:
-				label.text = text
-				label.reset_size()
-			label.position = Vector2(under.x - label.size.x * 0.5, under.y).round()
-			tile_captions += 1
+	var tile := Vector2(size, size)
+	for cell: Vector2i in state.tiles.captions:
+		var topleft := Vector2(cell) * size
+		if not view.intersects(Rect2(topleft, tile)):
+			continue
+		var under: Variant = _under(to_screen, ground, topleft)
+		if under == null:
+			continue
+		var text: String = state.tiles.captions[cell]
+		var label: Label = _tile_captions.acquire(cell.y * 100003 + cell.x)
+		if label.text != text:
+			label.text = text
+			label.reset_size()
+		label.position = Vector2(under.x - label.size.x * 0.5, under.y).round()
+		tile_captions += 1
 
 
 ## Where a caption's top-centre goes under the tile-sized thing at world_topleft: its
@@ -167,28 +159,6 @@ static func _under(to_screen: Transform2D, ground: Callable, world_topleft: Vect
 	if not feet is Vector2:
 		return null
 	return feet + Vector2(0.0, CAPTION_GAP)
-
-
-## The `label` of the interactive tile at (tx, ty), collision layer first, or "".
-func _tile_label(state: RealmState, content: GameData, tx: int, ty: int) -> String:
-	for layer in [GameConstants.COLLISION_LAYER, TileMapState.BASE_LAYER]:
-		var definition: Dictionary = content.tiles.get(state.tiles.tile_at(layer, tx, ty), {})
-		# Every tile carries `interactionType`, null on all but the interactive few,
-		# and str(null) is "<null>" (not ""), so the key must be null-checked.
-		var type_value: Variant = definition.get("interactionType")
-		if type_value == null:
-			continue
-		var kind := str(type_value)
-		if kind == "":
-			continue
-		# `label` is often present-but-null (the model serializes the empty field),
-		# and str(null) is "<null>", so guard the null before falling back.
-		var override: Variant = definition.get("label")
-		if override != null and str(override) != "":
-			return str(override)
-		# "fame_store" -> "Fame Store", "arena" -> "Arena"; overrides win.
-		return str(TILE_CAPTIONS.get(kind, kind.capitalize()))
-	return ""
 
 
 func _show_numbers(state: RealmState, to_screen: Transform2D, view: Rect2, exact: Callable) -> void:

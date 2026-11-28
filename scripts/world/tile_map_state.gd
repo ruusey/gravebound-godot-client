@@ -28,9 +28,14 @@ var changed_cells := {}   # Vector2i -> true; a re-sent, unchanged id is none
 var revealed_cells := {}   # Vector2i -> true
 ## Breakable walls' crack overlay stage (1-3), collision layer only.
 var cracks := {}   # Vector2i -> stage; intact cells are absent
+## The cells whose tile floats a caption (GameData.tile_caption), collision layer
+## first; kept as tiles arrive so the overlay never scans the view for the few there are.
+var captions := {}   # Vector2i -> caption
 var cleared := false
 
 var _content: GameData
+## tile id -> GameData.tile_caption(), read here per arriving cell without a call into GameData.
+var _caption_by_id := {}
 
 
 func _init(content: GameData = null) -> void:
@@ -40,6 +45,7 @@ func _init(content: GameData = null) -> void:
 func clear() -> void:
 	layers.clear()
 	cracks.clear()
+	captions.clear()
 	changed_cells.clear()
 	revealed_cells.clear()
 	cleared = true
@@ -97,11 +103,35 @@ func apply_load_map(data: Dictionary) -> bool:
 				revealed_cells[cell] = true
 			cells[cell] = tile_id
 			changed_cells[cell] = true
+			var captioned_layer := layer == COLLISION_LAYER or layer == BASE_LAYER
+			if captioned_layer and (captions.has(cell) or _caption(tile_id) != ""):
+				_index_caption(cell)
 		if layer == COLLISION_LAYER:
 			var stage := int(tile.get("crackStage", 0))
 			if stage != int(cracks.get(cell, 0)):
 				_apply_crack(cell, stage)
 	return changed
+
+
+func _index_caption(cell: Vector2i) -> void:
+	for layer in [COLLISION_LAYER, BASE_LAYER]:
+		var caption := _caption(layers.get(layer, {}).get(cell, -1))
+		if caption != "":
+			captions[cell] = caption
+			return
+	captions.erase(cell)
+
+
+func _caption(tile_id: int) -> String:
+	var cached: Variant = _caption_by_id.get(tile_id)
+	if cached != null:
+		return cached
+	if _content == null or tile_id <= 0:
+		return ""
+	var caption := _content.tile_caption(tile_id)
+	if _content.ready:
+		_caption_by_id[tile_id] = caption
+	return caption
 
 
 func crack_at(cell: Vector2i) -> int:
