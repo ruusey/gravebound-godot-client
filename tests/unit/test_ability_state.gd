@@ -76,6 +76,17 @@ func test_the_server_can_shorten_or_clear_a_cooldown():
 	assert_false(state.abilities.on_cooldown(2))
 
 
+func test_a_reset_lifts_the_lockout_between_casts():
+	var now := state.abilities.now()
+	state.abilities.global_until = now + 1000
+	state.abilities.start_cooldown(0, 4000)
+	state.apply_packet("AbilityCooldownPacket", {"slot": 0, "remainingMs": 0})
+	assert_lte(state.abilities.global_until, now, "a kill reset can be cast again straight away")
+	state.abilities.global_until = now + 1000
+	state.apply_packet("AbilityCooldownPacket", {"slot": 1, "remainingMs": 3000})
+	assert_eq(state.abilities.global_until, now + 1000, "a refund that leaves more time keeps it")
+
+
 # --- casts -------------------------------------------------------------------
 
 func test_a_cast_start_is_tracked_and_a_remote_caster_swings():
