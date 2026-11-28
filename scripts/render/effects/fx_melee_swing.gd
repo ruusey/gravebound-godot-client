@@ -132,8 +132,16 @@ static func _sword(canvas: CanvasItem, at: Vector2, angle: float, size: float, p
 	crescent(canvas, centre, radius, tail, head, width, Color("5cc8ff", 0.95 * alpha))
 	crescent(canvas, centre, radius + width * 0.12, tail, head, width * 0.42, Color(Color.WHITE, 0.95 * alpha))
 	rim(canvas, centre, radius + width * 0.32, tail, head, 3.0, Color(Color.WHITE, alpha))
+	var held := _held(progress, 0.32)
+	var along := Vector2(cos(head), sin(head))
+	_hilt(canvas, centre + along * radius * 0.22, along, radius * 0.24, size * 0.2, held)
+	var base := centre + along * radius * 0.46
+	var tip := centre + along * radius * 1.18
+	var side := along.orthogonal() * size * 0.065
+	Fx.polygon(canvas, [base + side, tip - along * size * 0.1 + side, tip, tip - along * size * 0.1 - side,
+		base - side], Color("d8e2ee", held))
+	Fx.line(canvas, base, tip, 2.0, Color("7f8da0", held))
 	if progress < 0.5:
-		var tip := Fx.polar(centre, head, radius)
 		glint(canvas, tip, size * 0.16 * (1.0 - progress), Color(Color.WHITE, 0.95))
 
 
@@ -151,6 +159,19 @@ static func _axe(canvas: CanvasItem, fx: Dictionary, at: Vector2, angle: float, 
 	crescent(canvas, centre, radius, tail, head, width, Color("ff8a2a", 0.95 * alpha))
 	crescent(canvas, centre, radius + width * 0.1, tail, head, width * 0.45, Color("ffe4a8", 0.95 * alpha))
 	rim(canvas, centre, radius + width * 0.3, tail, head, 4.0, Color("fff3d6", alpha))
+	# The haft along the swing and a broad bit leading the sweep.
+	var held := _held(progress, 0.38)
+	var along := Vector2(cos(head), sin(head))
+	var lead := -along.orthogonal() * turn
+	Fx.line(canvas, centre + along * radius * 0.2, centre + along * radius * 1.08, 6.0, Color("6b4423", held))
+	var neck := centre + along * radius * 0.92
+	var bit := size * 0.26
+	var blade := [neck - along * size * 0.07, neck + along * size * 0.07, neck + along * size * 0.17 + lead * bit,
+		neck - along * size * 0.17 + lead * bit]
+	Fx.polygon(canvas, blade, Color("8d96a6", held))
+	Fx.line(canvas, blade[2], blade[3], 3.5, Color("f2f6fb", held))
+	Fx.polygon(canvas, [neck - along * size * 0.05, neck + along * size * 0.05, neck - lead * size * 0.1],
+		Color("5d6473", held))
 	# The bite: a flash where the blade lands and embers thrown off ahead of it.
 	var bite := clampf((progress - 0.34) / 0.5, 0.0, 1.0)
 	if bite <= 0.0 or bite >= 1.0:
@@ -256,9 +277,34 @@ static func _dagger(canvas: CanvasItem, at: Vector2, angle: float, size: float, 
 		_cut(canvas, from, to, size * 0.24, Color("c9a0ff", 0.45 * alpha))
 		_cut(canvas, from, to, size * 0.12, Color("dcc4ff", 0.95 * alpha))
 		Fx.line(canvas, from, to, 2.5, Color(Color.WHITE, alpha))
+		# The dagger riding the head of the cut, point first.
+		var held := _held(p, 0.35)
+		var hilt := to - dir * size * 0.3
+		_hilt(canvas, hilt - dir * size * 0.12, dir, size * 0.12, size * 0.13, held)
+		var side := dir.orthogonal() * size * 0.04
+		Fx.polygon(canvas, [hilt + side, to - dir * size * 0.05 + side, to, to - dir * size * 0.05 - side,
+			hilt - side], Color("e6dcff", held))
 	var cross := 1.0 - absf(progress - 0.42) / 0.16
 	if cross > 0.0:
 		glint(canvas, at, size * 0.28 * cross, Color(Color.WHITE, cross))
+
+
+## How solid a drawn weapon is: whole until its stroke ends at `until`,
+## then gone over the next fifth.
+static func _held(progress: float, until: float) -> float:
+	return 1.0 - clampf((progress - until) / 0.2, 0.0, 1.0)
+
+
+## A grip running `length` along `along` from `from`, capped by a crossguard
+## `guard` wide.
+static func _hilt(canvas: CanvasItem, from: Vector2, along: Vector2, length: float, guard: float,
+		alpha: float) -> void:
+	if alpha <= 0.001:
+		return
+	var end := from + along * length
+	Fx.line(canvas, from, end, 5.0, Color("5a3a1e", alpha))
+	var across := along.orthogonal() * guard * 0.5
+	Fx.line(canvas, end - across, end + across, 5.0, Color("e0b44c", alpha))
 
 
 ## A straight cut: a thin lens from `from` to `to`, `width` across its middle.
